@@ -63,11 +63,13 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
-def _verify_remote_snapshot(repo_id: str, revision: str, manifest_sha256: str) -> Dict[str, Any]:
+def _verify_remote_snapshot(
+    repo_id: str, revision: str, version: str, manifest_sha256: str
+) -> Dict[str, Any]:
     from huggingface_hub import snapshot_download
 
     with tempfile.TemporaryDirectory(prefix="gaokao-hf-verify-") as directory:
-        root = Path(directory)
+        root = Path(directory) / version
         snapshot_download(
             repo_id=repo_id,
             repo_type="dataset",
@@ -178,6 +180,7 @@ def main() -> int:
         remote_verification = _verify_remote_snapshot(
             args.repo_id,
             str(getattr(commit, "oid", None) or "main"),
+            version,
             str(summary["manifest_sha256"]),
         )
     except Exception as exc:
