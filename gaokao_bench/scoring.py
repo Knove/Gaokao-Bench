@@ -78,6 +78,7 @@ EXPECTED_REQUIRED_IMAGE_IDS = {
     "GB25-TJ-Q03",
 }
 PUBLIC_PACKAGE_PROFILE = "public-data"
+PUBLIC_HUB_MANAGED_FILES = {".gitattributes"}
 PUBLIC_REQUIRED_FILES = {
     ".gitattributes",
     "README.md",
@@ -347,6 +348,10 @@ def _validate_public_manifest(dataset: Dataset) -> None:
             continue
         if not isinstance(metadata, dict):
             errors.append("invalid public manifest metadata for %s" % relative_path)
+            continue
+        if relative_path in PUBLIC_HUB_MANAGED_FILES:
+            if metadata.get("managed_by") != "huggingface":
+                errors.append("public manifest metadata is not marked as Hub-managed: %s" % relative_path)
             continue
         if metadata.get("bytes") != path.stat().st_size:
             errors.append("public manifest byte count mismatch: %s" % relative_path)

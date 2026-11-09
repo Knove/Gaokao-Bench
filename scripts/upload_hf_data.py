@@ -7,7 +7,9 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
@@ -59,6 +61,30 @@ def _jsonable(value: Any) -> Any:
     if callable(to_dict):
         return _jsonable(to_dict())
     return str(value)
+
+
+def _verify_remote_snapshot(repo_id: str, revision: str, manifest_sha256: str) -> Dict[str, Any]:
+    from huggingface_hub import snapshot_download
+
+    with tempfile.TemporaryDirectory(prefix="gaokao-hf-verify-") as directory:
+        root = Path(directory)
+        snapshot_download(
+            repo_id=repo_id,
+            repo_type="dataset",
+            revision=revision,
+            local_dir=str(root),
+            ignore_patterns=[".cache/**"],
+        )
+        shutil.rmtree(root / ".cache", ignore_errors=True)
+        dataset = load_dataset(root)
+        audit = validate_dataset(dataset)
+        remote_manifest_sha256 = _sha256(root / "manifest.json")
+        if remote_manifest_sha256 != manifest_sha256:
+            raise ValueError(
+                "remote manifest SHA-256 %s does not match local %s"
+                % (remote_manifest_sha256, manifest_sha256)
+            )
+        return {"manifest_sha256": remote_manifest_sha256, "audit": audit}
 
 
 def main() -> int:
@@ -148,6 +174,20 @@ def main() -> int:
         print("Hugging Face upload failed: %s" % exc, file=sys.stderr)
         return 2
 
+    try:
+        remote_verification = _verify_remote_snapshot(
+            args.repo_id,
+            str(getattr(commit, "oid", None) or "main"),
+            str(summary["manifest_sha256"]),
+        )
+    except Exception as exc:
+        print(
+            "Upload committed, but the remote package failed verification; tag was not created: %s"
+            % exc,
+            file=sys.stderr,
+        )
+        return 2
+
     tag_status = "skipped"
     if not args.skip_tag:
         try:
@@ -189,6 +229,7 @@ def main() -> int:
         "commit_url": getattr(commit, "commit_url", None),
         "tag": None if args.skip_tag else tag,
         "tag_status": tag_status,
+        "remote_verification": remote_verification,
         "remote": remote,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))

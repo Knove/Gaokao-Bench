@@ -9,7 +9,12 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
-from .scoring import PUBLIC_PACKAGE_PROFILE, load_dataset, validate_dataset
+from .scoring import (
+    PUBLIC_HUB_MANAGED_FILES,
+    PUBLIC_PACKAGE_PROFILE,
+    load_dataset,
+    validate_dataset,
+)
 
 
 PUBLIC_QUESTION_FIELDS = (
@@ -423,7 +428,10 @@ def _build_manifest(
         if not path.is_file() or path.name == "manifest.json":
             continue
         relative = path.relative_to(output).as_posix()
-        file_map[relative] = {"bytes": path.stat().st_size, "sha256": _sha256(path)}
+        if relative in PUBLIC_HUB_MANAGED_FILES:
+            file_map[relative] = {"bytes": None, "sha256": None, "managed_by": "huggingface"}
+        else:
+            file_map[relative] = {"bytes": path.stat().st_size, "sha256": _sha256(path)}
     manifest = {
         "dataset": "Gaokao-Bench",
         "dataset_version": output.name,
