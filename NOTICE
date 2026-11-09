@@ -7,7 +7,11 @@ contributors are licensed under the Apache License, Version 2.0. See LICENSE.
 Original metadata, scoring explanations, data cards, and other editorial
 material authored by the Gaokao-Bench contributors are intended to be licensed
 under the Creative Commons Attribution 4.0 International License. See
-LICENSE-DATA.
+LICENSE-DATA for the layered data terms.
+
+Public dataset packages are distributed separately at
+https://huggingface.co/datasets/Knove/Gaokao-Bench and remain subject to the
+third-party notices included in each versioned package.
 
 This notice does not grant any rights in the underlying Chinese Gaokao exam
 questions, answer keys, explanations, page images, PDFs, or other third-party

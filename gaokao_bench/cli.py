@@ -8,6 +8,12 @@ import sys
 from pathlib import Path
 from typing import Any, List, Optional
 
+from .data_fetch import (
+    DEFAULT_DATA_REPO_ID,
+    DEFAULT_DATA_VERSION,
+    DataFetchError,
+    fetch_data,
+)
 from .scoring import evaluate_submission, load_dataset, validate_dataset
 
 
@@ -18,6 +24,24 @@ def _print_json(value: Any) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Gaokao-Bench utilities")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    fetch_parser = subparsers.add_parser(
+        "fetch-data", help="download and verify a public dataset version from Hugging Face"
+    )
+    fetch_parser.add_argument("--version", default=DEFAULT_DATA_VERSION)
+    fetch_parser.add_argument("--repo-id", default=DEFAULT_DATA_REPO_ID)
+    fetch_parser.add_argument(
+        "--data-dir",
+        default="data",
+        help="base data directory; the version is created beneath it",
+    )
+    fetch_parser.add_argument(
+        "--revision",
+        help="Hugging Face revision or tag (default: v<version>)",
+    )
+    fetch_parser.add_argument(
+        "--force", action="store_true", help="replace an existing directory after verification"
+    )
 
     validate_parser = subparsers.add_parser("validate", help="validate the immutable data package")
     validate_parser.add_argument("--data-dir", default="data/0.0.1")
@@ -32,6 +56,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.command == "fetch-data":
+        try:
+            result = fetch_data(
+                version=args.version,
+                data_dir=args.data_dir,
+                repo_id=args.repo_id,
+                revision=args.revision,
+                force=args.force,
+            )
+        except DataFetchError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        _print_json(result)
+        return 0
+
     dataset = load_dataset(args.data_dir, validate=False)
     audit = validate_dataset(dataset)
 

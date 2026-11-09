@@ -77,6 +77,54 @@ EXPECTED_REQUIRED_IMAGE_IDS = {
     "GB25-SH-Q11",
     "GB25-TJ-Q03",
 }
+PUBLIC_PACKAGE_PROFILE = "public-data"
+PUBLIC_REQUIRED_FILES = {
+    ".gitattributes",
+    "README.md",
+    "CITATION.cff",
+    "LICENSE-DATA",
+    "THIRD_PARTY_NOTICES.md",
+    "answer_keys.jsonl",
+    "assets.jsonl",
+    "catalog/subjective_catalog.jsonl",
+    "examples/README.md",
+    "examples/empty.json",
+    "examples/gold.json",
+    "examples/malformed.json",
+    "papers.jsonl",
+    "questions.jsonl",
+}
+PUBLIC_IGNORED_LOCAL_PREFIXES = (".cache/", ".git/")
+PUBLIC_FORBIDDEN_QUESTION_FIELDS = {"notes"}
+PUBLIC_FORBIDDEN_SOURCE_FIELDS = {
+    "bbox",
+    "crop_method",
+    "evidence_status",
+    "seed_database",
+    "seed_question_id",
+    "seed_scan_image_path",
+}
+PUBLIC_FORBIDDEN_PAPER_FIELDS = {"notes"}
+PUBLIC_FORBIDDEN_ASSET_FIELDS = {
+    "bbox",
+    "crop_method",
+    "redistribution",
+    "source_pdf_sha256",
+}
+PUBLIC_FORBIDDEN_CATALOG_FIELDS = {"source_question_id", "source_pdf_sha256"}
+PUBLIC_FORBIDDEN_PATHS = {
+    "DATA_CARD.md",
+    "RELEASE_MATERIALIZATION.md",
+    "REPRODUCE.md",
+    "SOURCE_REGISTER.md",
+    "answer_audit.jsonl",
+    "answer_sources.jsonl",
+    "asset_audit.jsonl",
+    "point_audit.jsonl",
+    "question_audit.jsonl",
+    "reviews.jsonl",
+    "sources.jsonl",
+}
 
 
 def _validate_source_assessments(
@@ -247,6 +295,120 @@ def load_dataset(data_dir: Path | str, validate: bool = True) -> Dataset:
     return dataset
 
 
+def _validate_public_manifest(dataset: Dataset) -> None:
+    errors: List[str] = []
+    manifest = dataset.manifest
+    if manifest.get("package_profile") != PUBLIC_PACKAGE_PROFILE:
+        errors.append("public package_profile must be %s" % PUBLIC_PACKAGE_PROFILE)
+    if manifest.get("public_release") is not True:
+        errors.append("public dataset must set public_release=true")
+    rights = manifest.get("rights") if isinstance(manifest.get("rights"), dict) else {}
+    if str(rights.get("public_redistribution", "")).startswith("not_cleared"):
+        errors.append("public dataset still declares that redistribution is not cleared")
+
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not files:
+        errors.append("public manifest files must be a non-empty object")
+        files = {}
+    missing_files = sorted(PUBLIC_REQUIRED_FILES - set(files))
+    if missing_files:
+        errors.append("public manifest does not cover required files: %s" % ", ".join(missing_files))
+    forbidden: List[str] = []
+    for relative_path in files:
+        if relative_path in PUBLIC_FORBIDDEN_PATHS or relative_path.startswith(
+            ("docs/", "reports/", "review_packets/", "runs/", "release/", "review_ui/", "scripts/", "tests/")
+        ):
+            forbidden.append(relative_path)
+    if forbidden:
+        errors.append("public manifest contains internal paths: %s" % ", ".join(sorted(forbidden)[:5]))
+
+    actual_files = {
+        path.relative_to(dataset.data_dir).as_posix()
+        for path in dataset.data_dir.rglob("*")
+        if path.is_file() and path.name != "manifest.json"
+    }
+    unlisted_files = sorted(
+        relative
+        for relative in actual_files - set(files)
+        if not relative.startswith(PUBLIC_IGNORED_LOCAL_PREFIXES)
+    )
+    if unlisted_files:
+        errors.append("public package contains unlisted files: %s" % ", ".join(unlisted_files[:5]))
+
+    for relative_path, metadata in sorted(files.items()):
+        path_parts = Path(relative_path).parts
+        if Path(relative_path).is_absolute() or ".." in path_parts:
+            errors.append("unsafe public manifest path: %s" % relative_path)
+            continue
+        path = dataset.data_dir / relative_path
+        if not path.is_file():
+            errors.append("public manifest file is missing: %s" % relative_path)
+            continue
+        if not isinstance(metadata, dict):
+            errors.append("invalid public manifest metadata for %s" % relative_path)
+            continue
+        if metadata.get("bytes") != path.stat().st_size:
+            errors.append("public manifest byte count mismatch: %s" % relative_path)
+        if metadata.get("sha256") != file_sha256(path):
+            errors.append("public manifest hash mismatch: %s" % relative_path)
+
+    counts = manifest.get("counts") if isinstance(manifest.get("counts"), dict) else {}
+    expected_counts = {
+        "papers": len(dataset.papers),
+        "objective_questions": len(dataset.questions),
+        "choice_questions": len([q for q in dataset.questions if q["type"] in ("single_choice", "multi_choice")]),
+        "multi_choice_questions": len([q for q in dataset.questions if q["type"] == "multi_choice"]),
+        "fill_questions": len([q for q in dataset.questions if q["type"] == "fill_blank"]),
+        "answer_slots": sum(int(q["answer_slot_count"]) for q in dataset.questions),
+        "image_required_questions": len([q for q in dataset.questions if q.get("asset_dependency") == "required"]),
+        "catalog_subjective_questions": len(dataset.catalog_subjective),
+        "catalog_subjective_points": sum(int(q["points"]) for q in dataset.catalog_subjective),
+    }
+    for field, expected in expected_counts.items():
+        if int(counts.get(field, -1)) != expected:
+            errors.append("public manifest count %s is stale: expected %d, got %s" % (field, expected, counts.get(field)))
+
+    for question in dataset.questions:
+        forbidden_fields = sorted(PUBLIC_FORBIDDEN_QUESTION_FIELDS & set(question))
+        if forbidden_fields:
+            errors.append(
+                "public question %s exposes internal fields: %s"
+                % (question["id"], ", ".join(forbidden_fields))
+            )
+        source = question.get("source")
+        if isinstance(source, dict):
+            source_fields = sorted(PUBLIC_FORBIDDEN_SOURCE_FIELDS & set(source))
+            if source_fields:
+                errors.append(
+                    "public question %s exposes internal source fields: %s"
+                    % (question["id"], ", ".join(source_fields))
+                )
+    for paper in dataset.papers:
+        forbidden_fields = sorted(PUBLIC_FORBIDDEN_PAPER_FIELDS & set(paper))
+        if forbidden_fields:
+            errors.append(
+                "public paper %s exposes internal fields: %s"
+                % (paper["id"], ", ".join(forbidden_fields))
+            )
+    for asset in _read_jsonl(dataset.data_dir / "assets.jsonl"):
+        forbidden_fields = sorted(PUBLIC_FORBIDDEN_ASSET_FIELDS & set(asset))
+        if forbidden_fields:
+            errors.append(
+                "public asset %s exposes internal fields: %s"
+                % (asset.get("question_id", ""), ", ".join(forbidden_fields))
+            )
+    for item in dataset.catalog_subjective:
+        forbidden_fields = sorted(PUBLIC_FORBIDDEN_CATALOG_FIELDS & set(item))
+        if forbidden_fields:
+            errors.append(
+                "public catalog item %s exposes internal fields: %s"
+                % (item.get("id", ""), ", ".join(forbidden_fields))
+            )
+
+    if errors:
+        raise ValueError("Gaokao-Bench public dataset validation failed:\n- " + "\n- ".join(errors))
+
+
 def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     """Validate all hard invariants and return a compact audit summary."""
 
@@ -387,6 +549,34 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     for key_id in dataset.answer_keys:
         if key_id not in set(question_ids):
             errors.append("orphan answer key: %s" % key_id)
+
+    required_assets = [q for q in dataset.questions if q.get("asset_dependency") == "required"]
+    required_asset_ids = {q["id"] for q in required_assets}
+    if required_asset_ids != EXPECTED_REQUIRED_IMAGE_IDS:
+        errors.append(
+            "image-required question set differs: expected %s, got %s"
+            % (sorted(EXPECTED_REQUIRED_IMAGE_IDS), sorted(required_asset_ids))
+        )
+    if dataset.manifest.get("package_profile") == PUBLIC_PACKAGE_PROFILE:
+        if errors:
+            raise ValueError("Gaokao-Bench dataset validation failed:\n- " + "\n- ".join(errors))
+        _validate_public_manifest(dataset)
+        return {
+            "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
+            "papers": len(dataset.papers),
+            "questions": len(dataset.questions),
+            "choice_questions": len(choices),
+            "fill_questions": len(fills),
+            "multi_choice_questions": len([q for q in choices if q["type"] == "multi_choice"]),
+            "answer_slots": sum(int(q["answer_slot_count"]) for q in dataset.questions),
+            "objective_points": total_points,
+            "paper_points": paper_points,
+            "scored_scope": "choice_and_fill_only",
+            "catalog_subjective_questions": len(dataset.catalog_subjective),
+            "catalog_subjective_points": catalog_subjective_points,
+            "image_required_questions": len(required_assets),
+            "question_audit_rows": 0,
+        }
 
     questions_by_id = {question["id"]: question for question in dataset.questions}
     answer_sources = {

@@ -1,3 +1,32 @@
+Gaokao-Bench Data Terms
+=======================
+
+This file describes the rights layer for Gaokao-Bench dataset packages. It does
+not replace the separate rights that apply to third-party exam material.
+
+1. Project contributions. The question selection, paper structure, answer-key
+   schema, scoring metadata, checksums, and other original editorial material
+   created by Gaokao-Bench contributors are licensed under the Creative Commons
+   Attribution 4.0 International License (CC BY 4.0), reproduced below.
+
+2. Third-party exam material. Chinese Gaokao question text, answer text,
+   figures, page images, PDFs, and other source material remain subject to the
+   rights of their respective publishers or other rights holders. They are not
+   relicensed by the Gaokao-Bench code license or the CC BY 4.0 grant above.
+   The dataset records this as NOASSERTION and retains source identifiers and
+   links for attribution, correction, and takedown requests.
+
+3. Public distribution. Public distribution of a versioned package is a
+   project-owner release decision. It does not assert that the project owns
+   third-party exam material or that every source has an identified open
+   license. Corrections and removal requests should be submitted through the
+   discussions page of the published dataset.
+
+4. Full CC BY 4.0 text. The complete legal text follows and applies only to the
+   project contributions identified in paragraph 1.
+
+--------------------------------------------------------------------------------
+
 Attribution 4.0 International
 
 =======================================================================

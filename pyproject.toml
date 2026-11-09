@@ -14,10 +14,14 @@ dependencies = []
 
 [project.optional-dependencies]
 harness = ["Pillow>=10"]
-dev = ["pytest>=8,<9", "Pillow>=10", "PyMuPDF>=1.24,<2"]
+data = ["huggingface_hub>=0.23,<1"]
+dev = ["pytest>=8,<9", "Pillow>=10", "PyMuPDF>=1.24,<2", "huggingface_hub>=0.23,<1"]
 
 [project.scripts]
 gaokao-bench = "gaokao_bench.cli:main"
+
+[project.urls]
+Dataset = "https://huggingface.co/datasets/Knove/Gaokao-Bench"
 
 [tool.setuptools.packages.find]
 include = ["gaokao_bench*"]

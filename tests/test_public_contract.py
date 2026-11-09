@@ -1,7 +1,9 @@
 import re
 from pathlib import Path
 
+from gaokao_bench.cli import build_parser
 from gaokao_bench.scoring import parse_interval, parse_numeric_expression
+from gaokao_bench.scoring import PUBLIC_REQUIRED_FILES
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,3 +50,21 @@ def test_public_readmes_and_theme_assets_are_complete():
             if target.startswith(("http://", "https://", "#", "mailto:")):
                 continue
             assert (ROOT / target).is_file(), "%s has a missing local reference: %s" % (document.name, target)
+
+
+def test_public_fetch_data_cli_contract():
+    args = build_parser().parse_args(["fetch-data", "--version", "0.0.1"])
+    assert args.command == "fetch-data"
+    assert args.repo_id == "Knove/Gaokao-Bench"
+    assert args.data_dir == "data"
+    assert args.version == "0.0.1"
+    assert args.revision is None
+
+
+def test_public_package_contract_is_documented():
+    assert "README.md" in PUBLIC_REQUIRED_FILES
+    assert "manifest.json" not in PUBLIC_REQUIRED_FILES
+    for document in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
+        text = document.read_text(encoding="utf-8")
+        assert "https://huggingface.co/datasets/Knove/Gaokao-Bench" in text
+        assert "gaokao-bench fetch-data --version 0.0.1" in text

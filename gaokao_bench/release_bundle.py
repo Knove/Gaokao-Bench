@@ -35,6 +35,7 @@ PUBLIC_CODE_EXACT_FILES = {
     "requirements-lock.txt",
 }
 PUBLIC_CODE_SCRIPTS = {
+    "build_public_data.py",
     "build_release.py",
     "evaluate.py",
     "export_owner_review.py",
@@ -45,6 +46,7 @@ PUBLIC_CODE_SCRIPTS = {
     "release_gate.py",
     "run_benchmark.py",
     "smoke.py",
+    "upload_hf_data.py",
     "validate.py",
     "verify_release_bundle.py",
 }

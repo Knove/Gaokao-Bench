@@ -7,92 +7,85 @@
 
 <h1 align="center">Gaokao-Bench</h1>
 
-<p align="center"><strong>真实试卷。固定分母。可复现的分数。</strong></p>
+<p align="center"><strong>全国选拔标尺 · 历年动态演进 · 真实卷面评测</strong></p>
 
-<p align="center">面向 AI 系统的确定性、按题分加权基准，<br>题目来自真实中国高考客观题。</p>
+<p align="center">以中国高考历年真题为核心的 AI 智力评测基准。<br>还原真实卷面分值与确定性判分，追踪大模型在国家级高区分度考题上的真实水位。</p>
 
 <p align="center"><a href="README.md">English</a>&nbsp;&nbsp;·&nbsp;&nbsp;简体中文</p>
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="LICENSE"><img alt="许可证：Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2E7D32?style=flat-square"></a>
   <a href="CITATION.cff"><img alt="版本 0.0.1" src="https://img.shields.io/badge/version-0.0.1-171513?style=flat-square"></a>
-  <a href="SCOPE.md"><img alt="纯代码发布" src="https://img.shields.io/badge/scope-code--only-C83D2B?style=flat-square"></a>
-  <a href="#评分契约"><img alt="确定性评分" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
+  <a href="#计分规则"><img alt="确定性评分" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
+  <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Hugging Face 数据集" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
 
 <p align="center">
-  <a href="#为什么是-gaokao-bench"><strong>项目定位</strong></a> &nbsp;·&nbsp;
-  <a href="#基准概览"><strong>基准概览</strong></a> &nbsp;·&nbsp;
-  <a href="#工作方式"><strong>工作方式</strong></a> &nbsp;·&nbsp;
-  <a href="#快速开始"><strong>快速开始</strong></a> &nbsp;·&nbsp;
-  <a href="#评分契约"><strong>评分</strong></a> &nbsp;·&nbsp;
-  <a href="#纯代码边界"><strong>边界</strong></a>
+  <a href="#为什么选择高考作为-ai-智力标尺"><strong>为什么做 Gaokao-Bench</strong></a> &nbsp;·&nbsp;
+  <a href="#数据集概览"><strong>数据集概览</strong></a> &nbsp;·&nbsp;
+  <a href="#评测流程"><strong>评测流程</strong></a> &nbsp;·&nbsp;
+  <a href="#快速上手"><strong>快速上手</strong></a> &nbsp;·&nbsp;
+  <a href="#计分规则"><strong>计分规则</strong></a> &nbsp;·&nbsp;
+  <a href="#路线图-roadmap"><strong>路线图</strong></a>
 </p>
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/readme/hero-zh-dark.svg">
-    <img src=".github/readme/hero-zh-light.svg" width="100%" alt="Gaokao-Bench：真实试卷、固定分母、可复现分数">
+    <img src=".github/readme/hero-zh-light.svg" width="100%" alt="Gaokao-Bench：全国选拔标尺、历年动态演进、真实卷面评测">
   </picture>
 </p>
 
-> [!IMPORTANT]
-> **本仓库只包含代码。** 高考题目、答案键、来源 PDF、页面图片、裁图、复核包和答案证据均单独分发。软件许可证不覆盖第三方试卷素材。详见 [`SCOPE.md`](SCOPE.md)。
+## 为什么选择高考作为 AI 智力标尺？
 
-Gaokao-Bench 把试卷当作测量工具，而不是一组提示词。每道计分题都有经过复核的题分、规范的答案路径和固定的分母位置。一次运行可以重放，一份作答可以重新解析，每一次失败都会留在分数里。
+**中国高考（普通高等学校招生全国统一考试）** 是一把天然且极高含金量的智力标尺：
 
-项目遵循一条简单原则：**一个基准分数，应该经得起重跑、重解析和重新审计。**
+1. **极具代表性的国家级选拔尺度：** 高考是中国每年上千万考生进入大学的必经选拔考试，每一道题都经过顶尖命题专家的反复打磨，专门为了拉开思维层次、检验多步严密推理而设计。考卷上的每一分，在现实世界都有极其明确的认知含金量与全社会共识。
+2. **随时代动态演进，拒绝套路化：** 高考不是静态题库。每年都有全新的全国卷与省市自主命题卷诞生，且命题趋势一直在动态升级——近年更是持续强化“反刷题、反套路”的创新情境与跨模块综合考查。这种天然的年度演进与难度跃迁，正好可以用来持续追踪 AI 智力的真实上限，区分模型到底是在“背题库”还是在“真推理”。
+3. **像真正批改高考试卷一样做评测：** 目前不少考试类 Benchmark 习惯把不同分值的题目按“答对题数百分比”一视同仁，用另一个大模型当裁判打分，甚至在接口报错时悄悄把失败样本从分母里删掉。**Gaokao-Bench** 严格还原高考阅卷逻辑：
+   - **真实卷面分值：** 每道题按高考卷面实际分值加权，告别“大小题同权”。
+   - **零裁判模型确定判分：** 纯确定性数学解析与规则校验，不引入 LLM 裁判噪声。
+   - **固定总分分母：** 请求超时、API 报错或格式解析失败一律记 `0` 分，总分分母绝不缩水。
+   - **匿名防泄露：** 发送给模型的 Prompt 自动剥离年份、卷种与题号，防止模型靠元信息投机。
 
-## 为什么是 Gaokao-Bench？
+> [!NOTE]
+> 本仓库提供评测框架（Harness）、确定性判分器与数据校验工具。真题数据包发布在 [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench)，通过版本标签固定（详见 [`SCOPE.md`](SCOPE.md)）。
 
-| 常见基准问题 | Gaokao-Bench 的处理 |
+## 数据集概览
+
+首发 `0.0.1` 版本收录了 **2025 年高考数学** 5 套试卷的全部客观题，并已完成逐题分值核对与双人独立盲审：
+
+| 维度 | `0.0.1` 数据规格 |
 | --- | --- |
-| LLM 裁判把另一个模型带进了测量过程 | 使用确定性解析器和规范校验器；评分链路里没有裁判模型 |
-| 只用百分比，掩盖了题目分值不同 | 按题分计分，而不只是数题目；分母是全部已复核题分之和 |
-| 请求失败后把题目从分母中删掉 | 缺失、格式错误、超时和 provider 错误全部计 0，并保留在分母中 |
-| 答案无法回溯到证据 | 来源、答案审计、分值审计、裁图哈希和复核状态随题目一起保存 |
-| 公开题目带来污染争议 | 2025 年结果必须标注 `retrospective_public_2025`，禁止声称“新鲜能力” |
-| 分数缺少版本上下文 | 每次运行绑定数据集、Harness、评分器、Prompt、模型快照和重复次数 |
+| **年份与科目** | 2025 · 数学 |
+| **覆盖试卷** | 5 套（全国一卷、全国二卷、北京卷、上海卷、天津卷） |
+| **计分题量** | **74 题**（单选 39 题、多选 6 题、填空 29 题） |
+| **卷面总分** | **353 分**（共 **78** 个答案空位） |
+| **含图题目** | **4 题** |
+| **纯文本模式（Text）** | 实际作答 **70 题 / 满分上限 334 分**（仍以 353 分为总分母） |
+| **多模态模式（Vision）** | 完整作答 **74 题 / 353 分**（对 4 道含图题附带原题裁图） |
+| **分发地址** | [Hugging Face 数据集](https://huggingface.co/datasets/Knove/Gaokao-Bench)，版本 `v0.0.1` |
 
-## 基准概览
+*注：353 分是 5 套试卷客观题真实分值的累加，不会按线性比例虚构折算成 750 分总分。*
 
-以下是配套 **0.0.1 数据集**的统计。数据集按设计不放在本仓库中。
-
-| | 0.0.1 客观题范围 |
-| --- | --- |
-| 年份与科目 | 2025 · 数学 |
-| 试卷 | 5 套：全国卷 I、全国卷 II、北京卷、上海卷、天津卷 |
-| 计分题目 | **74 道**——39 道单选、6 道多选、29 道填空 |
-| 计分总分 | **353 分** |
-| 答案槽 | **78 个** |
-| 图形必需题 | **4 道** |
-| 文本模式 | **70 题 / 334 分** |
-| 视觉模式 | **74 题 / 353 分** |
-| 已编目但不计分 | 26 道主观题 / 397 分 |
-| 官方答案来源 | 不作官方来源声明；复核流程记录在数据包中 |
-
-353 分是逐题复核分值的总和，**不是**把 750 分卷面总分线性缩放后的结果，也不能被这样展示。
-
-## 工作方式
+## 评测流程
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/readme/pipeline-zh-dark.svg">
-    <img src=".github/readme/pipeline-zh-light.svg" width="100%" alt="Gaokao-Bench 流程：版本化数据包经过校验、匿名化提示、文本或视觉模型，再由确定性评分器计分；发布完整性覆盖审计、人工复核、不可变版本与发布门禁">
+    <img src=".github/readme/pipeline-zh-light.svg" width="100%" alt="Gaokao-Bench 评测与数据发布流程">
   </picture>
 </p>
 
-两条路径被刻意分开：
+1. **匿名化提问：** 评测框架逐题独立请求模型，隐去试卷年份、地区、题号等元信息，仅要求模型返回结构化 JSON 答案。
+2. **确定性判分：** 解析器对模型输出做数学规范化处理（支持分数、根式、区间、集合、LaTeX 公式及多选组合），直接与标准答案比对。
+3. **多轮盲审固化：** 每个数据集版本在发布前，均需完成来源登记、独立解题推导、卷面分值核对以及两名审校员的独立复核签字。
 
-- **评测路径是确定性的。** 模型每次只看到一道匿名题；评分器看到的是结构化答案和已复核题分。
-- **发布路径必须经过人工复核。** 来源证据、独立推导、媒体交叉核对、owner 复核和两名独立审校全部闭合后，才能材料化新的不可变数据版本。
+## 快速上手
 
-Harness 不会把年份、卷种、题号、`question_id`、来源或答案发给 provider。它只要求模型输出一个小型 JSON 对象，评分在模型之外完成。
+### 1. 安装环境
 
-## 快速开始
-
-### 1. 从源码安装
+需要 Python 3.9 及以上版本：
 
 ```bash
 git clone <repository-url>
@@ -105,43 +98,40 @@ python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
-只需要视觉依赖时，可安装 `.[harness]`。运行环境要求 Python 3.9 或更高版本。
+如果只需要运行评测和下载数据，不需要开发测试工具，安装 `.[harness,data]` 即可。
 
-### 2. 获取已复核的数据包
+### 2. 准备数据包
 
-纯代码仓库不会偷偷下载数据集。请把工具指向单独版本化的数据包：
-
-```text
-gaokao-bench-data/
-  manifest.json
-  papers.jsonl
-  questions.jsonl
-  answer_keys.jsonl
-  assets/
-  ...
-```
-
-数据包自带 manifest、复核 lineage、权利说明和内容哈希。不要把不同数据集版本的文件混在一起。
-
-### 3. 校验与评分
+从 Hugging Face 下载不可变版本，并逐文件校验哈希：
 
 ```bash
-export GB_DATA=/path/to/gaokao-bench-data
+python -m pip install -e ".[data]"
+gaokao-bench fetch-data --version 0.0.1
 
-python3 scripts/validate.py --data-dir "$GB_DATA"
-python3 scripts/evaluate.py \
-  --data-dir "$GB_DATA" \
-  --answers submission.json
-```
-
-安装后的 CLI 提供同样的核心操作：
-
-```bash
+export GB_DATA=data/0.0.1
 gaokao-bench validate --data-dir "$GB_DATA"
-gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json
 ```
 
-提交文件以题目 ID 为键：
+命令会下载 `v0.0.1` 到 `data/0.0.1`，清理 Hugging Face 缓存元数据，并拒绝使用未通过校验或不属于该仓库的目录。也可以手动下载：
+
+```bash
+python - <<'PY'
+from huggingface_hub import snapshot_download
+snapshot_download(
+    repo_id="Knove/Gaokao-Bench",
+    repo_type="dataset",
+    revision="v0.0.1",
+    local_dir="data/0.0.1",
+)
+PY
+gaokao-bench validate --data-dir data/0.0.1
+```
+
+`GB_DATA` 指向具体的版本目录，而不是仓库根目录。不要混用不同版本的文件。
+
+### 3. 对已有作答结果判分
+
+如果你已经通过自己的推理框架拿到了模型输出，可以整理成以题目 ID 为键的 JSON 文件：
 
 ```json
 {
@@ -153,9 +143,15 @@ gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json
 }
 ```
 
-### 4. 运行评测 Harness
+直接运行本地判分：
 
-调用真实模型需要显式选择 provider，并在环境变量中提供凭据。凭据不会写入报告。
+```bash
+gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json
+```
+
+### 4. 运行完整模型评测
+
+配置好模型的 API Key 后，即可启动端到端评测。默认建议在 `temperature=0` 下重复运行 3 次：
 
 ```bash
 export OPENAI_API_KEY=...
@@ -171,135 +167,61 @@ python3 scripts/run_benchmark.py \
   --output-dir runs/<run-id>
 ```
 
-支持的 provider 有 `anthropic`、`openai_compatible`、`gemini_cli` 和 `mock`。使用 `--prepare-only` 可以在不调用模型的情况下生成并审计 Prompt。
+内置支持 `openai_compatible`、`anthropic`、`gemini_cli` 和 `mock` 四种调用方式。如果只想预览生成的 Prompt 而不实际调用接口，可以加上 `--prepare-only` 参数。
 
-## 评分契约
+## 计分规则
 
-```text
-score = earned_points / fixed_points
-```
+$$\text{总得分率} = \frac{\text{实际获得题分}}{\text{固定卷面总分 (353)}}$$
 
-| 规则 | 行为 |
+- **单题全对得分：** `0.0.1` 版本暂不启用多选题与多空填空题的部分分，单题所有空位全部匹配才得分。
+- **失败样本不剔除：** 漏答、JSON 解析失败、请求超时、API 报错一律记录在案并记 `0` 分。
+- **文本与多模态统一分母：** 两种模式均以 353 分为基准分母。在 `text` 模式下，4 道必须看图的题目不会发送给模型，直接记 `0` 分（因此纯文本模式最高可得 334/353 分）；在 `vision` 模式下，这 4 道题会附带对应的题图裁片。
+- **公开题库与污染区分：** 已公开年份的试卷在评测报告中会明确标注（如 `retrospective_public_2025`），与每年最新高考放榜前的零污染实时评测（Fresh Exam Evaluation）严格区分。
+
+## 路线图（Roadmap）
+
+Gaokao-Bench 的长期目标是构建**覆盖中国高考恢复以来（1977 年至今）全年份、全科目的高精度评测体系**，持续记录 AI 智力随时间演进的轨迹：
+
+### 阶段一：评测基建与最新真题基线（已完成）
+- [x] **v0.0.1 — 2025 高考数学客观题基线：** 覆盖全国一卷、全国二卷、北京、上海、天津 5 套试卷（74 题 / 353 分），跑通纯文本与多模态评测、确定性数学解析及双人盲审数据流。
+
+### 阶段二：近十年高考真题扩充与全科客观题覆盖（进行中）
+- [ ] **2015–2024 数学真题回溯：** 系统收录近十年新课标卷、全国卷及各自主命题省市数学真题，构建跨年份难度演进对比曲线。
+- [ ] **全科目客观题扩展：** 将高标准审校与真实题分评测拓展至物理、化学、生物、语文、英语、历史、地理、政治等全部高考科目。
+- [ ] **多选与多空细粒度赋分：** 支持完全贴合各省历年高考阅卷规则的多选题部分分（如漏选得 2 分或 3 分）与多空分步计分。
+
+### 阶段三：1977 年至今中国高考历史全集（规划中）
+- [ ] **1977–2014 历年高考真题全量数字化与精校：** 回溯中国恢复高考以来的全部历史统考与分省试卷，打造跨越近半个世纪的国家级考题全集。
+- [ ] **历年命题难度与 AI 能力纵向研究：** 分析大模型在不同年代考题风格（从早期重技巧推演到近年重创新情境与反套路建模）下的表现差异。
+
+### 阶段四：全卷 750 分闭环与年度实时评测（长期持续更新）
+- [ ] **主观解答题按步给分体系：** 引入贴合高考阅卷细则（Rubric）的步骤拆解、形式化验证与人机协同裁定，打通从客观题到 750 分全卷评测的闭环。
+- [ ] **每年 6 月高考实时零污染评测（Live Gaokao）：** 每年高考结束后第一时间完成当届新题收录与盲审，在预训练语料尚未污染的窗口期内检验新一代模型的真实泛化智力。
+
+## 目录结构
+
+| 路径 | 说明 |
 | --- | --- |
-| 单题得分 | 默认全对得分，否则为 0；所有答案槽必须匹配 |
-| 分值权重 | 每道题按已复核题分计入 |
-| 失败处理 | 缺失、格式错误、超时和 provider 错误均计 `0` |
-| 分母 | 永不收缩；失败样本保留在固定总分里 |
-| 解析 | 确定性数学规范化与受限的自定义校验器 |
-| 裁判 | 评分链路不使用 LLM 裁判 |
-| 报告 | 同时报告题目正确率、完全正确率、题分正确率和各卷拆分 |
-
-两种模式使用同一套评分器：
-
-| 模式 | 变化 | 主指标 | 固定分母 |
-| --- | --- | --- | --- |
-| 文本 | 4 道图形必需题不发送给 provider，按策略计 `0` | **70 题 / 334 分** | **353 分** |
-| 视觉 | 只额外提供 4 张必需图形裁块 | **74 题 / 353 分** | **353 分** |
-
-0.0.1 暂不启用多选、多空的部分分。任何试卷分数都不会外推成完整 750 分高考成绩。
-
-## 可复现性
-
-每次评测运行都会记录：
-
-- 数据集版本和 manifest SHA-256；
-- Harness、评分器和 Prompt 版本；
-- provider、模型快照、base URL 类别和生成参数；
-- 重复次数、超时、重试策略、并发数和每条 Prompt 的哈希；
-- 原始回答、解析状态、获得分数和失败原因。
-
-默认协议是独立单题请求，temperature 为 `0`，重复 3 次。失败请求按 0 分保留，不会被从样本中删除。
-
-## 复核与发布完整性
-
-数据工作流的设计目标是让“静默修改”变得困难：
-
-1. **来源台账**记录每套试卷和每条答案声明的来源。
-2. **题目审计**检查题干、选项和来源是否真正一致。
-3. **答案审计**结合独立推导与媒体或文档交叉核对。
-4. **分值审计**重建每套试卷的评分结构。
-5. **Owner 复核**对裁定后的答案、分值和来源定位签字。
-6. **两名独立审校**复核每一行答案和分值。
-7. **材料化**写入新的不可变数据版本及复核账本。
-8. **发布门禁**分别检查 internal、纯代码和完整公开三个目标。
-
-复核导入是只读的。材料化器会拒绝提议修改、未解决争议、不完整行、过期哈希和缺失签字。
-
-## 纯代码边界
-
-本仓库包含评测工具链：
-
-- Python 评分器与解析器；
-- 文本和视觉必需题 Harness；
-- 复核导入与材料化工作流；
-- 发布门禁与发布包校验器；
-- 公开契约测试、许可证和项目原创文档；
-- README 原创图形与翻译。
-
-本仓库不包含：
-
-- 题干、选项、答案键或逐题分值；
-- 来源 PDF、页面图片、裁图、截图或文档预览；
-- 答案证据、来源台账、owner 复核包或复核报告；
-- 内部数据集构建器或逐题变更日志。
-
-这条边界由发布白名单和独立发布包校验器强制检查。详见 [`SCOPE.md`](SCOPE.md)。
-
-## 仓库结构
-
-| 路径 | 用途 |
-| --- | --- |
-| `gaokao_bench/` | 评分、Harness、复核、材料化和发布核心逻辑 |
-| `scripts/` | 校验、评分、评测运行和发布检查 CLI |
-| `tests/` | 不依赖试卷数据的公开契约测试 |
-| `.github/readme/` | 项目原创、随主题切换的 README 图形 |
-| `SCOPE.md` | 代码/数据边界、权利立场与污染策略 |
-| `CITATION.cff` | 机器可读引用元数据 |
-
-## 当前状态与路线图
-
-`0.0.1` 在一个范围很窄、已完成题分审计的集合上，验证了整套测量闭环：
-
-- 2025 年数学客观题；
-- 5 套试卷；
-- 74 道计分题、353 分固定总分；
-- 文本和视觉必需题两种模式；
-- 确定性评分与可审计发布流程。
-
-纯代码发布不构成对配套数据集作为公开排行榜的认证。完整数据是否发布，仍由发布门禁下的独立决策决定。
-
-长期扩展会按顺序推进：
-
-1. 扩展到更多年份的数学客观题。
-2. 增加其他高考科目，但不削弱来源、答案和分值审计契约。
-3. 单独研究主观题评分，引入评分细则、人工裁定和明确的不确定性。
-4. 让代码发布、数据权利和基准声明继续保持为彼此独立的决策。
-
-新科目不会采用“先抓取、再清理”的方式加入。只有当来源、答案、分值和复核流程都能闭合时，一个科目才会进入基准。
-
-## 负责任使用
-
-- **污染风险：** 2025 年题目已经公开，可能存在于训练或检索语料中。结果必须标注 `retrospective_public_2025`，不得声称 held-out 或“新鲜能力”。
-- **分数上下文：** 报告分数时始终同时报告数据集、Harness、评分器、Prompt、模型快照、模态和重复次数。
-- **权利：** Apache-2.0 软件许可证不授予试卷文本、答案页、PDF 或图片的使用权。
-- **覆盖范围：** 一个科目、一个年份验证的是方法学，不代表通用高考能力。
-- **失败样本：** provider 错误仍然是 0 分。比较模型时不能删除失败题。
+| `gaokao_bench/` | 判分器、数学表达式解析、评测框架与数据审校核心实现 |
+| `scripts/` | 数据校验、离线判分、模型评测与发布检查的命令行入口 |
+| `scripts/build_public_data.py` | 构建并脱敏 Hugging Face 数据包 |
+| `scripts/upload_hf_data.py` | 校验、上传并创建数据版本标签 |
+| `tests/` | 数学解析、计分逻辑与发布包校验的单元测试 |
+| `SCOPE.md` | 代码与数据分离策略及评测方法说明 |
+| `CITATION.cff` | 引用元数据 |
+| [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench) | 按版本分发的客观题数据包 |
 
 ## 参与贡献
 
-欢迎在不破坏测量契约的前提下参与贡献：
+非常欢迎提交 Issue 或 PR，无论是补充历年高考真题线索、完善数学表达式解析的边界情况，还是新增模型适配器：
 
-- 不要向代码 PR 中加入第三方高考题目、答案页、PDF 或裁图；
-- 解析器、评分器或发布边界变更需要配套的公开测试；
-- 提交 PR 前运行 `python -m pytest -q`；
-- 用户可见行为变更时，同时更新 `README.md` 与 `README.zh-CN.md`；
-- 明确说明任何会影响分数、分母、Prompt 或复核规则的改动。
-
-英文 README 是规范版本，简体中文在仓库内同步维护。新增语言需要有能够长期同步的母语维护者。
+- 修改解析器或计分逻辑时，请补充对应的单元测试并确保 `python -m pytest -q` 全部通过。
+- 涉及命令行参数或功能变更时，请同步更新 `README.md` 和 `README.zh-CN.md`。
+- 请勿在代码的 Pull Request 中直接提交未审校的真题文本、PDF 或试卷图片。
 
 ## 引用
 
-如果 Gaokao-Bench 对你的研究或评测工作有帮助，请引用本仓库和精确的数据集版本：
+如果 Gaokao-Bench 对你的研究或模型评测有帮助，欢迎引用：
 
 ```bibtex
 @software{gaokao_bench_2026,
@@ -307,21 +229,6 @@ score = earned_points / fixed_points
   title        = {Gaokao-Bench},
   year         = {2026},
   version      = {0.0.1},
-  license      = {Apache-2.0},
-  url          = {<repository-url>}
+  url          = {https://huggingface.co/datasets/Knove/Gaokao-Bench}
 }
 ```
-
-机器可读的元数据见 [`CITATION.cff`](CITATION.cff)。
-
-## 许可
-
-| 层级 | 许可 |
-| --- | --- |
-| 代码、评分器、Harness 和测试 | **Apache-2.0**——见 [`LICENSE`](LICENSE) |
-| 项目原创文档与元数据 | **CC BY 4.0**——见 [`LICENSE-DATA`](LICENSE-DATA) |
-| 高考题目、答案页、PDF、图片及其他第三方素材 | **不包含在本仓库中，也不由本仓库重新许可** |
-
----
-
-<p align="center"><strong>测量试卷，而不是测量提示词。</strong></p>

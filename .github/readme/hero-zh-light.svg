@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="620" viewBox="0 0 1600 620" role="img" aria-labelledby="title desc">
-  <title id="title">Gaokao-Bench：真实试卷、固定分母、可复现分数</title>
-  <desc id="desc">米色中文主视觉，包含基准统计数据和一张带红色批阅勾的答题卡。</desc>
+  <title id="title">Gaokao-Bench：用高考真题衡量 AI 智力</title>
+  <desc id="desc">米色中文主视觉，突出全国选拔标尺、历年动态演进与真实卷面分值评测。</desc>
   <defs>
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
       <path d="M40 0H0V40" fill="none" stroke="#E7DCC8" stroke-width="1"/>
@@ -14,24 +14,30 @@
   </defs>
   <rect width="1600" height="620" fill="#F7F1E5"/>
   <rect width="1600" height="620" fill="url(#grid)" opacity="0.62"/>
-  <rect x="0" y="0" width="16" height="620" fill="#D6422B"/>
+  <rect x="0" y="0" width="16" height="620" fill="#C8281C"/>
 
-  <text x="96" y="92" fill="#B03B2B" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="750" letter-spacing="4.1">中国高考 / 客观题 / 2025</text>
-  <text x="94" y="216" fill="#171513" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="78" font-weight="820" letter-spacing="-3">真实试卷。</text>
-  <text x="94" y="301" fill="#171513" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="78" font-weight="820" letter-spacing="-3">固定分母。</text>
-  <text x="94" y="386" fill="#C83D2B" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="78" font-weight="820" letter-spacing="-3">可复现分数。</text>
-  <text x="96" y="448" fill="#3A342C" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="21" font-weight="500">面向 AI 系统的确定性、按题分加权基准，</text>
-  <text x="96" y="480" fill="#3A342C" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="21" font-weight="500">题目来自真实中国高考客观题。</text>
+  <g>
+    <rect x="96" y="64" width="68" height="32" rx="8" fill="#C8281C"/>
+    <text x="130" y="86" fill="#FFFFFF" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="800" text-anchor="middle" letter-spacing="2">高考</text>
+    <text x="178" y="86" fill="#B03B2B" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="750" letter-spacing="3.2">国家级选拔真题 · 持续演进的 AI 智力标尺</text>
+  </g>
 
-  <g font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="700">
-    <rect x="96" y="528" width="126" height="43" rx="21.5" fill="#171513"/>
-    <text x="159" y="556" fill="#FFF9EF" text-anchor="middle">5 套试卷</text>
-    <rect x="234" y="528" width="126" height="43" rx="21.5" fill="#E9DFCD" stroke="#CDBFA8"/>
-    <text x="297" y="556" fill="#231F1A" text-anchor="middle">74 道题</text>
-    <rect x="372" y="528" width="136" height="43" rx="21.5" fill="#E9DFCD" stroke="#CDBFA8"/>
-    <text x="440" y="556" fill="#231F1A" text-anchor="middle">353 分</text>
-    <rect x="520" y="528" width="156" height="43" rx="21.5" fill="#F7E2DD" stroke="#EABCB3"/>
-    <text x="598" y="556" fill="#A93426" text-anchor="middle">0 个 LLM 裁判</text>
+  <text x="94" y="206" fill="#171513" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="74" font-weight="850" letter-spacing="-2">全国选拔标尺。</text>
+  <text x="94" y="294" fill="#171513" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="74" font-weight="850" letter-spacing="-2">历年动态演进。</text>
+  <text x="94" y="382" fill="#C8281C" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="74" font-weight="850" letter-spacing="-2">真实卷面评测。</text>
+
+  <text x="96" y="444" fill="#3A342C" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="21" font-weight="500">高考是中国最具代表性的高区分度选拔考试，命题随时代持续反套路演进。</text>
+  <text x="96" y="478" fill="#3A342C" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="21" font-weight="500">Gaokao-Bench 还原真实卷面分值与确定性判分，直测大模型硬核推理上限。</text>
+
+  <g font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="15.5" font-weight="700">
+    <rect x="96" y="526" width="144" height="43" rx="21.5" fill="#C8281C"/>
+    <text x="168" y="553" fill="#FFF9EF" text-anchor="middle">1977–至今演进</text>
+    <rect x="252" y="526" width="146" height="43" rx="21.5" fill="#171513"/>
+    <text x="325" y="553" fill="#FFF9EF" text-anchor="middle">真实卷面分值</text>
+    <rect x="410" y="526" width="146" height="43" rx="21.5" fill="#E9DFCD" stroke="#CDBFA8"/>
+    <text x="483" y="553" fill="#231F1A" text-anchor="middle">固定总分分母</text>
+    <rect x="568" y="526" width="166" height="43" rx="21.5" fill="#F7E2DD" stroke="#EABCB3"/>
+    <text x="651" y="553" fill="#A93426" text-anchor="middle">零裁判模型确定判分</text>
   </g>
 
   <g opacity="0.20">
@@ -48,8 +54,11 @@
       <path d="M1418 132H1443V157" fill="none" stroke="#171513" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M1110 485V510H1135" fill="none" stroke="#171513" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M1443 485V510H1418" fill="none" stroke="#171513" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="1115" y="181" fill="#746B5E" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="750" letter-spacing="2.2">第一部分 / 客观题</text>
-      <text x="1112" y="270" fill="#D6422B" font-family="Inter, 'SF Pro Display', 'Segoe UI', sans-serif" font-size="82" font-weight="800">01</text>
+      <rect x="1114" y="156" width="60" height="26" rx="6" fill="#C8281C"/>
+      <text x="1144" y="174" fill="#FFFFFF" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.5">高考</text>
+      <text x="1186" y="174" fill="#746B5E" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="750" letter-spacing="1.8">全国统考真题卷</text>
+      <text x="1112" y="270" fill="#C8281C" font-family="Inter, 'SF Pro Display', 'Segoe UI', sans-serif" font-size="82" font-weight="800">750</text>
+      <text x="1272" y="264" fill="#746B5E" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="700">高考标尺体系</text>
       <line x1="1114" y1="294" x2="1438" y2="294" stroke="#D9CDBA" stroke-width="2"/>
 
       <g font-family="Inter, 'SF Pro Text', 'Segoe UI', sans-serif" font-size="18" font-weight="750">
@@ -57,7 +66,7 @@
         <text x="1138" y="356" fill="#5B5348" text-anchor="middle">A</text>
         <circle cx="1221" cy="349" r="21" fill="#F5EDDF" stroke="#BEB09A" stroke-width="2"/>
         <text x="1221" y="356" fill="#5B5348" text-anchor="middle">B</text>
-        <circle cx="1304" cy="349" r="22" fill="#D6422B"/>
+        <circle cx="1304" cy="349" r="22" fill="#C8281C"/>
         <path d="M1294 349L1301 356L1315 341" fill="none" stroke="#FFF9EF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         <circle cx="1387" cy="349" r="21" fill="#F5EDDF" stroke="#BEB09A" stroke-width="2"/>
         <text x="1387" y="356" fill="#5B5348" text-anchor="middle">D</text>
@@ -66,14 +75,14 @@
       <rect x="1114" y="397" width="320" height="10" rx="5" fill="#EAE0D0"/>
       <rect x="1114" y="422" width="276" height="10" rx="5" fill="#EAE0D0"/>
       <rect x="1114" y="447" width="226" height="10" rx="5" fill="#EAE0D0"/>
-      <rect x="1301" y="474" width="133" height="34" rx="17" fill="#E2F1EC"/>
-      <text x="1367.5" y="497" fill="#176557" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="750" text-anchor="middle">5 分</text>
+      <rect x="1285" y="474" width="149" height="34" rx="17" fill="#E2F1EC"/>
+      <text x="1359.5" y="496" fill="#176557" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="750" text-anchor="middle">按真实题分赋分</text>
     </g>
   </g>
 
   <g filter="url(#badgeShadow)">
-    <rect x="973" y="492" width="235" height="54" rx="27" fill="#171513"/>
-    <circle cx="1002" cy="519" r="10" fill="#4DB39E"/>
-    <text x="1023" y="525" fill="#FFF9EF" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="15" font-weight="750" letter-spacing="0.8">固定评分分母</text>
+    <rect x="955" y="492" width="255" height="54" rx="27" fill="#171513"/>
+    <circle cx="986" cy="519" r="10" fill="#4DB39E"/>
+    <text x="1008" y="525" fill="#FFF9EF" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="15" font-weight="750" letter-spacing="0.8">真实分值 · 结果可复现</text>
   </g>
 </svg>
