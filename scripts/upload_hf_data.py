@@ -48,6 +48,19 @@ def _summary(data_dir: Path, repo_id: str) -> Dict[str, Any]:
     }
 
 
+def _jsonable(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        return {str(key): _jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_jsonable(item) for item in value]
+    to_dict = getattr(value, "to_dict", None)
+    if callable(to_dict):
+        return _jsonable(to_dict())
+    return str(value)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -159,7 +172,7 @@ def main() -> int:
         remote = {
             "sha": getattr(info, "sha", None),
             "tags": list(getattr(info, "tags", []) or []),
-            "card_data": getattr(info, "card_data", None),
+            "card_data": _jsonable(getattr(info, "card_data", None)),
         }
     except Exception as exc:
         remote = {"verification_error": str(exc)}
