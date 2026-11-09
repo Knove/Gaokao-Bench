@@ -195,7 +195,7 @@ tags:
 - evaluation
 - mathematics
 - education
-- 2025
+- "2025"
 task_categories:
 - question-answering
 size_categories:
@@ -204,14 +204,25 @@ size_categories:
 
 # Gaokao-Bench {version}
 
-**用中国高考真题测量 AI 的真实推理能力。**
+![Gaokao-Bench：全国选拔标尺、历年动态演进、真实卷面评测](brand/hero-hf-zh.png)
 
-Gaokao-Bench 是一个确定性的、按卷面分值计分的中国高考客观题基准。本数据包是 `{version}` 版，覆盖 **2025 年高考数学 5 套试卷**的客观题部分。
+**全国选拔标尺 · 历年动态演进 · 真实卷面评测**
+
+`v{version}` · 2025 高考数学 · {questions} 题 / {points} 分 · 确定性判分
+
+Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包是 `{version}` 版，覆盖 **2025 年高考数学 5 套试卷**的客观题部分，按真实卷面分值计分，并以固定分母处理漏答、超时和格式失败。
 
 **English:** Gaokao-Bench is a deterministic, point-weighted benchmark built from real Chinese Gaokao papers. Version `{version}` covers the objective sections of five 2025 mathematics papers, uses a fixed 353-point denominator, and ships only the four figure crops required by the vision profile.
 
+## 为什么用高考
+
+- **国家级选拔尺度：** 高考是中国最具代表性的高区分度选拔考试，题目经过命题专家反复打磨，天然区分多步推理与表层模仿。
+- **持续演进：** 每年都有全新的全国卷与自主命题卷，命题趋势持续强化反套路、创新情境和跨模块综合。
+- **真实卷面评测：** Gaokao-Bench 保留真实题分、固定总分分母和确定性判分，不使用 LLM 裁判，也不剔除失败样本。
+
 | 项目 | 规格 |
 | --- | --- |
+| 年份与科目 | 2025 · 数学 |
 | 覆盖试卷 | 全国卷 I、全国卷 II、北京卷、上海卷、天津卷 |
 | 计分题目 | **{questions} 题** |
 | 卷面总分 | **{points} 分** |
@@ -221,9 +232,9 @@ Gaokao-Bench 是一个确定性的、按卷面分值计分的中国高考客观�
 | 视觉模式 | **{questions} 题 / {points} 分** |
 | 主观题目录 | {catalog_questions} 题 / {catalog_points} 分，编目但不计分 |
 
-## 使用方式
+## 快速开始
 
-推荐直接下载完整数据包，然后用 Gaokao-Bench Harness 进行验证和评测：
+始终固定 `revision="v{version}"`，不要直接跟随可能变化的 `main`：
 
 ```bash
 python -m pip install "huggingface_hub>=0.23"
@@ -240,14 +251,16 @@ PY
 python3 scripts/validate.py --data-dir data/{version}
 ```
 
-如果你已经安装 Gaokao-Bench CLI，也可以使用：
+如果已经安装 Gaokao-Bench CLI，也可以一条命令完成下载与校验：
 
 ```bash
 gaokao-bench fetch-data --version {version}
 gaokao-bench validate --data-dir data/{version}
 ```
 
-## 文件
+数据目录以 `manifest.json` 为版本事实源；`GB_DATA` 应指向 `data/{version}`，不要混用不同版本的文件。
+
+## 文件结构
 
 - `manifest.json`：数据集版本、统计、文件哈希和发布信息；
 - `papers.jsonl`：5 套试卷元数据；
@@ -268,13 +281,24 @@ gaokao-bench validate --data-dir data/{version}
 | `assets.jsonl` | `question_id`、`path`、`bytes`、`sha256`、`dependency` | 4 道图形必需题的裁图索引 |
 | `catalog/subjective_catalog.jsonl` | `id`、`type`、`content`、`points`、`included_in_scoring` | 主观题目录，仅作后续扩展记录 |
 
-## 评分约束
+## 评分规则
+
+$$
+\\text{{Score}} = \\frac{{\\text{{Earned Points}}}}{{{points}}}
+$$
 
 - 单题默认全对得分，多选和多空题在 `{version}` 中不启用部分分；
 - 缺失、格式错误、超时和 API 错误计 `0` 分；
+- 判分完全确定，不调用 LLM 裁判；
+- 失败样本保留在分母内，分母不会因为接口失败而缩水；
 - 文本模式跳过 4 道图形必需题，按 `0` 分计入固定的 {points} 分分母；
 - 视觉模式只为 4 道图形必需题附加题图；
 - 本数据集不把 {points} 分外推为 750 分高考总分。
+
+| 模式 | 实际可达 | 固定分母 | 说明 |
+| --- | --- | --- | --- |
+| Text | {text_questions} 题 / {text_points} 分 | {points} 分 | 4 道图形题不发送，直接记 0 分 |
+| Vision | {questions} 题 / {points} 分 | {points} 分 | 仅为 4 道图形题附带必需裁图 |
 
 ## 污染说明
 
@@ -286,16 +310,21 @@ gaokao-bench validate --data-dir data/{version}
 
 代码和 Harness 使用 **Apache License 2.0**。
 
-## 数据卡
+## 相关文件
 
-- 数据版本：`{version}`
-- 生成时间：`{created_at}`
-- 数据集主页：{dataset_url}
-- 分数标签：`retrospective_public_2025`
+- [数据卡主页]({dataset_url})
+- [数据许可](LICENSE-DATA)
+- [第三方来源说明](THIRD_PARTY_NOTICES.md)
+- [引用元数据](CITATION.cff)
+- [讨论与纠错]({dataset_url}/discussions)
 
 ## 版本记录
 
 - `0.0.1`（2026-11-09）：首个公开版本；2025 高考数学 5 套试卷客观题，74 题 / 353 分，4 道图形必需题，主观题目录不计分。
+
+数据版本：`{version}` · 生成时间：`{created_at}` · 分数标签：`retrospective_public_2025`
+
+## 引用
 
 ```bibtex
 @misc{{gaokao_bench_2025_math_objective,
@@ -505,6 +534,11 @@ def build_public_data_package(
         shutil.copy2(source / relative_path, destination)
     shutil.copytree(source / "examples", output / "examples")
     shutil.copy2(project_root / "LICENSE-DATA", output / "LICENSE-DATA")
+    (output / "brand").mkdir()
+    shutil.copy2(
+        project_root / ".github" / "readme" / "hero-hf-zh.png",
+        output / "brand" / "hero-hf-zh.png",
+    )
     (output / "THIRD_PARTY_NOTICES.md").write_text(
         _third_party_notice(repo_id, papers), encoding="utf-8"
     )

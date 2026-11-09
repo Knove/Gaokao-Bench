@@ -36,6 +36,7 @@ def test_public_readmes_and_theme_assets_are_complete():
         "hero-dark.svg",
         "hero-zh-light.svg",
         "hero-zh-dark.svg",
+        "hero-hf-zh.svg",
         "pipeline-light.svg",
         "pipeline-dark.svg",
         "pipeline-zh-light.svg",

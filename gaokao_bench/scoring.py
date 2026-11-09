@@ -86,6 +86,7 @@ PUBLIC_REQUIRED_FILES = {
     "THIRD_PARTY_NOTICES.md",
     "answer_keys.jsonl",
     "assets.jsonl",
+    "brand/hero-hf-zh.png",
     "catalog/subjective_catalog.jsonl",
     "examples/README.md",
     "examples/empty.json",
