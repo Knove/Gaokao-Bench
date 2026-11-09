@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 from gaokao_bench.cli import build_parser
+from gaokao_bench.public_data import _dataset_card
 from gaokao_bench.scoring import parse_interval, parse_numeric_expression
 from gaokao_bench.scoring import PUBLIC_REQUIRED_FILES
 
@@ -69,3 +70,25 @@ def test_public_package_contract_is_documented():
         text = document.read_text(encoding="utf-8")
         assert "https://huggingface.co/datasets/Knove/Gaokao-Bench" in text
         assert "gaokao-bench fetch-data --version 0.0.1" in text
+
+
+def test_huggingface_dataset_card_metadata_is_hub_compatible():
+    card = _dataset_card(
+        repo_id="Knove/Gaokao-Bench",
+        dataset_version="0.0.1",
+        audit={
+            "questions": 74,
+            "objective_points": 353,
+            "text_points": 334,
+            "answer_slots": 78,
+            "image_required_questions": 4,
+            "catalog_subjective_questions": 26,
+            "catalog_subjective_points": 397,
+            "created_at": "2026-11-09T00:00:00+00:00",
+        },
+    )
+    front_matter = card.split("---", 2)[1]
+    license_name = re.search(r"^license_name: (.+)$", front_matter, re.MULTILINE)
+    assert license_name is not None
+    assert re.fullmatch(r"[a-z0-9.-]+", license_name.group(1))
+    assert "brand/hero-hf-zh.png" in card

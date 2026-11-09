@@ -184,7 +184,7 @@ def _dataset_card(*, repo_id: str, dataset_version: str, audit: Mapping[str, Any
     dataset_url = "https://huggingface.co/datasets/%s" % repo_id
     return """---
 license: other
-license_name: Gaokao-Bench Data Terms
+license_name: gaokao-bench-data-terms
 license_link: {dataset_url}/blob/main/LICENSE-DATA
 pretty_name: Gaokao-Bench
 language:
