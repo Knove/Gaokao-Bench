@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -49,7 +50,15 @@ def _summary(data_dir: Path, repo_id: str) -> Dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="dist/public-data/0.0.1")
+    parser.add_argument(
+        "--version",
+        default="0.0.1",
+        help="dataset version under dist/public-data (default: 0.0.1)",
+    )
+    parser.add_argument(
+        "--data-dir",
+        help="explicit package directory; overrides the directory derived from --version",
+    )
     parser.add_argument("--repo-id", default="Knove/Gaokao-Bench")
     parser.add_argument("--tag", help="dataset tag to create after upload (default: v<version>)")
     parser.add_argument("--skip-tag", action="store_true")
@@ -65,7 +74,14 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    data_dir = (ROOT / args.data_dir).resolve()
+    if not re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z._-]*", args.version):
+        print("invalid dataset version: %s" % args.version, file=sys.stderr)
+        return 2
+    data_dir = (
+        (ROOT / args.data_dir).resolve()
+        if args.data_dir
+        else (ROOT / "dist" / "public-data" / args.version).resolve()
+    )
     try:
         summary = _summary(data_dir, args.repo_id)
     except (FileNotFoundError, ValueError) as exc:

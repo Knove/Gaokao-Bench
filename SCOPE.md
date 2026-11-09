@@ -26,6 +26,15 @@ gaokao-bench fetch-data --version 0.0.1
 The public data package carries its own manifest, file hashes, third-party
 notice, and pinned citation. It is not part of the Apache-2.0 code bundle.
 
+Maintainer release flow for every new version:
+
+1. Build the new immutable directory with `scripts/build_public_data.py`.
+2. Validate every file and hash with `scripts/validate.py`.
+3. Upload that version directory with `scripts/upload_hf_data.py --version <version> --execute`.
+4. Let the uploader create the matching `v<version>` tag.
+
+Do not edit a published version directory in place. Add a new version instead.
+
 The harness also contains reviewed crop coordinates and pixel hashes for the
 four 2025 figure prompts. Those constants are project-authored calibration
 metadata used to reproduce a sanitised prompt; they are not question stems,
