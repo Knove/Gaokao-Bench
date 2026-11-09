@@ -161,6 +161,7 @@ def main() -> int:
                     repo_type="dataset",
                     tag=tag,
                     tag_message="Gaokao-Bench %s public data release" % version,
+                    revision=getattr(commit, "oid", None),
                 )
                 tag_status = "created"
         except Exception as exc:
