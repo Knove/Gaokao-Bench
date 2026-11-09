@@ -258,6 +258,16 @@ gaokao-bench validate --data-dir data/{version}
 - `examples/`：空提交、标准答案和非法提交示例。
 - `CITATION.cff`：与数据版本绑定的引用信息。
 
+## 字段说明
+
+| 文件 | 关键字段 | 用途 |
+| --- | --- | --- |
+| `questions.jsonl` | `id`、`paper_id`、`type`、`stem`、`options`、`points`、`answer_slot_count`、`asset_dependency`、`source` | 74 道计分题及匿名化评测所需的题面结构 |
+| `answer_keys.jsonl` | `question_id`、`kind`、`canonical`、`correct_options`、`slots`、`points` | 确定性判分使用的标准答案 |
+| `papers.jsonl` | `id`、`title`、`year`、`region`、`objective_points`、`pdf_url` | 5 套试卷元数据与来源 |
+| `assets.jsonl` | `question_id`、`path`、`bytes`、`sha256`、`dependency` | 4 道图形必需题的裁图索引 |
+| `catalog/subjective_catalog.jsonl` | `id`、`type`、`content`、`points`、`included_in_scoring` | 主观题目录，仅作后续扩展记录 |
+
 ## 评分约束
 
 - 单题默认全对得分，多选和多空题在 `{version}` 中不启用部分分；
@@ -282,6 +292,10 @@ gaokao-bench validate --data-dir data/{version}
 - 生成时间：`{created_at}`
 - 数据集主页：{dataset_url}
 - 分数标签：`retrospective_public_2025`
+
+## 版本记录
+
+- `0.0.1`（2026-11-09）：首个公开版本；2025 高考数学 5 套试卷客观题，74 题 / 353 分，4 道图形必需题，主观题目录不计分。
 
 ```bibtex
 @misc{{gaokao_bench_2025_math_objective,
