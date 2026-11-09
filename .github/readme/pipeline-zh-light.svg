@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" role="img" aria-labelledby="title desc">
+  <title id="title">Gaokao-Bench 评测与发布流程</title>
+  <desc id="desc">五个评测阶段从版本化数据包走向确定性评分；四个发布完整性阶段覆盖审计、人工复核、不可变版本和发布门禁。</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="150%" height="180%">
+      <feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#2D2115" flood-opacity="0.07"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#B7A78F"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="560" fill="#FBF7EE"/>
+  <text x="64" y="70" fill="#171513" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="38" font-weight="800" letter-spacing="-1.2">从试卷到分数</text>
+  <text x="64" y="104" fill="#665E53" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="500">评测路径是确定性的，发布路径必须可审计。</text>
+
+  <g font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif">
+    <text x="64" y="157" fill="#B43B2B" font-size="13" font-weight="800" letter-spacing="2.5">评测流程</text>
+    <line x1="146" y1="152" x2="1536" y2="152" stroke="#E3D7C5" stroke-width="1.5"/>
+
+    <g filter="url(#shadow)">
+      <rect x="64" y="178" width="260" height="140" rx="20" fill="#FFFDF8" stroke="#DCCFBA" stroke-width="1.5"/>
+      <rect x="64" y="178" width="7" height="140" rx="3.5" fill="#D6422B"/>
+      <text x="94" y="218" fill="#B43B2B" font-size="13" font-weight="800" letter-spacing="1.8">01 / 输入</text>
+      <text x="94" y="252" fill="#171513" font-size="22" font-weight="780">数据包</text>
+      <text x="94" y="280" fill="#6C6357" font-size="14.5">版本化题目、答案、分值、</text>
+      <text x="94" y="301" fill="#6C6357" font-size="14.5">来源与哈希。</text>
+
+      <rect x="367" y="178" width="260" height="140" rx="20" fill="#FFFDF8" stroke="#DCCFBA" stroke-width="1.5"/>
+      <rect x="367" y="178" width="7" height="140" rx="3.5" fill="#D6422B"/>
+      <text x="397" y="218" fill="#B43B2B" font-size="13" font-weight="800" letter-spacing="1.8">02 / 校验</text>
+      <text x="397" y="252" fill="#171513" font-size="22" font-weight="780">校验</text>
+      <text x="397" y="280" fill="#6C6357" font-size="14.5">Schema、总分、答案槽与</text>
+      <text x="397" y="301" fill="#6C6357" font-size="14.5">素材哈希必须闭合。</text>
+
+      <rect x="670" y="178" width="260" height="140" rx="20" fill="#FFFDF8" stroke="#DCCFBA" stroke-width="1.5"/>
+      <rect x="670" y="178" width="7" height="140" rx="3.5" fill="#D6422B"/>
+      <text x="700" y="218" fill="#B43B2B" font-size="13" font-weight="800" letter-spacing="1.8">03 / 提示</text>
+      <text x="700" y="252" fill="#171513" font-size="22" font-weight="780">匿名单题</text>
+      <text x="700" y="280" fill="#6C6357" font-size="14.5">每题一次请求；不暴露年份、</text>
+      <text x="700" y="301" fill="#6C6357" font-size="14.5">试卷、题号或答案。</text>
+
+      <rect x="973" y="178" width="260" height="140" rx="20" fill="#FFFDF8" stroke="#DCCFBA" stroke-width="1.5"/>
+      <rect x="973" y="178" width="7" height="140" rx="3.5" fill="#D6422B"/>
+      <text x="1003" y="218" fill="#B43B2B" font-size="13" font-weight="800" letter-spacing="1.8">04 / 模型</text>
+      <text x="1003" y="252" fill="#171513" font-size="22" font-weight="780">文本或视觉</text>
+      <text x="1003" y="280" fill="#6C6357" font-size="14.5">同一评分规则；视觉模式</text>
+      <text x="1003" y="301" fill="#6C6357" font-size="14.5">只追加必需图形。</text>
+
+      <rect x="1276" y="178" width="260" height="140" rx="20" fill="#171513"/>
+      <rect x="1276" y="178" width="7" height="140" rx="3.5" fill="#4DB39E"/>
+      <text x="1306" y="218" fill="#7FD1C0" font-size="13" font-weight="800" letter-spacing="1.8">05 / 评分</text>
+      <text x="1306" y="252" fill="#FFF9EF" font-size="22" font-weight="780">确定性评分</text>
+      <text x="1306" y="280" fill="#C9C1B4" font-size="14.5">解析答案、固定题分，</text>
+      <text x="1306" y="301" fill="#C9C1B4" font-size="14.5">不使用 LLM 裁判。</text>
+    </g>
+
+    <g stroke="#B7A78F" stroke-width="1.7" marker-end="url(#arrow)">
+      <line x1="330" y1="248" x2="357" y2="248"/>
+      <line x1="633" y1="248" x2="660" y2="248"/>
+      <line x1="936" y1="248" x2="963" y2="248"/>
+      <line x1="1239" y1="248" x2="1266" y2="248"/>
+    </g>
+
+    <text x="64" y="380" fill="#1B6D60" font-size="13" font-weight="800" letter-spacing="2.5">发布完整性</text>
+    <line x1="181" y1="375" x2="1536" y2="375" stroke="#E3D7C5" stroke-width="1.5"/>
+
+    <g filter="url(#shadow)">
+      <rect x="64" y="401" width="350" height="98" rx="18" fill="#F4F9F6" stroke="#C5DDD6" stroke-width="1.5"/>
+      <circle cx="94" cy="432" r="10" fill="#20786A"/>
+      <text x="116" y="438" fill="#173F38" font-size="17" font-weight="780">可审计数据</text>
+      <text x="94" y="466" fill="#58746D" font-size="14">独立推导 + 媒体交叉核对</text>
+
+      <rect x="438" y="401" width="350" height="98" rx="18" fill="#F4F9F6" stroke="#C5DDD6" stroke-width="1.5"/>
+      <circle cx="468" cy="432" r="10" fill="#20786A"/>
+      <text x="490" y="438" fill="#173F38" font-size="17" font-weight="780">人工复核</text>
+      <text x="468" y="466" fill="#58746D" font-size="14">Owner + 两名独立审校</text>
+
+      <rect x="812" y="401" width="350" height="98" rx="18" fill="#F4F9F6" stroke="#C5DDD6" stroke-width="1.5"/>
+      <circle cx="842" cy="432" r="10" fill="#20786A"/>
+      <text x="864" y="438" fill="#173F38" font-size="17" font-weight="780">不可变版本</text>
+      <text x="842" y="466" fill="#58746D" font-size="14">内容哈希 + 材料化账本</text>
+
+      <rect x="1186" y="401" width="350" height="98" rx="18" fill="#F4F9F6" stroke="#C5DDD6" stroke-width="1.5"/>
+      <circle cx="1216" cy="432" r="10" fill="#20786A"/>
+      <text x="1238" y="438" fill="#173F38" font-size="17" font-weight="780">发布门禁</text>
+      <text x="1216" y="466" fill="#58746D" font-size="14">internal / public-code / public</text>
+    </g>
+
+    <text x="64" y="537" fill="#7A7165" font-size="14">每次运行记录数据集、Harness、评分器、Prompt 版本、模型快照与重复次数。</text>
+  </g>
+</svg>

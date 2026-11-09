@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gaokao-bench"
+version = "0.0.1"
+description = "A deterministic, point-weighted benchmark toolkit for Chinese Gaokao objective questions"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [{name = "Gaokao-Bench contributors"}]
+dependencies = []
+
+[project.optional-dependencies]
+harness = ["Pillow>=10"]
+dev = ["pytest>=8,<9", "Pillow>=10", "PyMuPDF>=1.24,<2"]
+
+[project.scripts]
+gaokao-bench = "gaokao_bench.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["gaokao_bench*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+

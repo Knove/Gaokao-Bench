@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" role="img" aria-labelledby="title desc">
+  <title id="title">Gaokao-Bench evaluation and release pipeline</title>
+  <desc id="desc">Five evaluation stages run from a versioned data package to deterministic scoring. Four release-integrity stages cover audits, human review, immutable versions, and release gates.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-30%" width="150%" height="180%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#5A6066"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="560" fill="#111315"/>
+  <text x="64" y="70" fill="#F7F2E8" font-family="Inter, 'SF Pro Display', 'Segoe UI', 'Noto Sans', sans-serif" font-size="38" font-weight="800" letter-spacing="-1.2">From paper to score</text>
+  <text x="64" y="104" fill="#A8AAA9" font-family="Inter, 'SF Pro Text', 'Segoe UI', 'Noto Sans', sans-serif" font-size="17" font-weight="500">The evaluation path is deterministic. The release path is reviewed.</text>
+
+  <g font-family="Inter, 'SF Pro Text', 'Segoe UI', 'Noto Sans', sans-serif">
+    <text x="64" y="157" fill="#F27A66" font-size="13" font-weight="800" letter-spacing="2.5">EVALUATION</text>
+    <line x1="177" y1="152" x2="1536" y2="152" stroke="#30353A" stroke-width="1.5"/>
+
+    <g filter="url(#shadow)">
+      <rect x="64" y="178" width="260" height="140" rx="20" fill="#191D21" stroke="#343A40" stroke-width="1.5"/>
+      <rect x="64" y="178" width="7" height="140" rx="3.5" fill="#F05A43"/>
+      <text x="94" y="218" fill="#F27A66" font-size="13" font-weight="800" letter-spacing="1.8">01 / INPUT</text>
+      <text x="94" y="252" fill="#F7F2E8" font-size="22" font-weight="780">Data package</text>
+      <text x="94" y="280" fill="#A4A8AA" font-size="14.5">Versioned questions, answers,</text>
+      <text x="94" y="301" fill="#A4A8AA" font-size="14.5">points, sources and hashes.</text>
+
+      <rect x="367" y="178" width="260" height="140" rx="20" fill="#191D21" stroke="#343A40" stroke-width="1.5"/>
+      <rect x="367" y="178" width="7" height="140" rx="3.5" fill="#F05A43"/>
+      <text x="397" y="218" fill="#F27A66" font-size="13" font-weight="800" letter-spacing="1.8">02 / CHECK</text>
+      <text x="397" y="252" fill="#F7F2E8" font-size="22" font-weight="780">Validate</text>
+      <text x="397" y="280" fill="#A4A8AA" font-size="14.5">Schema, totals, answer slots</text>
+      <text x="397" y="301" fill="#A4A8AA" font-size="14.5">and asset hashes must close.</text>
+
+      <rect x="670" y="178" width="260" height="140" rx="20" fill="#191D21" stroke="#343A40" stroke-width="1.5"/>
+      <rect x="670" y="178" width="7" height="140" rx="3.5" fill="#F05A43"/>
+      <text x="700" y="218" fill="#F27A66" font-size="13" font-weight="800" letter-spacing="1.8">03 / PROMPT</text>
+      <text x="700" y="252" fill="#F7F2E8" font-size="22" font-weight="780">Anonymous item</text>
+      <text x="700" y="280" fill="#A4A8AA" font-size="14.5">One question per request;</text>
+      <text x="700" y="301" fill="#A4A8AA" font-size="14.5">no year, paper, ID or answer.</text>
+
+      <rect x="973" y="178" width="260" height="140" rx="20" fill="#191D21" stroke="#343A40" stroke-width="1.5"/>
+      <rect x="973" y="178" width="7" height="140" rx="3.5" fill="#F05A43"/>
+      <text x="1003" y="218" fill="#F27A66" font-size="13" font-weight="800" letter-spacing="1.8">04 / MODEL</text>
+      <text x="1003" y="252" fill="#F7F2E8" font-size="22" font-weight="780">Text or vision</text>
+      <text x="1003" y="280" fill="#A4A8AA" font-size="14.5">Same scoring rules; vision adds</text>
+      <text x="1003" y="301" fill="#A4A8AA" font-size="14.5">only the required figure crops.</text>
+
+      <rect x="1276" y="178" width="260" height="140" rx="20" fill="#F7F2E8"/>
+      <rect x="1276" y="178" width="7" height="140" rx="3.5" fill="#1F7A68"/>
+      <text x="1306" y="218" fill="#176557" font-size="13" font-weight="800" letter-spacing="1.8">05 / SCORE</text>
+      <text x="1306" y="252" fill="#171513" font-size="22" font-weight="780">Deterministic</text>
+      <text x="1306" y="280" fill="#665E53" font-size="14.5">Parsed answers, fixed points,</text>
+      <text x="1306" y="301" fill="#665E53" font-size="14.5">and no LLM judge.</text>
+    </g>
+
+    <g stroke="#5A6066" stroke-width="1.7" marker-end="url(#arrow)">
+      <line x1="330" y1="248" x2="357" y2="248"/>
+      <line x1="633" y1="248" x2="660" y2="248"/>
+      <line x1="936" y1="248" x2="963" y2="248"/>
+      <line x1="1239" y1="248" x2="1266" y2="248"/>
+    </g>
+
+    <text x="64" y="380" fill="#6FC8B6" font-size="13" font-weight="800" letter-spacing="2.5">RELEASE INTEGRITY</text>
+    <line x1="225" y1="375" x2="1536" y2="375" stroke="#30353A" stroke-width="1.5"/>
+
+    <g filter="url(#shadow)">
+      <rect x="64" y="401" width="350" height="98" rx="18" fill="#152521" stroke="#2D4A43" stroke-width="1.5"/>
+      <circle cx="94" cy="432" r="10" fill="#4DB39E"/>
+      <text x="116" y="438" fill="#DDF5EF" font-size="17" font-weight="780">Auditable data</text>
+      <text x="94" y="466" fill="#8EB8AE" font-size="14">Independent derivation + media cross-check</text>
+
+      <rect x="438" y="401" width="350" height="98" rx="18" fill="#152521" stroke="#2D4A43" stroke-width="1.5"/>
+      <circle cx="468" cy="432" r="10" fill="#4DB39E"/>
+      <text x="490" y="438" fill="#DDF5EF" font-size="17" font-weight="780">Human review</text>
+      <text x="468" y="466" fill="#8EB8AE" font-size="14">Owner + two independent reviewers</text>
+
+      <rect x="812" y="401" width="350" height="98" rx="18" fill="#152521" stroke="#2D4A43" stroke-width="1.5"/>
+      <circle cx="842" cy="432" r="10" fill="#4DB39E"/>
+      <text x="864" y="438" fill="#DDF5EF" font-size="17" font-weight="780">Immutable versions</text>
+      <text x="842" y="466" fill="#8EB8AE" font-size="14">Content hashes + materialisation ledger</text>
+
+      <rect x="1186" y="401" width="350" height="98" rx="18" fill="#152521" stroke="#2D4A43" stroke-width="1.5"/>
+      <circle cx="1216" cy="432" r="10" fill="#4DB39E"/>
+      <text x="1238" y="438" fill="#DDF5EF" font-size="17" font-weight="780">Release gates</text>
+      <text x="1216" y="466" fill="#8EB8AE" font-size="14">Internal / public-code / public targets</text>
+    </g>
+
+    <text x="64" y="537" fill="#7E8488" font-size="14">Every run records dataset, harness, scorer and prompt versions, model snapshot, and repeat count.</text>
+  </g>
+</svg>

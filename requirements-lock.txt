@@ -1,0 +1,4 @@
+# Tested local reference environment (Python 3.9.6).
+pytest==8.4.2
+Pillow==11.3.0
+PyMuPDF==1.26.5

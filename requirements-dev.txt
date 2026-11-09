@@ -1,0 +1,4 @@
+-c requirements-lock.txt
+pytest>=8,<9
+Pillow>=10
+PyMuPDF>=1.24,<2

@@ -1,0 +1,45 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+.venv/
+dist/
+build/
+*.egg-info/
+
+# ---------------------------------------------------------------------------
+# Local-only benchmark corpus, evidence, review packets, and release output.
+# Keep these files on disk for audited local runs; never publish them by a
+# normal source-repository push.
+# ---------------------------------------------------------------------------
+/data/
+/docs/
+/reports/
+/release/
+/review_packets/
+/runs/
+/scripts/evidence/
+/.tmp_research/
+/review_ui/
+
+# Internal planning, release notes, and the owner-facing local README.
+/README.internal.md
+/PLAN.md
+/CHANGELOG.md
+/RELEASE_NOTES-*.md
+
+# Internal dataset builders/dashboards and tests that require the local corpus.
+/Makefile
+/scripts/build_alpha.py
+/scripts/build_baseline_report.py
+/scripts/build_owner_review_dashboard.py
+/scripts/build_release_dashboard.py
+/scripts/materialize_release_tag.py
+/tests/*
+!/tests/test_public_contract.py
+
+# Source PDFs and question crops are local inputs and are never redistributed.
+*.pdf
+

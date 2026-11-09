@@ -1,0 +1,50 @@
+import re
+from pathlib import Path
+
+from gaokao_bench.scoring import parse_interval, parse_numeric_expression
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_public_numeric_parser_contract():
+    assert parse_numeric_expression("7/4") == 1.75
+    assert parse_numeric_expression(r"\frac{7}{4}") == 1.75
+    assert abs(parse_numeric_expression("3√2") - 4.242640687119286) < 1e-12
+
+
+def test_public_interval_parser_contract():
+    assert parse_interval("[4,5]") == (4.0, 5.0, True, True)
+    assert parse_interval("(1,3)") == (1.0, 3.0, False, False)
+    assert parse_interval("{x | 1 < x <= 3}") == (1.0, 3.0, False, True)
+
+
+def test_public_readmes_and_theme_assets_are_complete():
+    readme = ROOT / "README.md"
+    readme_zh = ROOT / "README.zh-CN.md"
+    assert readme.is_file()
+    assert readme_zh.is_file()
+    assert "README.zh-CN.md" in readme.read_text(encoding="utf-8")
+    assert "README.md" in readme_zh.read_text(encoding="utf-8")
+
+    expected_assets = {
+        "logo-light.svg",
+        "logo-dark.svg",
+        "hero-light.svg",
+        "hero-dark.svg",
+        "hero-zh-light.svg",
+        "hero-zh-dark.svg",
+        "pipeline-light.svg",
+        "pipeline-dark.svg",
+        "pipeline-zh-light.svg",
+        "pipeline-zh-dark.svg",
+    }
+    asset_dir = ROOT / ".github" / "readme"
+    assert {path.name for path in asset_dir.glob("*.svg")} == expected_assets
+
+    for document in (readme, readme_zh):
+        text = document.read_text(encoding="utf-8")
+        for target in re.findall(r'(?:href|src|srcset)="([^"]+)"', text):
+            if target.startswith(("http://", "https://", "#", "mailto:")):
+                continue
+            assert (ROOT / target).is_file(), "%s has a missing local reference: %s" % (document.name, target)
