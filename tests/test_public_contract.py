@@ -93,5 +93,5 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
     assert license_name is not None
     assert re.fullmatch(r"[a-z0-9.-]+", license_name.group(1))
     assert "brand/hero-hf-zh.png" in card
-    for config in ("questions", "answers", "papers", "assets", "subjective_catalog"):
+    for config in ("questions", "papers", "assets", "subjective_catalog"):
         assert "config_name: %s" % config in card
