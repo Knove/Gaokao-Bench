@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Version 0.0.1" src="https://img.shields.io/badge/version-0.0.1-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine version 0.1.0" src="https://img.shields.io/badge/engine-0.1.0-171513?style=flat-square"></a>
   <a href="#scoring-rules"><img alt="Deterministic scoring" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Dataset on Hugging Face" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -50,6 +50,12 @@
 
 > [!NOTE]
 > This repository contains the evaluation harness, deterministic scorer, and verification tools. Exam datasets are published separately on [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench) and pinned by version tag (see [`SCOPE.md`](SCOPE.md)).
+
+> [!IMPORTANT]
+> The public `0.0.1` dataset manifest sets `public_ranking_allowed=false`, and third-party exam material is recorded as `NOASSERTION`. Results may be used for research and internal evaluation, but not for public leaderboard placement, vendor marketing, or comparative public ranking without separate written authorization. The project's CC BY 4.0 grant covers original selection, schema, and scoring metadata only; it does not relicense the underlying exam material.
+
+> [!TIP]
+> Engine `0.1.0` separates the generic harness, versioned benchmark specification, and immutable data package. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the all-subject, rubric, provider, and metric contracts.
 
 ## Dataset Overview
 
@@ -170,13 +176,34 @@ python3 scripts/run_benchmark.py \
 
 Built-in providers include `openai_compatible`, `anthropic`, `gemini_cli`, and `mock`. Pass `--prepare-only` to inspect the generated prompts without calling an API.
 
+Production runs record the exact evaluation protocol. Use a dated model snapshot, a fixed seed, and an upstream provider pin when the API supports it:
+
+```bash
+python3 scripts/run_benchmark.py \
+  --data-dir "$GB_DATA" \
+  --provider openai_compatible \
+  --model "<dated-model-snapshot>" \
+  --seed 7 \
+  --provider-pin "<upstream-provider>" \
+  --allow-fallbacks false \
+  --max-tokens 32768 \
+  --reasoning-budget 8192 \
+  --resume \
+  --output-dir runs/<run-id>
+```
+
+`--max-tokens` is the completion ceiling and includes hidden reasoning on many providers. `--reasoning-budget` is optional and must be smaller than `--max-tokens`. Progress events are emitted as JSON lines on stderr; interrupted runs can continue with `--resume`, and `--retry-failed` retries only provider, harness, and truncated attempts under the same protocol.
+
 ## Scoring Rules
 
-$$\text{Score} = \frac{\text{Earned Points}}{\text{Fixed Total Points (353)}}$$
+$$\text{score.weighted\_points} = \frac{\text{Earned Points in Scope}}{\text{Possible Points in Scope}}$$
 
+- **One primary metric:** the value is a `0–1` ratio with an explicit scope (`full_dataset`, `full_view`, or `selected_subset`). A displayed percentage is only `100 × ratio`; there is no second full-test metric. For the complete `0.0.1` data package, the scope denominator is **353 points**.
+- **Diagnostic slices:** `slice.text_answerable.weighted_points`, `slice.vision_required.weighted_points`, and `diagnostic.exact_accuracy` are secondary metrics with their own IDs and denominators. They never replace the primary metric.
 - **Exact Match per Question:** In `0.0.1`, multi-select and multi-blank questions are all-or-nothing. Every slot must match to earn the question's points.
 - **No Dropped Samples:** Missing outputs, JSON format errors, timeouts, and API failures are recorded and scored as `0`.
 - **Text vs. Vision Profiles:** Both profiles are evaluated against the same 353-point denominator. In `text` mode, the 4 figure-dependent questions are skipped and scored `0` (capping the reachable score at 334/353). In `vision` mode, the cropped figures are attached for those 4 questions.
+- **Failure taxonomy:** provider errors, harness errors, parse errors, unavailable images, and output truncation remain in the denominator and are counted separately. A truncated reasoning response is not silently treated as an ordinary wrong answer.
 - **Contamination & Freshness Tracking:** Publicly available historical papers are explicitly tagged (e.g., `retrospective_public_2025`) to distinguish them from zero-contamination evaluations conducted immediately upon each new June Gaokao release.
 
 ## Roadmap
@@ -209,6 +236,7 @@ Our long-term goal is to build a **complete, high-precision archive covering eve
 | `scripts/upload_hf_data.py` | Validate, upload, and tag a public dataset release |
 | `tests/` | Unit tests for math parsing, scoring rules, and bundle verification |
 | `SCOPE.md` | Details on code/data separation and benchmark methodology |
+| `ARCHITECTURE.md` | Engine/spec/data boundaries, metric protocol, and all-subject roadmap |
 | `CITATION.cff` | Citation metadata |
 | [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench) | Versioned objective-question data package |
 

@@ -41,9 +41,20 @@ def _load_public_package(target: Path, repo_id: str) -> Dict[str, Any]:
             "existing directory belongs to %s, not %s" % (release.get("repo_id"), repo_id)
         )
     audit = validate_dataset(dataset)
+    release = manifest.get("release") if isinstance(manifest.get("release"), dict) else {}
+    rights = manifest.get("rights") if isinstance(manifest.get("rights"), dict) else {}
+    public_ranking_allowed = bool(release.get("public_ranking_allowed", False))
     return {
         "manifest_version": manifest.get("dataset_version"),
         "manifest_sha256": _manifest_sha256(target / "manifest.json"),
+        "public_ranking_allowed": public_ranking_allowed,
+        "exam_material_license": rights.get("exam_material_license", "NOASSERTION"),
+        "rights_notice": (
+            "public_ranking_allowed=false: do not use this dataset for a public leaderboard, "
+            "vendor marketing, or comparative ranking without separate authorization"
+            if not public_ranking_allowed
+            else "public_ranking_allowed=true; underlying exam-material rights still apply"
+        ),
         "audit": audit,
     }
 

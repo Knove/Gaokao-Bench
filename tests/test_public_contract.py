@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 from gaokao_bench.cli import build_parser
+from gaokao_bench.benchmark_spec import parse_benchmark_spec
 from gaokao_bench.public_data import _dataset_card
 from gaokao_bench.scoring import parse_interval, parse_numeric_expression
 from gaokao_bench.scoring import PUBLIC_REQUIRED_FILES
@@ -95,3 +96,47 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
     assert "brand/hero-hf-zh.png" in card
     configs = re.findall(r"^- config_name: (.+)$", front_matter, re.MULTILINE)
     assert configs == ["questions"]
+    assert "本包不包含 `benchmark_spec.json`" in card
+
+
+def test_huggingface_dataset_card_is_spec_driven_for_other_subjects():
+    spec = parse_benchmark_spec(
+        {
+            "schema_version": "1.0",
+            "id": "gaokao-physics-2024-2025",
+            "version": "1.0",
+            "subject": "物理",
+            "years": [2024, 2025],
+            "task_types": {"single_choice": {"shape": "choice", "min_selections": 1, "max_selections": 1}},
+            "choice_labels": ["A", "B", "C", "D"],
+            "prompt": {"version": "physics-v1", "system": "只输出 JSON"},
+            "scoring": {"profile": "deterministic", "metric_version": "1.0"},
+            "expected": {"question_count": 2, "paper_count": 1, "total_points": 10},
+        }
+    )
+    card = _dataset_card(
+        repo_id="Knove/Gaokao-Bench",
+        dataset_version="0.0.2",
+        audit={
+            "papers": 1,
+            "questions": 2,
+            "objective_points": 10,
+            "text_points": 10,
+            "answer_slots": 0,
+            "image_required_questions": 0,
+            "catalog_subjective_questions": 0,
+            "catalog_subjective_points": 0,
+            "created_at": "2026-11-10T00:00:00+00:00",
+        },
+        spec=spec,
+        papers=[{"id": "GB24-PH", "title": "2024 物理卷", "subject": "物理", "year": 2024}],
+        benchmark_spec={"path": "benchmark_spec.json"},
+        score_label="retrospective_public_2024-2025",
+    )
+    assert "物理" in card
+    assert "2024" in card
+    assert "physics" in card
+    assert "retrospective_public_2024-2025" in card
+    assert "2025 高考数学" not in card
+    assert "`benchmark_spec.json`" in card
+    assert "- - " not in card

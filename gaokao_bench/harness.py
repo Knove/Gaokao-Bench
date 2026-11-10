@@ -35,24 +35,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Protocol, Sequence, Tuple
 
+from .benchmark_spec import question_requires_vision
+from .specs.legacy_2025_math import LEGACY_SPEC
 from .scoring import SCORER_VERSION, Dataset, evaluate_submission, load_dataset, validate_dataset
 
-HARNESS_VERSION = "0.0.1"
+HARNESS_VERSION = "0.1.0"
+DEFAULT_MAX_TOKENS = 32768
+# Compatibility aliases for callers of the 0.0.1 harness.  A real run reads
+# these values from the dataset's benchmark specification.
 PROMPT_VERSION = "gbmath-objective-anonymous-v2"
 SCORING_PROFILE = "strict-source-audited-points-all-or-nothing"
 SUPPORTED_MODALITIES = ("text", "vision")
-
-SYSTEM_PROMPT = """你是一名严谨的数学解题者。只依据用户给出的题目文字和随附图形作答。
-
-要求：
-1. 不猜测题目来自哪个年份、地区、考试或题号，也不使用外部检索。
-2. 不输出解题过程、解释、Markdown 代码块或多余文字。
-3. 只输出一个合法 JSON 对象：{"answer": ...}
-4. 单选题的 answer 是一个大写字母，例如 "C"。
-5. 多选题的 answer 是升序拼接的大写字母，例如 "ACD"。
-6. 单空题的 answer 是字符串；多空题的 answer 是按空位顺序排列的 JSON 数组。
-7. 数学表达式使用题面中的 Unicode 记法；分数、根式、区间、向量按题意简洁书写。
-"""
 
 # The evidence crops include printed question numbers and neighbouring text.
 # These manually reviewed boxes retain only the diagram material.  They are
@@ -63,23 +56,13 @@ SYSTEM_PROMPT = """你是一名严谨的数学解题者。只依据用户给出�
 # necessary to disambiguate the text.  All four boxes include the complete
 # diagram and leave a white margin on every edge.  Keep the pixel hashes in
 # sync with the reviewed boxes; they are checked at runtime and in tests.
-PROMPT_IMAGE_CROPS: Dict[str, Tuple[int, int, int, int]] = {
-    "GB25-N1-Q06": (0, 270, 841, 590),
-    "GB25-BJ-Q14": (0, 190, 836, 505),
-    "GB25-SH-Q11": (0, 185, 841, 430),
-    "GB25-TJ-Q03": (0, 45, 841, 375),
-}
+PROMPT_IMAGE_CROPS: Dict[str, Tuple[int, int, int, int]] = dict(LEGACY_SPEC.prompt.image_crops)
 
 
 # SHA-256 over ``WIDTHxHEIGHT:RGB`` plus raw RGB bytes.  This is more stable
 # than hashing the PNG container, whose compression may vary across Pillow
 # releases, while still pinning the exact pixels reviewed for a prompt.
-PROMPT_IMAGE_PIXEL_SHA256: Dict[str, str] = {
-    "GB25-N1-Q06": "cf770f349f42ff9de45a0b135278bc1100ccaec5b843f5c31e2bf148daf3bf90",
-    "GB25-BJ-Q14": "01e2ab1ae446db206f80b029707435bbf2b5d7eb2a2336d4ab62a6d51fe75415",
-    "GB25-SH-Q11": "d7f127f5a89b886116253530d360d644d9f90fbaca83552ed86b379efbedf521",
-    "GB25-TJ-Q03": "813b28d19960b19ebcd1dca27726d8913f29c197cd91f8976baa42dfbea0e7e5",
-}
+PROMPT_IMAGE_PIXEL_SHA256: Dict[str, str] = dict(LEGACY_SPEC.prompt.image_pixel_sha256)
 
 
 class ProviderError(RuntimeError):
@@ -92,11 +75,23 @@ class ProviderError(RuntimeError):
         attempts: int = 0,
         retryable: bool = False,
         finish_reason: Optional[str] = None,
+        usage: Optional[Mapping[str, Any]] = None,
+        response_id: Optional[str] = None,
+        model: Optional[str] = None,
+        upstream_provider: Optional[str] = None,
+        system_fingerprint: Optional[str] = None,
+        seed: Optional[int] = None,
     ):
         super().__init__(message)
         self.attempts = attempts
         self.retryable = retryable
         self.finish_reason = finish_reason
+        self.usage = _normalise_usage(usage or {})
+        self.response_id = response_id
+        self.model = model
+        self.upstream_provider = upstream_provider
+        self.system_fingerprint = system_fingerprint
+        self.seed = seed
 
 
 @dataclass(frozen=True)
@@ -118,6 +113,9 @@ class ProviderResponse:
     response_id: Optional[str] = None
     finish_reason: Optional[str] = None
     attempts: int = 1
+    upstream_provider: Optional[str] = None
+    system_fingerprint: Optional[str] = None
+    seed: Optional[int] = None
     raw: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -142,6 +140,62 @@ def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def _normalise_usage(raw: Mapping[str, Any]) -> Dict[str, int]:
+    """Normalise provider accounting, including reasoning and cached tokens."""
+
+    if not isinstance(raw, Mapping):
+        return {}
+    usage: Dict[str, int] = {}
+
+    def number(value: Any) -> Optional[int]:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        return int(value)
+
+    for source, target in (
+        ("prompt_tokens", "input_tokens"),
+        ("input_tokens", "input_tokens"),
+        ("completion_tokens", "output_tokens"),
+        ("output_tokens", "output_tokens"),
+        ("total_tokens", "total_tokens"),
+        ("cache_read_input_tokens", "cache_read_input_tokens"),
+        ("cache_creation_input_tokens", "cache_creation_input_tokens"),
+    ):
+        value = number(raw.get(source))
+        if value is not None:
+            usage[target] = value
+    for details_key in ("completion_tokens_details", "output_tokens_details"):
+        details = raw.get(details_key)
+        if isinstance(details, Mapping):
+            value = number(details.get("reasoning_tokens"))
+            if value is not None:
+                usage["reasoning_tokens"] = value
+                break
+    if usage.get("reasoning_tokens") is None:
+        value = number(raw.get("reasoning_tokens"))
+        if value is not None:
+            usage["reasoning_tokens"] = value
+    if "total_tokens" not in usage and ("input_tokens" in usage or "output_tokens" in usage):
+        usage["total_tokens"] = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+    return usage
+
+
+def _response_routing(response: Mapping[str, Any]) -> Dict[str, Any]:
+    provider = response.get("provider")
+    if isinstance(provider, Mapping):
+        provider = provider.get("name") or provider.get("id")
+    seed = response.get("seed")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        seed = None
+    return {
+        "upstream_provider": str(provider) if provider not in (None, "") else None,
+        "system_fingerprint": (
+            str(response["system_fingerprint"]) if response.get("system_fingerprint") else None
+        ),
+        "seed": seed,
+    }
+
+
 def build_prompt(question: Mapping[str, Any]) -> str:
     """Build a prompt using only learner-visible question content.
 
@@ -164,13 +218,21 @@ def build_prompt(question: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_prompt_image(question: Mapping[str, Any], data_dir: Path | str) -> Optional[ImageInput]:
+def build_prompt_image(
+    question: Mapping[str, Any],
+    data_dir: Path | str,
+    *,
+    image_crops: Optional[Mapping[str, Tuple[int, int, int, int]]] = None,
+    pixel_sha256: Optional[Mapping[str, str]] = None,
+) -> Optional[ImageInput]:
     """Return a sanitised diagram crop for a required-vision question."""
 
-    if question.get("asset_dependency") != "required":
+    if not question_requires_vision(question):
         return None
     qid = question["id"]
-    crop_box = PROMPT_IMAGE_CROPS.get(qid)
+    crops = PROMPT_IMAGE_CROPS if image_crops is None else image_crops
+    expected_hashes = PROMPT_IMAGE_PIXEL_SHA256 if pixel_sha256 is None else pixel_sha256
+    crop_box = crops.get(qid)
     if crop_box is None:
         raise ValueError("required image has no reviewed prompt crop: %s" % qid)
     try:
@@ -191,7 +253,7 @@ def build_prompt_image(question: Mapping[str, Any], data_dir: Path | str) -> Opt
         cropped = image.convert("RGB").crop(crop_box)
         pixel_payload = ("%dx%d:RGB" % (cropped.width, cropped.height)).encode("ascii") + cropped.tobytes()
         pixel_hash = _sha256_bytes(pixel_payload)
-        expected_pixel_hash = PROMPT_IMAGE_PIXEL_SHA256.get(qid)
+        expected_pixel_hash = expected_hashes.get(qid)
         if expected_pixel_hash and pixel_hash != expected_pixel_hash:
             raise ValueError("prompt crop pixel hash mismatch for %s" % qid)
         output = io.BytesIO()
@@ -209,11 +271,26 @@ def build_prompt_image(question: Mapping[str, Any], data_dir: Path | str) -> Opt
     )
 
 
-def prepare_prompt(question: Mapping[str, Any], data_dir: Path | str, modality: str) -> Tuple[str, Optional[ImageInput]]:
+def prepare_prompt(
+    question: Mapping[str, Any],
+    data_dir: Path | str,
+    modality: str,
+    *,
+    prompt_spec: Any = None,
+) -> Tuple[str, Optional[ImageInput]]:
     if modality not in SUPPORTED_MODALITIES:
         raise ValueError("unsupported modality: %s" % modality)
     prompt = build_prompt(question)
-    image = build_prompt_image(question, data_dir) if modality == "vision" else None
+    image = (
+        build_prompt_image(
+            question,
+            data_dir,
+            image_crops=(prompt_spec.image_crops if prompt_spec is not None else None),
+            pixel_sha256=(prompt_spec.image_pixel_sha256 if prompt_spec is not None else None),
+        )
+        if modality == "vision"
+        else None
+    )
     return prompt, image
 
 
@@ -254,7 +331,11 @@ def _valid_answer_value(value: Any) -> bool:
     return False
 
 
-def parse_model_response(text: str) -> Dict[str, Any]:
+def parse_model_response(
+    text: str,
+    *,
+    choice_labels: Sequence[str] = ("A", "B", "C", "D"),
+) -> Dict[str, Any]:
     """Parse a model answer without inventing content.
 
     JSON is required by the prompt.  Two conservative fallbacks are accepted:
@@ -282,9 +363,13 @@ def parse_model_response(text: str) -> Dict[str, Any]:
         parsed = _parse_review_like_value(candidate)
         if _valid_answer_value(parsed):
             return {"status": "ok_labeled", "answer": parsed, "reason": None}
+    labels = tuple(str(label) for label in choice_labels)
+    single_char_labels = [label for label in labels if len(label) == 1 and label.isalnum()]
     choice = cleaned.strip().strip("`").replace(" ", "")
-    if re.fullmatch(r"[A-Da-d]{1,4}", choice):
-        return {"status": "ok_choice", "answer": choice.upper(), "reason": None}
+    if single_char_labels:
+        character_class = "".join(re.escape(label) for label in single_char_labels)
+        if re.fullmatch("[%s%s]{1,%d}" % (character_class, character_class.lower(), len(labels)), choice):
+            return {"status": "ok_choice", "answer": choice.upper(), "reason": None}
     return {"status": "parse_error", "answer": None, "reason": "no unambiguous answer object"}
 
 
@@ -345,7 +430,28 @@ def _post_json(
             raw_error = exc.read(4096).decode("utf-8", errors="replace")
             message = _redact("HTTP %d from provider: %s" % (exc.code, raw_error[:1000]), secrets)
             retryable = exc.code in (408, 409, 425, 429) or exc.code >= 500
-            last_error = ProviderError(message, attempts=attempt, retryable=retryable)
+            error_payload: Mapping[str, Any] = {}
+            try:
+                parsed_error = json.loads(raw_error)
+                if isinstance(parsed_error, Mapping):
+                    error_payload = parsed_error
+            except json.JSONDecodeError:
+                pass
+            error_usage = error_payload.get("usage") if isinstance(error_payload.get("usage"), Mapping) else {}
+            error_routing = _response_routing(error_payload)
+            last_error = ProviderError(
+                message,
+                attempts=attempt,
+                retryable=retryable,
+                usage=error_usage,
+                response_id=(
+                    str(error_payload.get("id")) if error_payload.get("id") is not None else None
+                ),
+                model=(
+                    str(error_payload.get("model")) if error_payload.get("model") is not None else None
+                ),
+                **error_routing,
+            )
             if not retryable or attempt > retries:
                 raise last_error from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -369,7 +475,15 @@ def _image_data_url(image: ImageInput) -> str:
 class AnthropicProvider:
     name = "anthropic"
 
-    def __init__(self, *, api_key: str, base_url: str, retries: int = 2, max_retries: Optional[int] = None):
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str,
+        retries: int = 2,
+        max_retries: Optional[int] = None,
+        reasoning_budget: Optional[int] = None,
+    ):
         if not api_key:
             raise ValueError("Anthropic API key is empty")
         if not base_url:
@@ -377,6 +491,7 @@ class AnthropicProvider:
         self.api_key = api_key
         self.base_url = base_url
         self.retries = retries if max_retries is None else max_retries
+        self.reasoning_budget = reasoning_budget
 
     def complete(
         self,
@@ -409,6 +524,12 @@ class AnthropicProvider:
         }
         if temperature is not None:
             payload["temperature"] = temperature
+        if self.reasoning_budget is not None:
+            if self.reasoning_budget <= 0:
+                raise ValueError("reasoning budget must be positive")
+            if max_tokens <= self.reasoning_budget:
+                raise ValueError("max_tokens must exceed the Anthropic reasoning budget")
+            payload["thinking"] = {"type": "enabled", "budget_tokens": self.reasoning_budget}
         headers = {
             "x-api-key": self.api_key,
             "Authorization": "Bearer %s" % self.api_key,
@@ -428,24 +549,27 @@ class AnthropicProvider:
             if isinstance(block, dict) and block.get("type") == "text"
         ]
         text = "\n".join(block for block in text_blocks if block)
+        usage = _normalise_usage(response.get("usage") if isinstance(response.get("usage"), dict) else {})
+        routing = _response_routing(response)
         if not text:
             finish_reason = response.get("stop_reason")
             raise ProviderError(
                 "Anthropic response contains no text block (stop_reason=%s)" % finish_reason,
                 attempts=attempts,
                 finish_reason=str(finish_reason) if finish_reason is not None else None,
+                usage=usage,
+                response_id=response.get("id"),
+                model=str(response.get("model") or model),
+                **routing,
             )
-        usage = response.get("usage") if isinstance(response.get("usage"), dict) else {}
         return ProviderResponse(
             text=text,
             model=str(response.get("model") or model),
-            usage={
-                "input_tokens": int(usage.get("input_tokens", 0) or 0),
-                "output_tokens": int(usage.get("output_tokens", 0) or 0),
-            },
+            usage=usage,
             response_id=response.get("id"),
             finish_reason=response.get("stop_reason"),
             attempts=attempts,
+            **routing,
             raw=response,
         )
 
@@ -453,7 +577,19 @@ class AnthropicProvider:
 class OpenAICompatibleProvider:
     name = "openai_compatible"
 
-    def __init__(self, *, api_key: str, base_url: str, retries: int = 2, max_tokens_field: str = "max_tokens"):
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str,
+        retries: int = 2,
+        max_tokens_field: str = "max_tokens",
+        reasoning_budget: Optional[int] = None,
+        seed: Optional[int] = None,
+        provider_order: Optional[Sequence[str]] = None,
+        allow_fallbacks: Optional[bool] = None,
+        extra_body: Optional[Mapping[str, Any]] = None,
+    ):
         if not api_key:
             raise ValueError("OpenAI-compatible API key is empty")
         if not base_url:
@@ -464,6 +600,11 @@ class OpenAICompatibleProvider:
         self.base_url = base_url
         self.retries = retries
         self.max_tokens_field = max_tokens_field
+        self.reasoning_budget = reasoning_budget
+        self.seed = seed
+        self.provider_order = tuple(provider_order or ())
+        self.allow_fallbacks = allow_fallbacks
+        self.extra_body = dict(extra_body or {})
 
     def complete(
         self,
@@ -493,6 +634,21 @@ class OpenAICompatibleProvider:
         }
         if temperature is not None:
             payload["temperature"] = temperature
+        if self.seed is not None:
+            payload["seed"] = self.seed
+        if self.reasoning_budget is not None:
+            if self.reasoning_budget <= 0:
+                raise ValueError("reasoning budget must be positive")
+            payload["reasoning"] = {"max_tokens": self.reasoning_budget}
+        if self.provider_order:
+            payload["provider"] = {
+                "order": list(self.provider_order),
+                "allow_fallbacks": bool(self.allow_fallbacks) if self.allow_fallbacks is not None else False,
+            }
+        for key, value in self.extra_body.items():
+            if key in payload:
+                raise ValueError("extra_body cannot override %s" % key)
+            payload[key] = value
         response, attempts = _post_json(
             _endpoint(self.base_url, "/chat/completions"),
             payload,
@@ -501,9 +657,18 @@ class OpenAICompatibleProvider:
             retries=self.retries,
             secrets=(self.api_key,),
         )
+        usage = _normalise_usage(response.get("usage") if isinstance(response.get("usage"), dict) else {})
+        routing = _response_routing(response)
         choices = response.get("choices")
         if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
-            raise ProviderError("OpenAI-compatible response has no choices", attempts=attempts)
+            raise ProviderError(
+                "OpenAI-compatible response has no choices",
+                attempts=attempts,
+                usage=usage,
+                response_id=response.get("id"),
+                model=str(response.get("model") or model),
+                **routing,
+            )
         choice = choices[0]
         message = choice.get("message") if isinstance(choice.get("message"), dict) else {}
         content = message.get("content")
@@ -524,18 +689,19 @@ class OpenAICompatibleProvider:
                 % (finish_reason, str(reasoning_present).lower()),
                 attempts=attempts,
                 finish_reason=str(finish_reason) if finish_reason is not None else None,
+                usage=usage,
+                response_id=response.get("id"),
+                model=str(response.get("model") or model),
+                **routing,
             )
-        usage = response.get("usage") if isinstance(response.get("usage"), dict) else {}
         return ProviderResponse(
             text=text,
             model=str(response.get("model") or model),
-            usage={
-                "input_tokens": int(usage.get("prompt_tokens", 0) or 0),
-                "output_tokens": int(usage.get("completion_tokens", 0) or 0),
-            },
+            usage=usage,
             response_id=response.get("id"),
             finish_reason=choice.get("finish_reason"),
             attempts=attempts,
+            **routing,
             raw=response,
         )
 
@@ -712,8 +878,9 @@ def select_questions(
     *,
     paper_ids: Optional[Sequence[str]] = None,
     limit: Optional[int] = None,
+    view_id: str = "full",
 ) -> List[Dict[str, Any]]:
-    selected = list(dataset.questions)
+    selected = list(dataset.spec.select_view(view_id, dataset.questions))
     if paper_ids:
         paper_set = set(paper_ids)
         known = {paper["id"] for paper in dataset.papers}
@@ -734,21 +901,10 @@ def _utc_timestamp() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _run_id(created_at: str, provider: str, model: str, modality: str, repeats: int) -> str:
+def _run_id(created_at: str, provider: str, model: str, modality: str, protocol_sha256: str) -> str:
     compact = re.sub(r"[^A-Za-z0-9._-]+", "-", model or "unknown")[:48].strip("-") or "unknown"
     stamp = re.sub(r"[^0-9A-Za-z]+", "", created_at)[:20]
-    config_hash = hashlib.sha256(
-        json.dumps(
-            {
-                "provider": provider,
-                "model": model,
-                "modality": modality,
-                "repeats": repeats,
-                "prompt": PROMPT_VERSION,
-            },
-            sort_keys=True,
-        ).encode("utf-8")
-    ).hexdigest()[:8]
+    config_hash = protocol_sha256[:8]
     return "%s-%s-%s-%s-%s" % (stamp, provider, compact, modality, config_hash)
 
 
@@ -778,6 +934,120 @@ def _percentile(values: Sequence[float], fraction: float) -> float:
     upper = min(lower + 1, len(ordered) - 1)
     weight = index - lower
     return float(ordered[lower] * (1.0 - weight) + ordered[upper] * weight)
+
+
+def _canonical_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def build_evaluation_protocol(
+    dataset: Dataset,
+    *,
+    provider_name: str,
+    model: str,
+    modality: str,
+    repeats: int,
+    max_tokens: int,
+    reasoning_budget: Optional[int],
+    temperature: Optional[float],
+    timeout: float,
+    concurrency: int,
+    provider_metadata: Optional[Mapping[str, Any]] = None,
+    seed: Optional[int] = None,
+    provider_order: Optional[Sequence[str]] = None,
+    allow_fallbacks: Optional[bool] = None,
+    selection: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    safe_provider_config = {
+        key: value
+        for key, value in dict(provider_metadata or {}).items()
+        if key not in {"api_key", "key", "authorization"}
+    }
+    protocol = {
+        "protocol_version": "1.0",
+        "benchmark": {
+            "dataset_version": dataset.manifest.get("dataset_version"),
+            "dataset_manifest_sha256": _sha256_bytes((dataset.data_dir / "manifest.json").read_bytes()),
+            "spec_id": dataset.spec.id,
+            "spec_version": dataset.spec.version,
+            "spec_sha256": dataset.spec.fingerprint(),
+        },
+        "scoring": {
+            "profile": dataset.spec.scoring.profile,
+            "scorer_version": SCORER_VERSION,
+            "metric_version": dataset.spec.scoring.metric_version,
+            "primary_metric": dataset.spec.scoring.primary_metric,
+            "partial_credit": dataset.spec.scoring.partial_credit,
+        },
+        "prompt": {
+            "version": dataset.spec.prompt.version,
+            "system_sha256": _sha256_bytes(dataset.spec.prompt.system.encode("utf-8")),
+            "answer_schema": dataset.spec.prompt.answer_schema,
+        },
+        "model": {
+            "provider": provider_name,
+            "requested_model": model,
+            "provider_config": safe_provider_config,
+            "seed": seed,
+            "provider_order": list(provider_order or ()),
+            "allow_fallbacks": allow_fallbacks,
+        },
+        "run": {
+            "harness_version": HARNESS_VERSION,
+            "modality": modality,
+            "repeats": repeats,
+            "max_tokens": max_tokens,
+            "reasoning_budget": reasoning_budget,
+            "temperature": temperature,
+            "timeout_seconds": timeout,
+            "concurrency": concurrency,
+        },
+        "selection": dict(selection or {}),
+    }
+    protocol["sha256"] = _sha256_bytes(_canonical_json(protocol).encode("utf-8"))
+    return protocol
+
+
+def _load_attempt_records(path: Path) -> Dict[Tuple[int, str], Dict[str, Any]]:
+    if not path.is_file():
+        return {}
+    latest: Dict[Tuple[int, str], Dict[str, Any]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        try:
+            key = (int(row["repeat"]), str(row["question_id"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        latest[key] = row
+    return latest
+
+
+def _answer_from_attempt(
+    record: Mapping[str, Any],
+    *,
+    choice_labels: Sequence[str] = ("A", "B", "C", "D"),
+) -> Any:
+    status = record.get("status")
+    if status not in ("ok_json", "ok_labeled", "ok_choice"):
+        return None
+    answer = record.get("parsed_answer")
+    if answer is not None:
+        return answer
+    response_text = record.get("response_text")
+    if isinstance(response_text, str):
+        return parse_model_response(response_text, choice_labels=choice_labels).get("answer")
+    return None
+
+
+def _is_truncated_finish_reason(value: Optional[str]) -> bool:
+    return value in ("length", "max_tokens", "max_output_tokens")
 
 
 def _scope_summary(
@@ -815,6 +1085,46 @@ def _scope_summary(
     }
 
 
+def _aggregate_metrics(
+    repeat_summaries: Sequence[Mapping[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """Aggregate per-repeat metrics without renaming or changing their units."""
+
+    grouped: Dict[str, List[Mapping[str, Any]]] = {}
+    for repeat in repeat_summaries:
+        metrics = repeat.get("metrics") if isinstance(repeat.get("metrics"), Mapping) else {}
+        for metric_id, metric in metrics.items():
+            if isinstance(metric, Mapping):
+                grouped.setdefault(str(metric_id), []).append(metric)
+
+    aggregated: Dict[str, Dict[str, Any]] = {}
+    for metric_id, rows in sorted(grouped.items()):
+        numerator_values = [float(row.get("numerator", 0.0)) for row in rows]
+        denominator_values = [float(row.get("denominator", 0.0)) for row in rows]
+        ratio_values = [float(row["value"]) for row in rows if row.get("value") is not None]
+        first = rows[0]
+        numerator = statistics.mean(numerator_values) if numerator_values else 0.0
+        denominator = statistics.mean(denominator_values) if denominator_values else 0.0
+        value = statistics.mean(ratio_values) if ratio_values else None
+        if not ratio_values and denominator:
+            value = numerator / denominator
+        aggregated[metric_id] = {
+            "id": metric_id,
+            "version": first.get("version"),
+            "unit": first.get("unit", "ratio"),
+            "value": value,
+            "numerator": numerator,
+            "denominator": denominator,
+            "numerator_unit": first.get("numerator_unit"),
+            "definition": first.get("definition"),
+            "scope": first.get("scope"),
+            "coverage": first.get("coverage"),
+            "aggregation": "mean_over_repeats",
+            "repeat_values": ratio_values,
+        }
+    return aggregated
+
+
 def run_benchmark(
     dataset: Dataset,
     provider: Provider,
@@ -826,15 +1136,23 @@ def run_benchmark(
     output_dir: Path | str,
     paper_ids: Optional[Sequence[str]] = None,
     limit: Optional[int] = None,
+    view_id: str = "full",
     timeout: float = 120.0,
-    max_tokens: int = 1024,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    reasoning_budget: Optional[int] = None,
     temperature: Optional[float] = 0.0,
     created_at: Optional[str] = None,
     prepare_only: bool = False,
     provider_metadata: Optional[Mapping[str, Any]] = None,
     concurrency: int = 1,
+    resume: bool = False,
+    retry_failed: bool = False,
+    seed: Optional[int] = None,
+    provider_order: Optional[Sequence[str]] = None,
+    allow_fallbacks: Optional[bool] = None,
+    progress_callback: Optional[Callable[[Mapping[str, Any]], None]] = None,
 ) -> Dict[str, Any]:
-    """Run a reproducible text/vision evaluation and write an audit bundle."""
+    """Run a reproducible evaluation and write an audited, resumable bundle."""
 
     if modality not in SUPPORTED_MODALITIES:
         raise ValueError("unsupported modality: %s" % modality)
@@ -842,38 +1160,109 @@ def run_benchmark(
         raise ValueError("repeats must be positive")
     if concurrency <= 0:
         raise ValueError("concurrency must be positive")
+    if max_tokens <= 0:
+        raise ValueError("max_tokens must be positive")
+    if reasoning_budget is not None:
+        if reasoning_budget <= 0:
+            raise ValueError("reasoning_budget must be positive")
+        if max_tokens <= reasoning_budget:
+            raise ValueError("max_tokens must be greater than reasoning_budget")
+    if retry_failed and not resume:
+        raise ValueError("retry_failed requires resume=True")
+
     validate_dataset(dataset)
-    selected = select_questions(dataset, paper_ids=paper_ids, limit=limit)
+    selected = select_questions(dataset, paper_ids=paper_ids, limit=limit, view_id=view_id)
+    selected_ids = {question["id"] for question in selected}
+    selected_papers = sorted({question["paper_id"] for question in selected})
+    if paper_ids:
+        coverage_label = "papers:%s" % ",".join(selected_papers)
+    elif limit is not None:
+        coverage_label = "pilot:first-%d" % limit
+    elif view_id != "full":
+        coverage_label = "view:%s" % view_id
+    else:
+        coverage_label = "full-dataset"
+
+    protocol = build_evaluation_protocol(
+        dataset,
+        provider_name=provider_name,
+        model=model,
+        modality=modality,
+        repeats=repeats,
+        max_tokens=max_tokens,
+        reasoning_budget=reasoning_budget,
+        temperature=temperature,
+        timeout=timeout,
+        concurrency=concurrency,
+        provider_metadata=provider_metadata,
+        seed=seed,
+        provider_order=provider_order,
+        allow_fallbacks=allow_fallbacks,
+        selection={
+            "coverage_label": coverage_label,
+            "papers": sorted(paper_ids or ()),
+            "limit": limit,
+            "view": view_id,
+            "question_ids": sorted(selected_ids),
+        },
+    )
+    protocol_sha256 = str(protocol["sha256"])
+
     destination = Path(output_dir).resolve()
+    existing_manifest: Dict[str, Any] = {}
+    existing_attempts: Dict[Tuple[int, str], Dict[str, Any]] = {}
     if destination.exists() and any(destination.iterdir()):
-        raise ValueError("output directory is not empty: %s" % destination)
+        if not resume:
+            raise ValueError("output directory is not empty: %s" % destination)
+        manifest_path = destination / "manifest.json"
+        if not manifest_path.is_file():
+            raise ValueError("cannot resume without manifest.json: %s" % destination)
+        existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if existing_manifest.get("evaluation_protocol_sha256") != protocol_sha256:
+            raise ValueError(
+                "cannot resume: evaluation protocol differs (%s != %s)"
+                % (existing_manifest.get("evaluation_protocol_sha256"), protocol_sha256)
+            )
+        summary_path = destination / "summary.json"
+        if summary_path.is_file() and existing_manifest.get("status") == "completed":
+            return json.loads(summary_path.read_text(encoding="utf-8"))
+        existing_attempts = _load_attempt_records(destination / "attempts.jsonl")
+
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "submissions").mkdir(exist_ok=True)
     (destination / "reports").mkdir(exist_ok=True)
-    seen_answers = {question["id"] for question in selected}
-    missing_answers = sorted(set(dataset.answer_keys) - seen_answers)
-
-    created_at = created_at or _utc_timestamp()
-    run_id = _run_id(created_at, provider_name, model, modality, repeats)
-    selected_ids = {question["id"] for question in selected}
+    created_at = str(existing_manifest.get("created_at") or created_at or _utc_timestamp())
+    run_id = str(
+        existing_manifest.get("run_id")
+        or _run_id(created_at, provider_name, model, modality, protocol_sha256)
+    )
     answerable_ids = {
         question["id"]
         for question in selected
-        if not (modality == "text" and question.get("asset_dependency") == "required")
+        if not (modality == "text" and question_requires_vision(question))
     }
+
     prompt_rows: List[Dict[str, Any]] = []
     for question in selected:
-        prompt, image = prepare_prompt(question, dataset.data_dir, modality)
-        prompt_hash = _sha256_bytes(prompt.encode("utf-8"))
+        prompt, image = prepare_prompt(
+            question,
+            dataset.data_dir,
+            modality,
+            prompt_spec=dataset.spec.prompt,
+        )
         prompt_rows.append(
             {
                 "question_id": question["id"],
                 "paper_id": question["paper_id"],
-                "prompt_version": PROMPT_VERSION,
-                "prompt_sha256": prompt_hash,
+                "prompt_version": dataset.spec.prompt.version,
+                "prompt_sha256": _sha256_bytes(prompt.encode("utf-8")),
                 "prompt_chars": len(prompt),
                 "contains_question_id": question["id"] in prompt,
-                "contains_dataset_year": "2025" in prompt,
+                "contains_paper_id": question["paper_id"] in prompt,
+                "contains_source_id": str((question.get("source") or {}).get("source_id", "")) in prompt
+                if (question.get("source") or {}).get("source_id")
+                else False,
+                "contains_dataset_year": any(str(year) in prompt for year in dataset.spec.years),
                 "image": (
                     {
                         "sha256": image.sha256,
@@ -881,9 +1270,9 @@ def run_benchmark(
                         "pixel_sha256": image.pixel_sha256,
                         "crop_box": list(image.crop_box) if image.crop_box else None,
                         "media_type": image.media_type,
-                        "bytes": len(image.data),
+                        "filename": image.filename,
                     }
-                    if image
+                    if image is not None
                     else None
                 ),
             }
@@ -892,19 +1281,48 @@ def run_benchmark(
     with prompt_manifest_path.open("w", encoding="utf-8") as handle:
         for row in prompt_rows:
             _jsonl_write(handle, row)
-    if any(row["contains_question_id"] or row["contains_dataset_year"] for row in prompt_rows):
+    if any(
+        row["contains_question_id"] or row["contains_paper_id"] or row["contains_source_id"]
+        for row in prompt_rows
+    ):
         raise ValueError("prompt isolation check failed: metadata leaked into a prompt")
 
+    release_info = dataset.manifest.get("release") if isinstance(dataset.manifest.get("release"), dict) else {}
+    rights_info = dataset.manifest.get("rights") if isinstance(dataset.manifest.get("rights"), dict) else {}
+    public_ranking_allowed = bool(release_info.get("public_ranking_allowed", False))
+    rights_notice = {
+        "public_ranking_allowed": public_ranking_allowed,
+        "exam_material_license": rights_info.get("exam_material_license", "NOASSERTION"),
+        "notice": (
+            "Public leaderboard placement, vendor marketing, or comparative ranking is not authorized "
+            "unless the dataset manifest explicitly sets public_ranking_allowed=true."
+            if not public_ranking_allowed
+            else "The dataset manifest permits public ranking; underlying exam material rights still apply."
+        ),
+    }
+    selected_possible_points = sum(int(question["points"]) for question in selected)
+    dataset_possible_points = sum(int(question["points"]) for question in dataset.questions)
+    answerable_possible_points = sum(
+        int(question["points"]) for question in selected if question["id"] in answerable_ids
+    )
+    missing_answers = sorted(set(dataset.answer_keys) - selected_ids)
     manifest: Dict[str, Any] = {
         "harness": "Gaokao-Bench",
         "harness_version": HARNESS_VERSION,
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": dataset.spec.prompt.version,
         "scorer_version": SCORER_VERSION,
         "run_id": run_id,
         "created_at": created_at,
         "dataset_version": dataset.manifest["dataset_version"],
         "dataset_manifest_sha256": _sha256_bytes((dataset.data_dir / "manifest.json").read_bytes()),
-        "scoring_profile": SCORING_PROFILE,
+        "benchmark_spec": {
+            "id": dataset.spec.id,
+            "version": dataset.spec.version,
+            "sha256": dataset.spec.fingerprint(),
+        },
+        "scoring_profile": dataset.spec.scoring.profile,
+        "evaluation_protocol": protocol,
+        "evaluation_protocol_sha256": protocol_sha256,
         "provider": provider_name,
         "provider_config": dict(provider_metadata or {}),
         "model": model,
@@ -912,45 +1330,66 @@ def run_benchmark(
         "repeats": repeats,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "reasoning_budget": reasoning_budget,
+        "seed": seed,
+        "provider_order": list(provider_order or ()),
+        "allow_fallbacks": allow_fallbacks,
         "timeout_seconds": timeout,
         "concurrency": concurrency,
-        "selected_papers": sorted({question["paper_id"] for question in selected}),
+        "selected_papers": selected_papers,
         "selected_questions": len(selected),
         "dataset_questions": len(dataset.questions),
-        "selected_possible_points": sum(int(question["points"]) for question in selected),
-        "dataset_possible_points": sum(int(question["points"]) for question in dataset.questions),
+        "selected_possible_points": selected_possible_points,
+        "dataset_possible_points": dataset_possible_points,
+        "coverage_label": coverage_label,
+        "modality_answerable_questions": len(answerable_ids),
+        "modality_answerable_points": answerable_possible_points,
         "selected_question_ids": sorted(selected_ids),
         "unanswered_question_ids": missing_answers,
         "prompt_isolation": {
             "one_question_per_request": True,
             "answer_key_supplied": False,
-            "question_id_in_prompt": False,
-            "year_in_prompt": False,
-            "paper_or_region_in_prompt": False,
-            "vision_assets": "sanitised diagram crops only",
+            "question_id_in_prompt": any(row["contains_question_id"] for row in prompt_rows),
+            "paper_id_in_prompt": any(row["contains_paper_id"] for row in prompt_rows),
+            "source_id_in_prompt": any(row["contains_source_id"] for row in prompt_rows),
+            "dataset_year_in_prompt": any(row["contains_dataset_year"] for row in prompt_rows),
+            "vision_assets": "reviewed diagram crops only",
             "text_profile_image_policy": "image-required items are zero without a provider call",
         },
         "prompt_manifest": "prompts.jsonl",
         "contamination": {
             "status": str((dataset.manifest.get("quality") or {}).get("contamination_status", "unspecified")),
-            "score_label": "retrospective_public_2025",
+            "score_label": str(release_info.get("score_label") or "public_retrospective"),
             "freshness_claim_allowed": False,
         },
+        "rights_notice": rights_notice,
         "status": "prepared" if prepare_only else "running",
         "public_release": False,
+        "resume": {"enabled": resume, "reused_attempts": len(existing_attempts)},
     }
     manifest_path = destination / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if prepare_only:
-        manifest["status"] = "prepared"
         return manifest
 
     attempt_path = destination / "attempts.jsonl"
-    attempts: List[Dict[str, Any]] = []
+    all_attempts: Dict[Tuple[int, str], Dict[str, Any]] = dict(existing_attempts)
     repeat_summaries: List[Dict[str, Any]] = []
+
+    def progress(stage: str, **payload: Any) -> None:
+        if progress_callback is not None:
+            event = {"stage": stage, "run_id": run_id, "modality": modality}
+            event.update(payload)
+            progress_callback(event)
+
     def execute_one(question: Mapping[str, Any], repeat_index: int, position: int) -> Tuple[Dict[str, Any], Any]:
         qid = question["id"]
-        prompt, image = prepare_prompt(question, dataset.data_dir, modality)
+        prompt, image = prepare_prompt(
+            question,
+            dataset.data_dir,
+            modality,
+            prompt_spec=dataset.spec.prompt,
+        )
         images = [image] if image else []
         started = time.monotonic()
         record: Dict[str, Any] = {
@@ -961,24 +1400,32 @@ def run_benchmark(
             "paper_id": question["paper_id"],
             "prompt_sha256": _sha256_bytes(prompt.encode("utf-8")),
             "image_sha256": image.sha256 if image else None,
+            "requested_model": model,
+            "response_model": None,
+            "response_id": None,
+            "finish_reason": None,
+            "usage": {},
+            "provider_attempts": 0,
+            "upstream_provider": None,
+            "system_fingerprint": None,
+            "seed": seed,
+            "provider_routing": None,
         }
         parsed_answer = None
-        if modality == "text" and question.get("asset_dependency") == "required":
+        if modality == "text" and question_requires_vision(question):
             record.update(
                 {
                     "status": "image_unavailable_text_profile",
                     "parse_reason": "the question requires a diagram that the text profile does not supply",
                     "response_text": None,
                     "parsed_answer": None,
-                    "usage": {},
-                    "provider_attempts": 0,
+                    "latency_ms": 0.0,
                 }
             )
-            record["latency_ms"] = 0.0
             return record, None
         try:
             response = provider.complete(
-                system_prompt=SYSTEM_PROMPT,
+                system_prompt=dataset.spec.prompt.system,
                 prompt=prompt,
                 images=images,
                 model=model,
@@ -986,31 +1433,53 @@ def run_benchmark(
                 max_tokens=max_tokens,
                 temperature=temperature,
             )
-            parsed = parse_model_response(response.text)
-            parsed_answer = parsed["answer"]
             record.update(
                 {
-                    "status": parsed["status"],
-                    "parse_reason": parsed["reason"],
                     "response_text": response.text,
-                    "requested_model": model,
                     "response_model": response.model,
                     "response_id": response.response_id,
                     "finish_reason": response.finish_reason,
                     "usage": response.usage,
                     "provider_attempts": response.attempts,
-                    "parsed_answer": parsed_answer,
+                    "upstream_provider": response.upstream_provider,
+                    "system_fingerprint": response.system_fingerprint,
+                    "seed": response.seed if response.seed is not None else seed,
+                    "provider_routing": response.raw.get("provider"),
                 }
             )
+            if _is_truncated_finish_reason(response.finish_reason):
+                record.update(
+                    {
+                        "status": "truncated",
+                        "parse_reason": "provider stopped at the output-token limit before a complete answer",
+                        "parsed_answer": None,
+                    }
+                )
+            else:
+                parsed = parse_model_response(response.text, choice_labels=dataset.spec.choice_labels)
+                parsed_answer = parsed["answer"]
+                record.update(
+                    {
+                        "status": parsed["status"],
+                        "parse_reason": parsed["reason"],
+                        "parsed_answer": parsed_answer,
+                    }
+                )
         except ProviderError as exc:
             record.update(
                 {
-                    "status": "provider_error",
+                    "status": "truncated" if _is_truncated_finish_reason(exc.finish_reason) else "provider_error",
                     "parse_reason": None,
                     "error": str(exc),
                     "provider_retryable": exc.retryable,
                     "provider_attempts": exc.attempts,
                     "finish_reason": exc.finish_reason,
+                    "usage": exc.usage,
+                    "response_id": exc.response_id,
+                    "response_model": exc.model,
+                    "upstream_provider": exc.upstream_provider,
+                    "system_fingerprint": exc.system_fingerprint,
+                    "seed": exc.seed if exc.seed is not None else seed,
                     "response_text": None,
                     "parsed_answer": None,
                 }
@@ -1029,26 +1498,67 @@ def run_benchmark(
         record["latency_ms"] = round((time.monotonic() - started) * 1000.0, 3)
         return record, parsed_answer
 
-    with attempt_path.open("w", encoding="utf-8") as attempt_handle:
+    progress(
+        "run_start",
+        repeats=repeats,
+        selected_questions=len(selected),
+        selected_possible_points=selected_possible_points,
+        reused_attempts=len(existing_attempts),
+    )
+    with attempt_path.open("a", encoding="utf-8") as attempt_handle:
         for repeat_index in range(1, repeats + 1):
             answers: Dict[str, Any] = {}
             results_by_position: Dict[int, Tuple[Dict[str, Any], Any]] = {}
+            completed_in_repeat = 0
+            for position, question in enumerate(selected, 1):
+                existing = existing_attempts.get((repeat_index, question["id"]))
+                if existing is None:
+                    continue
+                exhausted = str(existing.get("status")) in ("provider_error", "harness_error", "truncated")
+                if retry_failed and exhausted:
+                    continue
+                answer = _answer_from_attempt(existing, choice_labels=dataset.spec.choice_labels)
+                reusable = dict(existing)
+                reusable["parsed_answer"] = answer
+                results_by_position[position] = (reusable, answer)
+                completed_in_repeat += 1
+
+            def accept_result(position: int, result: Tuple[Dict[str, Any], Any], repeat: int = repeat_index) -> None:
+                results_by_position[position] = result
+                record = result[0]
+                all_attempts[(repeat, str(record["question_id"]))] = record
+                _jsonl_write(attempt_handle, record)
+                progress(
+                    "question_complete",
+                    repeat=repeat,
+                    position=position,
+                    total=len(selected),
+                    question_id=record["question_id"],
+                    status=record["status"],
+                    finish_reason=record.get("finish_reason"),
+                    reused=False,
+                )
+
             if concurrency == 1:
                 for position, question in enumerate(selected, 1):
-                    result = execute_one(question, repeat_index, position)
-                    results_by_position[position] = result
-                    _jsonl_write(attempt_handle, result[0])
+                    if position not in results_by_position:
+                        accept_result(position, execute_one(question, repeat_index, position))
             else:
+                pending = {
+                    position: question
+                    for position, question in enumerate(selected, 1)
+                    if position not in results_by_position
+                }
                 with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
                     futures = {
                         executor.submit(execute_one, question, repeat_index, position): position
-                        for position, question in enumerate(selected, 1)
+                        for position, question in pending.items()
                     }
                     for future in concurrent.futures.as_completed(futures):
                         position = futures[future]
                         try:
                             result = future.result()
-                        except Exception as exc:
+                        except Exception as exc:  # pragma: no cover - execute_one catches normally
                             question = selected[position - 1]
                             result = (
                                 {
@@ -1066,81 +1576,111 @@ def run_benchmark(
                                 },
                                 None,
                             )
-                        results_by_position[position] = result
-                        _jsonl_write(attempt_handle, result[0])
+                        accept_result(position, result)
+
             for position in sorted(results_by_position):
                 record, parsed_answer = results_by_position[position]
-                attempts.append(record)
                 if parsed_answer is not None:
                     answers[record["question_id"]] = parsed_answer
 
-            submission = {"answers": answers}
             submission_path = destination / "submissions" / ("repeat-%02d.json" % repeat_index)
             submission_path.write_text(
-                json.dumps(submission, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                json.dumps({"answers": answers}, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
-            report = evaluate_submission(dataset, answers)
+            report = evaluate_submission(
+                dataset,
+                answers,
+                question_ids=sorted(selected_ids),
+                coverage_label=coverage_label,
+                view_id=view_id,
+            )
             report["run_id"] = run_id
             report["repeat"] = repeat_index
-            report["scope"] = _scope_summary(
-                report["results"],
-                selected_ids,
-                answerable_ids,
-                selected_questions=len(selected),
-                total_questions=len(dataset.questions),
-            )
+            report["evaluation_protocol_sha256"] = protocol_sha256
+            report["attempt_coverage"] = {
+                "expected": len(selected),
+                "recorded": len(results_by_position),
+                "reused": completed_in_repeat,
+            }
             report_path = destination / "reports" / ("repeat-%02d.json" % repeat_index)
             report_path.write_text(
                 json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
-            scope = report["scope"]
+            submission_sha256 = _sha256_bytes(submission_path.read_bytes())
+            report_sha256 = _sha256_bytes(report_path.read_bytes())
+            primary = report["primary_metric"]
+            slices = report["summary"]["slices"]
             repeat_summaries.append(
                 {
                     "repeat": repeat_index,
                     "earned_points": report["summary"]["earned_points"],
                     "possible_points": report["summary"]["possible_points"],
-                    "GB-2025-Math-Obj": report["summary"]["GB-2025-Math-Obj"],
-                    "scope": {
-                        "earned_points": scope["earned_points"],
-                        "possible_points": scope["possible_points"],
-                        "point_accuracy": scope["point_accuracy"],
-                        "correct_questions": scope["correct_questions"],
-                        "status_counts": scope["status_counts"],
-                        "profile_answerable_questions": scope["profile_answerable_questions"],
-                        "profile_answerable_points": scope["profile_answerable_points"],
-                        "profile_earned_points": scope["profile_earned_points"],
-                        "profile_point_accuracy": scope["profile_point_accuracy"],
+                    "correct_questions": report["summary"]["correct_questions"],
+                    "total_questions": report["summary"]["total_questions"],
+                    "primary_metric": primary,
+                    "metrics": report["metrics"],
+                    "slices": {
+                        "text_answerable": slices["text_answerable"],
+                        "vision_required": slices["vision_required"],
                     },
-                    "submission_sha256": _sha256_bytes(submission_path.read_bytes()),
-                    "report_sha256": _sha256_bytes(report_path.read_bytes()),
+                    "scope": report["scope"],
+                    "attempt_coverage": report["attempt_coverage"],
+                    "submission_sha256": submission_sha256,
+                    "report_sha256": report_sha256,
                 }
             )
+            progress(
+                "repeat_complete",
+                repeat=repeat_index,
+                repeats=repeats,
+                earned_points=report["summary"]["earned_points"],
+                possible_points=report["summary"]["possible_points"],
+                primary_metric_value=primary["value"],
+            )
 
-    latencies = [float(row["latency_ms"]) for row in attempts]
+    attempts = [all_attempts[key] for key in sorted(all_attempts)]
+    attempt_tmp = destination / "attempts.jsonl.tmp"
+    attempt_tmp.write_text(
+        "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in attempts),
+        encoding="utf-8",
+    )
+    attempt_tmp.replace(attempt_path)
+
     provider_errors = sum(1 for row in attempts if row["status"] == "provider_error")
     harness_errors = sum(1 for row in attempts if row["status"] == "harness_error")
     parse_errors = sum(1 for row in attempts if row["status"] == "parse_error")
+    truncations = sum(1 for row in attempts if row["status"] == "truncated")
+    latencies = [float(row["latency_ms"]) for row in attempts if "latency_ms" in row]
     finish_reasons: Dict[str, int] = {}
     for row in attempts:
         reason = row.get("finish_reason")
-        if reason:
+        if reason is not None:
             finish_reasons[str(reason)] = finish_reasons.get(str(reason), 0) + 1
-    scope_points = [row["scope"]["earned_points"] for row in repeat_summaries]
-    scope_denominators = [row["scope"]["possible_points"] for row in repeat_summaries]
-    scope_accuracies = [row["scope"]["point_accuracy"] for row in repeat_summaries]
-    profile_accuracies = [row["scope"]["profile_point_accuracy"] for row in repeat_summaries]
-    profile_earned = [row["scope"]["profile_earned_points"] for row in repeat_summaries]
-    profile_points = [row["scope"]["profile_answerable_points"] for row in repeat_summaries]
+    scope_points = [float(row["earned_points"]) for row in repeat_summaries]
+    correct_questions = [float(row["correct_questions"]) for row in repeat_summaries]
+    first_scope = repeat_summaries[0]["scope"] if repeat_summaries else {}
+    metrics = _aggregate_metrics(repeat_summaries)
+    primary_metric = metrics.get(dataset.spec.scoring.primary_metric)
+    if primary_metric is None:
+        raise ValueError("scoring reports did not produce the declared primary metric")
     summary = {
+        "schema_version": "2.0",
+        "status": "completed",
         "run_id": run_id,
-        "dataset_version": dataset.manifest["dataset_version"],
+        "dataset": "Gaokao-Bench",
+        "dataset_version": dataset.manifest.get("dataset_version", ""),
         "dataset_manifest_sha256": _sha256_bytes((dataset.data_dir / "manifest.json").read_bytes()),
+        "benchmark_spec": manifest["benchmark_spec"],
+        "subject": dataset.spec.subject,
+        "years": list(dataset.spec.years),
         "harness_version": HARNESS_VERSION,
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": dataset.spec.prompt.version,
         "scorer_version": SCORER_VERSION,
-        "scoring_profile": SCORING_PROFILE,
+        "scoring_profile": dataset.spec.scoring.profile,
+        "evaluation_protocol": protocol,
+        "evaluation_protocol_sha256": protocol_sha256,
         "provider": provider_name,
         "model": model,
         "modality": modality,
@@ -1149,38 +1689,48 @@ def run_benchmark(
         "created_at": created_at,
         "conditions": {
             "max_tokens": max_tokens,
+            "reasoning_budget": reasoning_budget,
             "temperature": temperature,
+            "seed": seed,
+            "provider_order": list(provider_order or ()),
+            "allow_fallbacks": allow_fallbacks,
             "timeout_seconds": timeout,
             "concurrency": concurrency,
         },
         "scope": {
-            "selected_papers": manifest["selected_papers"],
+            "coverage_label": coverage_label,
+            "kind": first_scope.get("kind"),
+            "view": view_id,
+            "selected_papers": selected_papers,
             "selected_questions": len(selected),
             "dataset_questions": len(dataset.questions),
-            "selected_possible_points": manifest["selected_possible_points"],
-            "dataset_possible_points": manifest["dataset_possible_points"],
-            "scope_denominator": sorted(set(scope_denominators)),
-            "profile_answerable_questions": repeat_summaries[0]["scope"]["profile_answerable_questions"],
-            "profile_answerable_points": (
-                profile_points[0] if len(set(profile_points)) == 1 else sorted(set(profile_points))
-            ),
+            "selected_possible_points": selected_possible_points,
+            "dataset_possible_points": dataset_possible_points,
+            "modality_answerable_questions": len(answerable_ids),
+            "modality_answerable_points": answerable_possible_points,
         },
         "aggregate": {
-            "mean_selected_earned_points": statistics.mean(scope_points),
-            "min_selected_earned_points": min(scope_points),
-            "max_selected_earned_points": max(scope_points),
-            "mean_selected_point_accuracy": statistics.mean(scope_accuracies),
-            "stdev_selected_point_accuracy": statistics.pstdev(scope_accuracies) if len(scope_accuracies) > 1 else 0.0,
-            "mean_profile_answerable_earned_points": statistics.mean(profile_earned),
-            "mean_profile_answerable_point_accuracy": statistics.mean(profile_accuracies),
-            "stdev_profile_answerable_point_accuracy": statistics.pstdev(profile_accuracies) if len(profile_accuracies) > 1 else 0.0,
-            "mean_full_test_metric": statistics.mean(row["GB-2025-Math-Obj"] for row in repeat_summaries),
+            "earned_points": {
+                "mean": statistics.mean(scope_points),
+                "min": min(scope_points),
+                "max": max(scope_points),
+            },
+            "correct_questions": {
+                "mean": statistics.mean(correct_questions),
+                "min": min(correct_questions),
+                "max": max(correct_questions),
+            },
+            "possible_points": first_scope.get("possible_points"),
+            "questions": first_scope.get("selected_questions"),
         },
+        "primary_metric": primary_metric,
+        "metrics": metrics,
         "attempts": {
             "total": len(attempts),
             "provider_errors": provider_errors,
             "harness_errors": harness_errors,
             "parse_errors": parse_errors,
+            "truncations": truncations,
             "status_counts": {
                 status: sum(1 for row in attempts if row["status"] == status)
                 for status in sorted({row["status"] for row in attempts})
@@ -1196,6 +1746,7 @@ def run_benchmark(
         },
         "repeats_detail": repeat_summaries,
         "contamination": manifest.get("contamination"),
+        "rights_notice": rights_notice,
         "files": {
             "manifest": "manifest.json",
             "prompts": "prompts.jsonl",
@@ -1212,6 +1763,8 @@ def run_benchmark(
         {
             "status": "completed",
             "attempts": len(attempts),
+            "attempt_status_counts": summary["attempts"]["status_counts"],
+            "primary_metric": summary["primary_metric"],
             "summary": "summary.json",
             "summary_sha256": _sha256_bytes(summary_path.read_bytes()),
             "attempts_sha256": _sha256_bytes(attempt_path.read_bytes()),
@@ -1219,6 +1772,7 @@ def run_benchmark(
         }
     )
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    progress("run_complete", attempts=len(attempts), summary_path=str(summary_path))
     return summary
 
 
@@ -1246,13 +1800,26 @@ def build_provider(
     retries: int = 2,
     mock_response: str = '{"answer": "A"}',
     max_tokens_field: str = "max_tokens",
+    reasoning_budget: Optional[int] = None,
+    seed: Optional[int] = None,
+    provider_order: Optional[Sequence[str]] = None,
+    allow_fallbacks: Optional[bool] = None,
+    extra_body: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[Provider, Dict[str, Any]]:
     """Instantiate a provider and return a safe, non-secret launch record."""
 
     if provider == "mock":
-        return FixedResponseProvider(mock_response), {"provider": "mock", "is_mock": True}
+        return FixedResponseProvider(mock_response), {
+            "provider": "mock",
+            "is_mock": True,
+            "seed": seed,
+        }
     if provider == "gemini_cli":
-        return GeminiCliProvider(retries=retries), {"provider": "gemini_cli", "retries": retries}
+        return GeminiCliProvider(retries=retries), {
+            "provider": "gemini_cli",
+            "retries": retries,
+            "seed": seed,
+        }
     if provider not in ("anthropic", "openai_compatible"):
         raise ValueError("unknown provider: %s" % provider)
     key, default_base, resolved_key_env = resolve_api_credentials(provider, api_key_env)
@@ -1265,15 +1832,35 @@ def build_provider(
         "key_present": True,
         "base_url": resolved_base,
         "retries": retries,
+        "max_tokens_field": max_tokens_field,
+        "reasoning_budget": reasoning_budget,
+        "seed": seed,
+        "provider_order": list(provider_order or ()),
+        "allow_fallbacks": allow_fallbacks,
+        "extra_body_keys": sorted((extra_body or {}).keys()),
+        "extra_body_sha256": _sha256_bytes(_canonical_json(dict(extra_body or {})).encode("utf-8")),
     }
     if provider == "anthropic":
-        return AnthropicProvider(api_key=key, base_url=resolved_base, retries=retries), metadata
+        return (
+            AnthropicProvider(
+                api_key=key,
+                base_url=resolved_base,
+                retries=retries,
+                reasoning_budget=reasoning_budget,
+            ),
+            metadata,
+        )
     return (
         OpenAICompatibleProvider(
             api_key=key,
             base_url=resolved_base,
             retries=retries,
             max_tokens_field=max_tokens_field,
+            reasoning_budget=reasoning_budget,
+            seed=seed,
+            provider_order=provider_order,
+            allow_fallbacks=allow_fallbacks,
+            extra_body=extra_body,
         ),
         metadata,
     )

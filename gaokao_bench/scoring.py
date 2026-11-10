@@ -23,26 +23,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from .benchmark_spec import (
+    BenchmarkSpec,
+    load_benchmark_spec,
+    question_requires_vision,
+    question_type,
+)
+
 # Default version for the checked-in alpha package.  Dataset validation uses
 # the version recorded in manifest.json so signed review materialisation can
 # produce a new immutable patch version without editing the scorer.
 DATASET_VERSION = "0.0.1"
 SCHEMA_VERSION = "1.0"
-SCORER_VERSION = "0.0.1"
-SCORING_PROFILE = "strict-source-audited-points-all-or-nothing"
-EXPECTED_PAPER_POINTS = {
-    "GB25-N1": 73,
-    "GB25-N2": 73,
-    "GB25-BJ": 60,
-    "GB25-SH": 72,
-    "GB25-TJ": 75,
-}
-EXPECTED_TOTAL_POINTS = 353
-EXPECTED_QUESTION_COUNT = 74
-EXPECTED_CHOICE_COUNT = 45
-EXPECTED_FILL_COUNT = 29
-EXPECTED_CATALOG_SUBJECTIVE_COUNT = 26
-EXPECTED_CATALOG_SUBJECTIVE_POINTS = 397
+SCORER_VERSION = "0.1.0"
 ANSWER_AUDIT_STATUSES = {
     "match",
     "source_and_derivation_confirmed",
@@ -71,12 +64,6 @@ QUESTION_STEM_VERDICTS = {"pdf_exact", "pdf_corrected"}
 QUESTION_OPTION_VERDICTS = {"pdf_exact", "pdf_corrected", "not_applicable"}
 QUESTION_ASSET_VERDICTS = {"text_sufficient", "figure_required"}
 QUESTION_ANSWER_VERDICTS = {"confirmed"}
-EXPECTED_REQUIRED_IMAGE_IDS = {
-    "GB25-N1-Q06",
-    "GB25-BJ-Q14",
-    "GB25-SH-Q11",
-    "GB25-TJ-Q03",
-}
 PUBLIC_PACKAGE_PROFILE = "public-data"
 PUBLIC_HUB_MANAGED_FILES = {".gitattributes"}
 PUBLIC_REQUIRED_FILES = {
@@ -134,20 +121,17 @@ def _validate_source_assessments(
     answer_sources: Mapping[str, Mapping[str, Any]],
     errors: List[str],
 ) -> None:
-    """Validate question-level source assessments and the Q13 evidence gate."""
+    """Validate the generic shape of question-level source assessments."""
 
     qid = str(row.get("question_id", ""))
     assessments = row.get("source_assessments")
     if assessments is None:
-        if qid == "GB25-N1-Q13":
-            errors.append("Q13 must carry source assessments with stem-consistency decisions")
         return
     if not isinstance(assessments, list) or not assessments:
         errors.append("source assessments must be a non-empty list for %s" % qid)
         return
 
     seen: set[str] = set()
-    valid: List[Mapping[str, Any]] = []
     for index, item in enumerate(assessments):
         if not isinstance(item, dict):
             errors.append("source assessment %d must be an object for %s" % (index, qid))
@@ -182,57 +166,6 @@ def _validate_source_assessments(
                 errors.append("source assessment is missing %s for %s" % (field, qid))
         if role == "rejected" and not str(item.get("rejection_reason") or "").strip():
             errors.append("rejected source assessment has no rejection_reason for %s" % qid)
-        valid.append(item)
-
-    if qid != "GB25-N1-Q13":
-        return
-
-    supporting = [item for item in valid if item.get("role") == "supporting"]
-    rejected = [item for item in valid if item.get("role") == "rejected"]
-    exact = [item for item in supporting if item.get("stem_match") == "exact_stem_match"]
-    publishers = {str(item.get("publisher", "")).strip() for item in supporting}
-    independence_groups = {
-        str(item.get("independence_group", "")).strip() for item in supporting
-    }
-    if str(row.get("canonical") if "canonical" in row else row.get("reviewed_canonical")) != "2":
-        errors.append("Q13 canonical answer must be 2")
-    if row.get("status") not in {
-        "source_and_derivation_confirmed",
-        "owner_and_two_independent_reviewers_complete",
-    }:
-        errors.append(
-            "Q13 audit must retain source-and-derivation evidence before or after signoff"
-        )
-    if str(row.get("external_canonical")) != "2" or str(row.get("secondary_external_canonical")) != "2":
-        errors.append("Q13 visible source answer values must both be 2")
-    if len(supporting) < 4:
-        errors.append("Q13 requires at least four supporting source assessments")
-    if len(exact) < 3:
-        errors.append("Q13 requires at least three exact-stem source assessments")
-    if len(publishers) < 3:
-        errors.append("Q13 requires supporting evidence from at least three publishers")
-    if len(independence_groups) < 3:
-        errors.append("Q13 requires supporting evidence from at least three independence groups")
-    if any(item.get("stem_match") in ("variant_missing_positive_condition", "stem_not_visible") for item in supporting):
-        errors.append("Q13 supporting evidence includes a source without a matching stem")
-    rejected_ids = {str(item.get("source_id")) for item in rejected}
-    rejected_reasons = {str(item.get("stem_match")) for item in rejected}
-    required_rejections = {"stem_not_visible", "variant_missing_positive_condition"}
-    if len(rejected) < 2 or not required_rejections <= rejected_reasons:
-        errors.append(
-            "Q13 must preserve rejected sources for an invisible stem and a variant without the positive condition"
-        )
-    declared_rejected = {str(source_id) for source_id in (row.get("rejected_source_ids") or [])}
-    if declared_rejected != rejected_ids:
-        errors.append("Q13 rejected_source_ids must match rejected source assessments")
-    supporting_ids = {
-        str(row.get("external_source_id")),
-        str(row.get("secondary_source_id")),
-        *(str(source_id) for source_id in (row.get("supporting_source_ids") or [])),
-    }
-    assessed_supporting_ids = {str(item.get("source_id")) for item in supporting}
-    if supporting_ids != assessed_supporting_ids:
-        errors.append("Q13 declared supporting source IDs must match supporting assessments")
 REQUIRED_MANIFEST_FILES = {
     "answer_audit.jsonl",
     "asset_audit.jsonl",
@@ -265,6 +198,7 @@ class Dataset:
     questions: Tuple[Dict[str, Any], ...]
     answer_keys: Dict[str, Dict[str, Any]]
     catalog_subjective: Tuple[Dict[str, Any], ...]
+    spec: BenchmarkSpec
 
 
 def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -286,12 +220,14 @@ def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
 def load_dataset(data_dir: Path | str, validate: bool = True) -> Dataset:
     root = Path(data_dir).resolve()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    spec = load_benchmark_spec(root, manifest)
     papers = tuple(_read_jsonl(root / "papers.jsonl"))
     questions = tuple(_read_jsonl(root / "questions.jsonl"))
     answer_keys_list = _read_jsonl(root / "answer_keys.jsonl")
     answer_keys = {row["question_id"]: row for row in answer_keys_list}
-    catalog_subjective = tuple(_read_jsonl(root / "catalog" / "subjective_catalog.jsonl"))
-    dataset = Dataset(root, manifest, papers, questions, answer_keys, catalog_subjective)
+    catalog_path = root / "catalog" / "subjective_catalog.jsonl"
+    catalog_subjective = tuple(_read_jsonl(catalog_path) if catalog_path.is_file() else ())
+    dataset = Dataset(root, manifest, papers, questions, answer_keys, catalog_subjective, spec)
     if validate:
         validate_dataset(dataset)
     return dataset
@@ -312,9 +248,21 @@ def _validate_public_manifest(dataset: Dataset) -> None:
     if not isinstance(files, dict) or not files:
         errors.append("public manifest files must be a non-empty object")
         files = {}
-    missing_files = sorted(PUBLIC_REQUIRED_FILES - set(files))
+    required_files = set(PUBLIC_REQUIRED_FILES)
+    counts = manifest.get("counts") if isinstance(manifest.get("counts"), dict) else {}
+    if int(counts.get("catalog_subjective_questions", 0)) == 0:
+        required_files.discard("catalog/subjective_catalog.jsonl")
+    missing_files = sorted(required_files - set(files))
     if missing_files:
         errors.append("public manifest does not cover required files: %s" % ", ".join(missing_files))
+    declared_spec = manifest.get("benchmark_spec")
+    if declared_spec is not None:
+        if not isinstance(declared_spec, str) or not declared_spec.strip():
+            errors.append("public manifest benchmark_spec must be a relative file path")
+        elif declared_spec not in files:
+            errors.append("public manifest does not cover benchmark_spec: %s" % declared_spec)
+    elif dataset.manifest.get("dataset_version") != "0.0.1":
+        errors.append("new public data versions must ship benchmark_spec.json")
     forbidden: List[str] = []
     for relative_path in files:
         if relative_path in PUBLIC_FORBIDDEN_PATHS or relative_path.startswith(
@@ -358,15 +306,27 @@ def _validate_public_manifest(dataset: Dataset) -> None:
         if metadata.get("sha256") != file_sha256(path):
             errors.append("public manifest hash mismatch: %s" % relative_path)
 
-    counts = manifest.get("counts") if isinstance(manifest.get("counts"), dict) else {}
+    choice_types = {
+        name for name, shape in dataset.spec.task_types.items() if shape.shape == "choice"
+    }
+    single_choice_types = {
+        name
+        for name in choice_types
+        if dataset.spec.task_types[name].max_selections == 1
+    }
+    multi_choice_types = choice_types - single_choice_types
+    slot_types = {
+        name for name, shape in dataset.spec.task_types.items() if shape.shape == "slots"
+    }
     expected_counts = {
         "papers": len(dataset.papers),
         "objective_questions": len(dataset.questions),
-        "choice_questions": len([q for q in dataset.questions if q["type"] in ("single_choice", "multi_choice")]),
-        "multi_choice_questions": len([q for q in dataset.questions if q["type"] == "multi_choice"]),
-        "fill_questions": len([q for q in dataset.questions if q["type"] == "fill_blank"]),
-        "answer_slots": sum(int(q["answer_slot_count"]) for q in dataset.questions),
-        "image_required_questions": len([q for q in dataset.questions if q.get("asset_dependency") == "required"]),
+        "choice_questions": len([q for q in dataset.questions if question_type(q) in choice_types]),
+        "single_choice_questions": len([q for q in dataset.questions if question_type(q) in single_choice_types]),
+        "multi_choice_questions": len([q for q in dataset.questions if question_type(q) in multi_choice_types]),
+        "fill_questions": len([q for q in dataset.questions if question_type(q) in slot_types]),
+        "answer_slots": sum(int(q.get("answer_slot_count", 0)) for q in dataset.questions),
+        "image_required_questions": len([q for q in dataset.questions if question_requires_vision(q)]),
         "catalog_subjective_questions": len(dataset.catalog_subjective),
         "catalog_subjective_points": sum(int(q["points"]) for q in dataset.catalog_subjective),
     }
@@ -419,6 +379,8 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     """Validate all hard invariants and return a compact audit summary."""
 
     errors: List[str] = []
+    spec = dataset.spec
+    expected = spec.expected
     dataset_version = dataset.manifest.get("dataset_version")
     if not isinstance(dataset_version, str) or not dataset_version.strip():
         errors.append("manifest dataset_version must be a non-empty string")
@@ -435,26 +397,71 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     question_ids = [q["id"] for q in dataset.questions]
     if len(question_ids) != len(set(question_ids)):
         errors.append("question IDs are not unique")
+    paper_ids = [paper.get("id") for paper in dataset.papers]
+    if len(paper_ids) != len(set(paper_ids)):
+        errors.append("paper IDs are not unique")
+    known_paper_ids = set(paper_ids)
+    for paper in dataset.papers:
+        paper_id = paper.get("id")
+        if not str(paper.get("title", "")).strip():
+            errors.append("paper title is empty: %s" % paper_id)
+        if paper.get("subject") != spec.subject:
+            errors.append(
+                "paper subject %r differs from benchmark spec subject %r: %s"
+                % (paper.get("subject"), spec.subject, paper_id)
+            )
+        if paper.get("year") not in spec.years:
+            errors.append("paper year is outside the benchmark spec years: %s" % paper_id)
+    for question in dataset.questions:
+        qid = str(question.get("id", ""))
+        if not isinstance(question.get("points"), int) or isinstance(question.get("points"), bool) or question["points"] <= 0:
+            errors.append("question points must be a positive integer: %s" % qid)
+        if question.get("paper_id") not in known_paper_ids:
+            errors.append("question references an unknown paper: %s" % qid)
+        if question_type(question) not in spec.task_types:
+            errors.append(
+                "question type %r is not declared by benchmark spec: %s"
+                % (question_type(question), qid)
+            )
+        if not str(question.get("stem", "")).strip():
+            errors.append("question stem is empty: %s" % qid)
 
-    if len(dataset.questions) != EXPECTED_QUESTION_COUNT:
-        errors.append("expected %d questions, got %d" % (EXPECTED_QUESTION_COUNT, len(dataset.questions)))
-    if len(dataset.papers) != 5:
-        errors.append("expected 5 papers, got %d" % len(dataset.papers))
-    if sum(int(paper["full_question_count"]) for paper in dataset.papers) != 100:
-        errors.append("full question count must close at 100")
-    if sum(int(paper["full_paper_points"]) for paper in dataset.papers) != 750:
-        errors.append("full paper points must close at 750")
+    if expected.question_count is not None and len(dataset.questions) != expected.question_count:
+        errors.append("expected %d questions, got %d" % (expected.question_count, len(dataset.questions)))
+    if expected.paper_count is not None and len(dataset.papers) != expected.paper_count:
+        errors.append("expected %d papers, got %d" % (expected.paper_count, len(dataset.papers)))
+    if expected.full_paper_question_count is not None:
+        full_question_count = sum(int(paper.get("full_question_count", 0)) for paper in dataset.papers)
+        if full_question_count != expected.full_paper_question_count:
+            errors.append(
+                "full question count must close at %d, got %d"
+                % (expected.full_paper_question_count, full_question_count)
+            )
+    if expected.full_paper_points is not None:
+        full_paper_points = sum(int(paper.get("full_paper_points", 0)) for paper in dataset.papers)
+        if full_paper_points != expected.full_paper_points:
+            errors.append(
+                "full paper points must close at %d, got %d"
+                % (expected.full_paper_points, full_paper_points)
+            )
 
-    choices = [q for q in dataset.questions if q["type"] in ("single_choice", "multi_choice")]
-    fills = [q for q in dataset.questions if q["type"] == "fill_blank"]
-    if len(choices) != EXPECTED_CHOICE_COUNT:
-        errors.append("expected %d choice questions, got %d" % (EXPECTED_CHOICE_COUNT, len(choices)))
-    if len(fills) != EXPECTED_FILL_COUNT:
-        errors.append("expected %d fill questions, got %d" % (EXPECTED_FILL_COUNT, len(fills)))
+    choice_types = {name for name, shape in spec.task_types.items() if shape.shape == "choice"}
+    slot_types = {name for name, shape in spec.task_types.items() if shape.shape == "slots"}
+    multi_choice_types = {
+        name
+        for name in choice_types
+        if spec.task_types[name].max_selections != 1
+    }
+    choices = [q for q in dataset.questions if question_type(q) in choice_types]
+    fills = [q for q in dataset.questions if question_type(q) in slot_types]
+    for declared_type, count in expected.task_type_counts.items():
+        actual = len([q for q in dataset.questions if question_type(q) == declared_type])
+        if actual != count:
+            errors.append("expected %d %s questions, got %d" % (count, declared_type, actual))
 
     total_points = sum(int(q["points"]) for q in dataset.questions)
-    if total_points != EXPECTED_TOTAL_POINTS:
-        errors.append("expected %d objective points, got %d" % (EXPECTED_TOTAL_POINTS, total_points))
+    if expected.total_points is not None and total_points != expected.total_points:
+        errors.append("expected %d objective points, got %d" % (expected.total_points, total_points))
 
     paper_points: Dict[str, int] = {}
     for paper in dataset.papers:
@@ -462,29 +469,32 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         selected = [q for q in dataset.questions if q["paper_id"] == paper_id]
         points = sum(int(q["points"]) for q in selected)
         paper_points[paper_id] = points
-        if EXPECTED_PAPER_POINTS.get(paper_id) != points:
+        if expected.paper_points and expected.paper_points.get(paper_id) != points:
             errors.append(
                 "paper %s objective points: expected %s, got %s"
-                % (paper_id, EXPECTED_PAPER_POINTS.get(paper_id), points)
+                % (paper_id, expected.paper_points.get(paper_id), points)
             )
-        if int(paper["objective_points"]) != points:
+        if paper.get("objective_points") is not None and int(paper["objective_points"]) != points:
             errors.append("paper %s objective_points field is stale" % paper_id)
-        if int(paper["objective_questions"]) != len(selected):
+        if paper.get("objective_questions") is not None and int(paper["objective_questions"]) != len(selected):
             errors.append("paper %s objective_questions field is stale" % paper_id)
 
-    if set(paper_points) != set(EXPECTED_PAPER_POINTS):
+    if expected.paper_points and set(paper_points) != set(expected.paper_points):
         errors.append("paper IDs do not match expected IDs")
 
     catalog_subjective_points = sum(int(q["points"]) for q in dataset.catalog_subjective)
-    if len(dataset.catalog_subjective) != EXPECTED_CATALOG_SUBJECTIVE_COUNT:
+    if (
+        expected.catalog_question_count is not None
+        and len(dataset.catalog_subjective) != expected.catalog_question_count
+    ):
         errors.append(
             "expected %d catalogued subjective questions, got %d"
-            % (EXPECTED_CATALOG_SUBJECTIVE_COUNT, len(dataset.catalog_subjective))
+            % (expected.catalog_question_count, len(dataset.catalog_subjective))
         )
-    if catalog_subjective_points != EXPECTED_CATALOG_SUBJECTIVE_POINTS:
+    if expected.catalog_points is not None and catalog_subjective_points != expected.catalog_points:
         errors.append(
             "expected %d catalogued subjective points, got %d"
-            % (EXPECTED_CATALOG_SUBJECTIVE_POINTS, catalog_subjective_points)
+            % (expected.catalog_points, catalog_subjective_points)
         )
     catalog_ids = {row.get("id") for row in dataset.catalog_subjective}
     if len(catalog_ids) != len(dataset.catalog_subjective):
@@ -497,11 +507,11 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         paper_id = paper["id"]
         catalog_rows = [row for row in dataset.catalog_subjective if row.get("paper_id") == paper_id]
         catalog_points = sum(int(row["points"]) for row in catalog_rows)
-        if int(paper.get("catalog_subjective_questions", -1)) != len(catalog_rows):
+        if int(paper.get("catalog_subjective_questions", 0)) != len(catalog_rows):
             errors.append("paper %s catalog_subjective_questions field is stale" % paper_id)
-        if int(paper.get("catalog_subjective_points", -1)) != catalog_points:
+        if int(paper.get("catalog_subjective_points", 0)) != catalog_points:
             errors.append("paper %s catalog_subjective_points field is stale" % paper_id)
-        if paper_points[paper_id] + catalog_points != int(paper["full_paper_points"]):
+        if paper.get("full_paper_points") is not None and paper_points[paper_id] + catalog_points != int(paper["full_paper_points"]):
             errors.append("paper %s scored plus catalogued points do not close" % paper_id)
 
     for question in dataset.questions:
@@ -510,39 +520,60 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         if key is None:
             errors.append("missing answer key for %s" % qid)
             continue
+        shape_spec = spec.answer_shape(question_type(question))
         if int(key["points"]) != int(question["points"]):
             errors.append("answer-key points mismatch for %s" % qid)
-        if key["kind"] != question["type"]:
+        if key["kind"] != question_type(question):
             errors.append("answer-key kind mismatch for %s" % qid)
-        if question["type"] in ("single_choice", "multi_choice"):
+        if shape_spec is None:
+            errors.append("answer key uses an undeclared question type for %s" % qid)
+            continue
+        if shape_spec.shape == "choice":
             options = question.get("options", [])
-            if [option.get("label") for option in options] != ["A", "B", "C", "D"]:
-                errors.append("choice options must be A-D in order: %s" % qid)
+            labels = [str(option.get("label")) for option in options]
+            if labels != list(spec.choice_labels):
+                errors.append(
+                    "choice options must be %s in order: %s"
+                    % ("-".join(spec.choice_labels), qid)
+                )
             if any(not str(option.get("text", "")).strip() for option in options):
                 errors.append("choice option text is empty: %s" % qid)
-            if not str(question.get("stem", "")).strip():
-                errors.append("choice stem is empty: %s" % qid)
-            labels = key.get("correct_options", [])
-            expected_label_count = 1 if question["type"] == "single_choice" else None
-            if expected_label_count is not None and len(labels) != expected_label_count:
-                errors.append("single-choice key must contain one option: %s" % qid)
-            if question["type"] == "multi_choice" and len(labels) < 2:
-                errors.append("multi-choice key must contain at least two options: %s" % qid)
-            if any(label not in "ABCD" for label in labels):
+            correct_options = key.get("correct_options", [])
+            if shape_spec.min_selections is not None and len(correct_options) < shape_spec.min_selections:
+                errors.append(
+                    "%s key must contain at least %d options: %s"
+                    % (question_type(question), shape_spec.min_selections, qid)
+                )
+            if shape_spec.max_selections is not None and len(correct_options) > shape_spec.max_selections:
+                errors.append(
+                    "%s key must contain at most %d options: %s"
+                    % (question_type(question), shape_spec.max_selections, qid)
+                )
+            if any(label not in spec.choice_labels for label in correct_options):
                 errors.append("invalid option label for %s" % qid)
-            if key.get("canonical") != "".join(sorted(labels)):
+            if key.get("canonical") != "".join(sorted(correct_options)):
                 errors.append("choice canonical does not match sorted options for %s" % qid)
-        else:
+        elif shape_spec.shape == "slots":
             slots = key.get("slots", [])
             if not slots:
                 errors.append("fill answer key has no slots: %s" % qid)
-            if int(question["answer_slot_count"]) != len(slots):
+            if int(question.get("answer_slot_count") or 0) != len(slots):
                 errors.append("answer slot count mismatch for %s" % qid)
+            for slot in slots:
+                matcher = slot.get("matcher")
+                validator = matcher.get("validator") if isinstance(matcher, Mapping) else matcher
+                if spec.validators and validator not in spec.validators:
+                    errors.append("unknown answer validator %r for %s" % (validator, qid))
             expected_canonical = [slot.get("canonical") for slot in slots]
             if len(expected_canonical) == 1:
                 expected_canonical = expected_canonical[0]
             if key.get("canonical") != expected_canonical:
                 errors.append("fill canonical does not match answer slots for %s" % qid)
+        elif shape_spec.shape == "rubric":
+            errors.append("rubric-scored questions are not executable by engine 0.1: %s" % qid)
+        custom = key.get("custom_validator")
+        if custom and spec.custom_validators and custom not in spec.custom_validators:
+            errors.append("unknown custom validator %r for %s" % (custom, qid))
         image_path = question.get("image_path")
         if image_path:
             asset = dataset.data_dir / image_path
@@ -551,17 +582,19 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             elif question.get("image_sha256"):
                 if file_sha256(asset) != question["image_sha256"]:
                     errors.append("image hash mismatch for %s" % qid)
+        elif question_requires_vision(question):
+            errors.append("required-image question has no image_path: %s" % qid)
 
     for key_id in dataset.answer_keys:
         if key_id not in set(question_ids):
             errors.append("orphan answer key: %s" % key_id)
 
-    required_assets = [q for q in dataset.questions if q.get("asset_dependency") == "required"]
+    required_assets = [q for q in dataset.questions if question_requires_vision(q)]
     required_asset_ids = {q["id"] for q in required_assets}
-    if required_asset_ids != EXPECTED_REQUIRED_IMAGE_IDS:
+    if expected.required_image_ids is not None and required_asset_ids != set(expected.required_image_ids):
         errors.append(
             "image-required question set differs: expected %s, got %s"
-            % (sorted(EXPECTED_REQUIRED_IMAGE_IDS), sorted(required_asset_ids))
+            % (sorted(expected.required_image_ids), sorted(required_asset_ids))
         )
     if dataset.manifest.get("package_profile") == PUBLIC_PACKAGE_PROFILE:
         if errors:
@@ -569,15 +602,20 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         _validate_public_manifest(dataset)
         return {
             "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
+            "benchmark_spec_id": spec.id,
+            "benchmark_spec_version": spec.version,
+            "benchmark_spec_sha256": spec.fingerprint(),
             "papers": len(dataset.papers),
             "questions": len(dataset.questions),
             "choice_questions": len(choices),
             "fill_questions": len(fills),
-            "multi_choice_questions": len([q for q in choices if q["type"] == "multi_choice"]),
-            "answer_slots": sum(int(q["answer_slot_count"]) for q in dataset.questions),
+            "multi_choice_questions": len(
+                [q for q in choices if question_type(q) in multi_choice_types]
+            ),
+            "answer_slots": sum(int(q.get("answer_slot_count") or 0) for q in dataset.questions),
             "objective_points": total_points,
             "paper_points": paper_points,
-            "scored_scope": "choice_and_fill_only",
+            "scored_scope": "deterministic_objective",
             "catalog_subjective_questions": len(dataset.catalog_subjective),
             "catalog_subjective_points": catalog_subjective_points,
             "image_required_questions": len(required_assets),
@@ -609,7 +647,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             continue
         if row.get("paper_id") != question.get("paper_id"):
             errors.append("answer audit paper mismatch for %s" % qid)
-        if row.get("question_type") != question.get("type"):
+        if row.get("question_type") != question_type(question):
             errors.append("answer audit question type mismatch for %s" % qid)
         if row.get("current_canonical") != key.get("canonical"):
             errors.append("answer audit current canonical differs from answer key for %s" % qid)
@@ -635,6 +673,10 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             if source_id is not None and source_id not in answer_sources:
                 errors.append("answer audit references unknown source %s for %s" % (source_id, qid))
         _validate_source_assessments(row, answer_sources, errors)
+        if spec.raw.get("audit_profile") == "legacy_2025_math":
+            from .specs.legacy_2025_math_audit import validate_q13_gate
+
+            validate_q13_gate(row, errors)
 
     source_ids = {str(row.get("id")) for row in _read_jsonl(dataset.data_dir / "sources.jsonl")}
     source_ids.update(answer_sources)
@@ -658,7 +700,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             errors.append("point audit item_id differs from question_id for %s" % qid)
         if row.get("paper_id") != question.get("paper_id"):
             errors.append("point audit paper mismatch for %s" % qid)
-        if row.get("kind") != question.get("type"):
+        if row.get("kind") != question_type(question):
             errors.append("point audit kind mismatch for %s" % qid)
         if row.get("current_points") != question.get("points") or row.get("reviewed_points") != question.get("points"):
             errors.append("point audit does not match question points for %s" % qid)
@@ -678,8 +720,11 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     else:
         question_audit = _read_jsonl(question_audit_path)
         audit_ids = [str(row.get("question_id", "")) for row in question_audit]
-        if len(question_audit) != EXPECTED_QUESTION_COUNT:
-            errors.append("expected %d question audit rows, got %d" % (EXPECTED_QUESTION_COUNT, len(question_audit)))
+        if len(question_audit) != len(dataset.questions):
+            errors.append(
+                "expected %d question audit rows, got %d"
+                % (len(dataset.questions), len(question_audit))
+            )
         if len(set(audit_ids)) != len(audit_ids):
             errors.append("question audit IDs are not unique")
         if set(audit_ids) != set(question_ids):
@@ -726,9 +771,12 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         "point_audit_rows": len(point_audit),
         "question_audit_rows": len(question_audit) if question_audit_path.is_file() else -1,
     }
-    for field, expected in expected_counts.items():
-        if int(counts.get(field, -1)) != expected:
-            errors.append("manifest count %s is stale: expected %d, got %s" % (field, expected, counts.get(field)))
+    for field, expected_count in expected_counts.items():
+        if int(counts.get(field, -1)) != expected_count:
+            errors.append(
+                "manifest count %s is stale: expected %d, got %s"
+                % (field, expected_count, counts.get(field))
+            )
 
     quality = dataset.manifest.get("quality") if isinstance(dataset.manifest.get("quality"), dict) else {}
     review_lineage = dataset.manifest.get("review_lineage")
@@ -799,12 +847,12 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             if metadata.get("sha256") != file_sha256(path):
                 errors.append("manifest hash mismatch: %s" % relative_path)
 
-    required_assets = [q for q in dataset.questions if q.get("asset_dependency") == "required"]
+    required_assets = [q for q in dataset.questions if question_requires_vision(q)]
     required_asset_ids = {q["id"] for q in required_assets}
-    if required_asset_ids != EXPECTED_REQUIRED_IMAGE_IDS:
+    if expected.required_image_ids is not None and required_asset_ids != set(expected.required_image_ids):
         errors.append(
             "image-required question set differs: expected %s, got %s"
-            % (sorted(EXPECTED_REQUIRED_IMAGE_IDS), sorted(required_asset_ids))
+            % (sorted(expected.required_image_ids), sorted(required_asset_ids))
         )
 
     if errors:
@@ -812,15 +860,20 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
 
     return {
         "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
+        "benchmark_spec_id": spec.id,
+        "benchmark_spec_version": spec.version,
+        "benchmark_spec_sha256": spec.fingerprint(),
         "papers": len(dataset.papers),
         "questions": len(dataset.questions),
         "choice_questions": len(choices),
         "fill_questions": len(fills),
-        "multi_choice_questions": len([q for q in choices if q["type"] == "multi_choice"]),
-        "answer_slots": sum(int(q["answer_slot_count"]) for q in dataset.questions),
+        "multi_choice_questions": len(
+            [q for q in choices if question_type(q) in multi_choice_types]
+        ),
+        "answer_slots": sum(int(q.get("answer_slot_count") or 0) for q in dataset.questions),
         "objective_points": total_points,
         "paper_points": paper_points,
-        "scored_scope": "choice_and_fill_only",
+        "scored_scope": "deterministic_objective",
         "catalog_subjective_questions": len(dataset.catalog_subjective),
         "catalog_subjective_points": catalog_subjective_points,
         "image_required_questions": len(required_assets),
@@ -1021,6 +1074,8 @@ def _normalise_interval_syntax(value: Any) -> str:
     text = text.replace("\\{", "{").replace("\\}", "}")
     text = text.replace("\\mid", "|").replace("\\vert", "|")
     text = text.replace("\\lvert", "|").replace("\\rvert", "|")
+    text = text.replace("\\in", "∈")
+    text = text.replace("\\mathbb{R}", "R").replace("\\mathbf{R}", "R")
     text = text.replace("\\leqslant", "<=").replace("\\geqslant", ">=")
     text = text.replace("\\leq", "<=").replace("\\le", "<=")
     text = text.replace("\\geq", ">=").replace("\\ge", ">=")
@@ -1045,6 +1100,11 @@ def _parse_set_builder_interval(text: str) -> Optional[Tuple[float, float, bool,
     variable_text = re.sub(r"∈(?:R|ℝ)$", "", variable_text)
     if not re.fullmatch(r"[A-Za-z]", variable_text):
         raise ValueError("set-builder answer must bind exactly one variable")
+    membership = re.search(r",([A-Za-z])∈(?:R|ℝ)$", condition)
+    if membership:
+        if membership.group(1) != variable_text:
+            raise ValueError("set-builder membership clause uses a different variable")
+        condition = condition[: membership.start()]
     match = re.fullmatch(r"(.+?)(<=|<|>=|>)([A-Za-z])(<=|<|>=|>)(.+)", condition)
     if not match:
         raise ValueError("set-builder answer is not a comparison chain")
@@ -1244,25 +1304,29 @@ def parse_vector_linear(value: Any) -> Tuple[float, float]:
     return _VectorParser(_vector_tokens(_normalise_vector_expression(value))).parse()
 
 
-_CHOICE_RE = re.compile(r"^[A-Da-d\s,，、;；()（）]+$")
-
-
-def parse_choice_set(value: Any) -> Tuple[str, ...]:
+def parse_choice_set(value: Any, labels: Sequence[str] = ("A", "B", "C", "D")) -> Tuple[str, ...]:
+    allowed = tuple(str(label) for label in labels)
+    if not allowed or len(set(allowed)) != len(allowed):
+        raise ValueError("choice labels must be unique and non-empty")
+    allowed_set = set(allowed)
     if isinstance(value, (list, tuple, set)):
         if not value:
             raise ValueError("empty choice answer")
         items = [_clean_text(item).upper() for item in value]
-        if any(item not in ("A", "B", "C", "D") for item in items):
+        if any(item not in allowed_set for item in items):
             raise ValueError("choice list contains an invalid option")
         return tuple(sorted(set(items)))
     text = _strip_answer_prefix(value)
     text = text.replace("。", "").replace(".", "")
-    if not text or not _CHOICE_RE.fullmatch(text):
-        raise ValueError("choice answer must contain only A-D separators")
-    letters = re.findall(r"[A-Da-d]", text)
-    if not letters:
+    separators = r"\s,，、;；()（）"
+    pattern = r"^[%s%s]+$" % (re.escape("".join(allowed)), separators)
+    if not text or not re.fullmatch(pattern, text.upper()):
+        raise ValueError("choice answer must contain only declared option labels and separators")
+    label_pattern = "[%s]" % re.escape("".join(allowed))
+    labels_found = re.findall(label_pattern, text.upper())
+    if not labels_found:
         raise ValueError("empty choice answer")
-    return tuple(sorted(set(letter.upper() for letter in letters)))
+    return tuple(sorted(set(labels_found)))
 
 
 def _split_slots(value: Any, count: int) -> List[Any]:
@@ -1281,8 +1345,16 @@ def _split_slots(value: Any, count: int) -> List[Any]:
     return parts
 
 
+def _strip_text_answer(value: Any) -> str:
+    return re.sub(r"\s+", " ", _strip_answer_prefix(value)).strip()
+
+
 def _match_slot(value: Any, slot: Mapping[str, Any]) -> Tuple[bool, str]:
-    matcher = slot["matcher"]
+    matcher_config = slot["matcher"]
+    if isinstance(matcher_config, Mapping):
+        matcher = str(matcher_config.get("validator", matcher_config.get("id", "")))
+    else:
+        matcher = str(matcher_config)
     tolerance = float(slot.get("tolerance", 1e-9))
     if matcher == "numeric":
         actual = parse_numeric_expression(value)
@@ -1311,6 +1383,17 @@ def _match_slot(value: Any, slot: Mapping[str, Any]) -> Tuple[bool, str]:
         if abs(actual[0] - expected[0]) <= tolerance and abs(actual[1] - expected[1]) <= tolerance:
             return True, "vector=(%s,%s)" % (actual[0], actual[1])
         return False, "vector coefficients differ"
+    if matcher == "exact":
+        actual = _strip_text_answer(value)
+        expected = str(slot["value"]).strip()
+        return actual == expected, "exact=%s" % actual
+    if matcher == "normalized_text":
+        actual = _clean_text(_strip_text_answer(value))
+        expected = _clean_text(slot["value"])
+        if not bool(slot.get("case_sensitive", True)):
+            actual = actual.casefold()
+            expected = expected.casefold()
+        return actual == expected, "text=%s" % actual
     raise ValueError("unknown matcher %r" % matcher)
 
 
@@ -1332,7 +1415,20 @@ def _validate_trig_pair(values: Sequence[Any]) -> bool:
     return abs(left - right) <= 1e-8 and abs(cos_left - cos_right) > 1e-8
 
 
-def score_question(question: Mapping[str, Any], answer_key: Mapping[str, Any], raw_answer: Any, present: bool) -> Dict[str, Any]:
+CUSTOM_VALIDATORS: Dict[str, Any] = {
+    "beijing_q13_trig_pair": _validate_trig_pair,
+}
+
+
+def score_question(
+    question: Mapping[str, Any],
+    answer_key: Mapping[str, Any],
+    raw_answer: Any,
+    present: bool,
+    *,
+    answer_shape: Optional[str] = None,
+    choice_labels: Sequence[str] = ("A", "B", "C", "D"),
+) -> Dict[str, Any]:
     points = int(question["points"])
     result: Dict[str, Any] = {
         "question_id": question["id"],
@@ -1347,9 +1443,18 @@ def score_question(question: Mapping[str, Any], answer_key: Mapping[str, Any], r
         return result
 
     try:
-        if question["type"] in ("single_choice", "multi_choice"):
-            actual = parse_choice_set(raw_answer)
-            expected = tuple(sorted(answer_key["correct_options"]))
+        shape = answer_shape or ("choice" if answer_key.get("correct_options") else "slots")
+        if shape == "choice":
+            option_labels = [
+                str(option.get("label"))
+                for option in (question.get("options") or [])
+                if isinstance(option, Mapping) and option.get("label") is not None
+            ]
+            actual = parse_choice_set(raw_answer, option_labels or choice_labels)
+            correct_options = answer_key.get("correct_options")
+            if not isinstance(correct_options, (list, tuple)) or not correct_options:
+                raise ValueError("choice answer key has no correct_options")
+            expected = tuple(sorted(str(label) for label in correct_options))
             result["normalized_answer"] = "".join(actual)
             if actual == expected:
                 result.update({"awarded": points, "status": "correct", "reason": "choice set exactly matches"})
@@ -1357,22 +1462,28 @@ def score_question(question: Mapping[str, Any], answer_key: Mapping[str, Any], r
                 result.update({"status": "incorrect", "reason": "choice set differs from key"})
             return result
 
-        slot_count = int(question["answer_slot_count"])
+        if shape != "slots":
+            raise ValueError("unsupported answer shape %r" % shape)
+        slots = answer_key.get("slots") or []
+        slot_count = int(question.get("answer_slot_count") or len(slots))
+        if len(slots) != slot_count:
+            raise ValueError("answer key slot count differs from question answer_slot_count")
         slot_values = _split_slots(raw_answer, slot_count)
         custom = answer_key.get("custom_validator")
-        if custom == "beijing_q13_trig_pair":
-            ok = _validate_trig_pair(slot_values)
+        if custom:
+            validator = CUSTOM_VALIDATORS.get(str(custom))
+            if validator is None:
+                raise ValueError("unknown custom validator %r" % custom)
+            ok = validator(slot_values)
             result["normalized_answer"] = "；".join(str(item) for item in slot_values)
             if ok:
-                result.update({"awarded": points, "status": "correct", "reason": "valid trigonometric pair"})
+                result.update({"awarded": points, "status": "correct", "reason": "custom validator %s accepted" % custom})
             else:
-                result.update({"status": "incorrect", "reason": "pair does not satisfy the stated constraints"})
+                result.update({"status": "incorrect", "reason": "custom validator %s rejected" % custom})
             return result
-        if custom:
-            raise ValueError("unknown custom validator %r" % custom)
 
         normalized: List[str] = []
-        for slot_value, slot in zip(slot_values, answer_key["slots"]):
+        for slot_value, slot in zip(slot_values, slots):
             ok, detail = _match_slot(slot_value, slot)
             normalized.append(detail)
             if not ok:
@@ -1387,21 +1498,92 @@ def score_question(question: Mapping[str, Any], answer_key: Mapping[str, Any], r
         return result
 
 
-def evaluate_submission(dataset: Dataset, answers: Mapping[str, Any]) -> Dict[str, Any]:
+def _metric(
+    metric_id: str,
+    *,
+    metric_version: str,
+    numerator: float,
+    denominator: float,
+    numerator_unit: str,
+    scope: str,
+    definition: str,
+    coverage: Mapping[str, Any],
+) -> Dict[str, Any]:
+    return {
+        "id": metric_id,
+        "version": metric_version,
+        "unit": "ratio",
+        "value": numerator / denominator if denominator else None,
+        "numerator": numerator,
+        "denominator": denominator,
+        "numerator_unit": numerator_unit,
+        "definition": definition,
+        "scope": scope,
+        "coverage": dict(coverage),
+    }
+
+
+def evaluate_submission(
+    dataset: Dataset,
+    answers: Mapping[str, Any],
+    *,
+    question_ids: Optional[Sequence[str]] = None,
+    view_id: str = "full",
+    coverage_label: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Score a submission with an explicit, versioned metric scope.
+
+    ``question_ids`` limits the reported run to a selected subset.  The primary
+    metric always uses that subset's reviewed possible points as its denominator
+    and is labelled ``selected_subset``.  A full-benchmark score is only reported
+    when the selected IDs cover the complete benchmark view.
+    """
+
     if not isinstance(answers, Mapping):
         raise ValueError("submission 'answers' must be an object keyed by question ID")
 
+    view_questions = list(dataset.spec.select_view(view_id, dataset.questions))
+    view_ids = {question["id"] for question in view_questions}
+    selected_ids_arg: Optional[set[str]] = None
+    if question_ids is not None:
+        selected_ids_arg = {str(qid) for qid in question_ids}
+        if not selected_ids_arg:
+            raise ValueError("question_ids must not be empty")
+        unknown_selection = sorted(selected_ids_arg - view_ids)
+        if unknown_selection:
+            raise ValueError("question_ids are outside benchmark view %s: %s" % (view_id, ", ".join(unknown_selection)))
+        selected_questions = [q for q in view_questions if q["id"] in selected_ids_arg]
+    else:
+        selected_questions = view_questions
+
+    selected_ids = {q["id"] for q in selected_questions}
+    scope = "full_view" if selected_ids == view_ids else "selected_subset"
+    if selected_ids == {q["id"] for q in dataset.questions}:
+        scope = "full_dataset"
+
     results: List[Dict[str, Any]] = []
     known_ids = {q["id"] for q in dataset.questions}
-    for question in dataset.questions:
+    for question in selected_questions:
         qid = question["id"]
         present = qid in answers
-        results.append(score_question(question, dataset.answer_keys[qid], answers.get(qid), present))
+        shape_spec = dataset.spec.answer_shape(question_type(question))
+        results.append(
+            score_question(
+                question,
+                dataset.answer_keys[qid],
+                answers.get(qid),
+                present,
+                answer_shape=shape_spec.shape if shape_spec is not None else None,
+                choice_labels=dataset.spec.choice_labels,
+            )
+        )
 
     paper_summaries: Dict[str, Dict[str, Any]] = {}
     for paper in dataset.papers:
         paper_id = paper["id"]
         paper_results = [row for row in results if row["paper_id"] == paper_id]
+        if not paper_results:
+            continue
         earned = sum(int(row["awarded"]) for row in paper_results)
         possible = sum(int(row["points"]) for row in paper_results)
         correct = len([row for row in paper_results if row["status"] == "correct"])
@@ -1418,34 +1600,141 @@ def evaluate_submission(dataset: Dataset, answers: Mapping[str, Any]) -> Dict[st
     total_awarded = sum(int(row["awarded"]) for row in results)
     total_possible = sum(int(row["points"]) for row in results)
     correct_questions = len([row for row in results if row["status"] == "correct"])
-    paper_accuracies = [paper_summaries[p]["point_accuracy"] for p in EXPECTED_PAPER_POINTS]
     failure_counts: Dict[str, int] = {}
     for row in results:
         failure_counts[row["status"]] = failure_counts.get(row["status"], 0) + 1
 
+    coverage = {
+        "label": coverage_label or ("view:%s" % view_id),
+        "selected_questions": len(selected_questions),
+        "view_questions": len(view_questions),
+        "dataset_questions": len(dataset.questions),
+        "selected_possible_points": total_possible,
+        "view_possible_points": sum(int(q["points"]) for q in view_questions),
+        "dataset_possible_points": sum(int(q["points"]) for q in dataset.questions),
+        "selected_question_ids": sorted(selected_ids),
+    }
+    metric_version = dataset.spec.scoring.metric_version
+    weighted_points = _metric(
+        dataset.spec.scoring.primary_metric,
+        metric_version=metric_version,
+        numerator=total_awarded,
+        denominator=total_possible,
+        numerator_unit="points",
+        scope=scope,
+        definition="earned reviewed exam points divided by possible points in the declared scope",
+        coverage=coverage,
+    )
+    exact_accuracy = _metric(
+        "diagnostic.exact_accuracy",
+        metric_version=metric_version,
+        numerator=correct_questions,
+        denominator=len(results),
+        numerator_unit="questions",
+        scope=scope,
+        definition="fully correct questions divided by questions in the declared scope",
+        coverage=coverage,
+    )
+    paper_accuracies = [paper_summaries[paper_id]["point_accuracy"] for paper_id in paper_summaries]
+    paper_equal = _metric(
+        "diagnostic.paper_equal_weighted_points",
+        metric_version=metric_version,
+        numerator=sum(paper_accuracies),
+        denominator=len(paper_accuracies),
+        numerator_unit="paper_ratio_sum",
+        scope=scope,
+        definition="equal-weight mean of paper point accuracies; diagnostic only, never the primary score",
+        coverage=coverage,
+    )
+
+    required_ids = {
+        str(q["id"]) for q in selected_questions if question_requires_vision(q)
+    }
+    text_rows = [row for row in results if row["question_id"] not in required_ids]
+    text_awarded = sum(int(row["awarded"]) for row in text_rows)
+    text_possible = sum(int(row["points"]) for row in text_rows)
+    vision_rows = [row for row in results if row["question_id"] in required_ids]
+    vision_awarded = sum(int(row["awarded"]) for row in vision_rows)
+    vision_possible = sum(int(row["points"]) for row in vision_rows)
+    slices = {
+        "text_answerable": _metric(
+            "slice.text_answerable.weighted_points",
+            metric_version=metric_version,
+            numerator=text_awarded,
+            denominator=text_possible,
+            numerator_unit="points",
+            scope=scope,
+            definition="score over questions that do not require an attached figure",
+            coverage={
+                **coverage,
+                "slice_questions": len(text_rows),
+                "slice_possible_points": text_possible,
+            },
+        ),
+        "vision_required": _metric(
+            "slice.vision_required.weighted_points",
+            metric_version=metric_version,
+            numerator=vision_awarded,
+            denominator=vision_possible,
+            numerator_unit="points",
+            scope=scope,
+            definition="score over questions whose prompt requires an attached figure",
+            coverage={
+                **coverage,
+                "slice_questions": len(vision_rows),
+                "slice_possible_points": vision_possible,
+            },
+        ),
+        "text_on_scope_denominator": _metric(
+            "slice.text_on_scope_denominator.weighted_points",
+            metric_version=metric_version,
+            numerator=text_awarded,
+            denominator=total_possible,
+            numerator_unit="points",
+            scope=scope,
+            definition="text-answerable earned points divided by the full selected-scope denominator",
+            coverage=coverage,
+        ),
+    }
+
     unexpected_ids = sorted(set(answers) - known_ids)
+    out_of_scope_ids = sorted((set(answers) & known_ids) - selected_ids)
+    metrics = {
+        weighted_points["id"]: weighted_points,
+        exact_accuracy["id"]: exact_accuracy,
+        paper_equal["id"]: paper_equal,
+        **{metric["id"]: metric for metric in slices.values()},
+    }
     return {
+        "schema_version": "2.0",
         "dataset": "Gaokao-Bench",
         "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
-        "scoring_profile": SCORING_PROFILE,
+        "benchmark_spec": {
+            "id": dataset.spec.id,
+            "version": dataset.spec.version,
+            "sha256": dataset.spec.fingerprint(),
+        },
+        "scoring_profile": dataset.spec.scoring.profile,
         "scorer_version": SCORER_VERSION,
+        "scope": {
+            "view": view_id,
+            "kind": scope,
+            "coverage": coverage,
+        },
+        "primary_metric": weighted_points,
+        "metrics": metrics,
         "summary": {
-            "metrics": {
-                "GB-2025-Math-Obj": sum(paper_accuracies) / len(paper_accuracies),
-                "GB-2025-Math-Obj-Weighted": total_awarded / total_possible if total_possible else 0.0,
-                "GB-2025-Math-Exact": correct_questions / len(results) if results else 0.0,
-            },
-            "GB-2025-Math-Obj": 100.0 * sum(paper_accuracies) / len(paper_accuracies),
-            "GB-2025-Math-Obj-Weighted": 100.0 * total_awarded / total_possible if total_possible else 0.0,
-            "GB-2025-Math-Exact": 100.0 * correct_questions / len(results) if results else 0.0,
             "earned_points": total_awarded,
             "possible_points": total_possible,
             "correct_questions": correct_questions,
             "total_questions": len(results),
             "failure_counts": failure_counts,
+            "primary_metric": weighted_points,
+            "slices": slices,
             "papers": paper_summaries,
         },
         "unexpected_answer_ids": unexpected_ids,
+        "out_of_scope_answer_ids": out_of_scope_ids,
         "results": results,
     }
 
@@ -1454,10 +1743,15 @@ def canonical_submission(dataset: Dataset) -> Dict[str, Any]:
     answers: Dict[str, Any] = {}
     for question in dataset.questions:
         key = dataset.answer_keys[question["id"]]
-        if question["type"] in ("single_choice", "multi_choice"):
+        shape = dataset.spec.answer_shape(question_type(question))
+        if shape is None:
+            raise ValueError("question type is not declared by benchmark spec: %s" % question["id"])
+        if shape.shape == "choice":
             answers[question["id"]] = "".join(key["correct_options"])
-        else:
+        elif shape.shape == "slots":
             slots = [slot["canonical"] for slot in key["slots"]]
             answers[question["id"]] = slots[0] if len(slots) == 1 else slots
+        else:
+            raise ValueError("canonical subjective answers require the rubric engine: %s" % question["id"])
     return {"answers": answers}
 

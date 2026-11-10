@@ -18,6 +18,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
+from .benchmark_spec import BENCHMARK_SPEC_FILENAME, question_type
 from .owner_review import import_owner_signoff
 from .review import import_review_packet
 from .scoring import SCORER_VERSION, Dataset, evaluate_submission, load_dataset, validate_dataset
@@ -85,7 +86,7 @@ def _question_projection(dataset: Dataset) -> List[Dict[str, Any]]:
                 "id": question["id"],
                 "paper_id": question["paper_id"],
                 "number": question["number"],
-                "type": question["type"],
+                "type": question_type(question),
                 "points": int(question["points"]),
                 "stem": question.get("stem") or question.get("content"),
                 "options": question.get("options", []),
@@ -510,6 +511,20 @@ certification.  `official_answer_source_found` remains `false`.
             "review_event_count": len(review_events),
             "materialization_document": MATERIALIZATION_DOCUMENT,
         }
+        declared_spec = manifest.get("benchmark_spec")
+        declared_spec_exists = (
+            isinstance(declared_spec, str)
+            and declared_spec.strip()
+            and (destination / declared_spec).is_file()
+        )
+        if not declared_spec_exists:
+            spec_path = destination / BENCHMARK_SPEC_FILENAME
+            _write_json(spec_path, source_dataset.spec.raw)
+            manifest["benchmark_spec"] = BENCHMARK_SPEC_FILENAME
+            manifest["files"][BENCHMARK_SPEC_FILENAME] = {
+                "bytes": spec_path.stat().st_size,
+                "sha256": _sha256_file(spec_path),
+            }
         manifest["files"][MATERIALIZATION_DOCUMENT] = {
             "bytes": (destination / MATERIALIZATION_DOCUMENT).stat().st_size,
             "sha256": _sha256_file(destination / MATERIALIZATION_DOCUMENT),
@@ -526,7 +541,8 @@ certification.  `official_answer_source_found` remains `false`.
         if signed_content_hashes(destination) != signed_hashes:
             raise MaterializationError("post-manifest signed-content verification failed")
         smoke_cases = {}
-        for case_name, expected_points in (("gold", 353), ("empty", 0), ("malformed", 0)):
+        gold_points = sum(int(question["points"]) for question in reviewed_dataset.questions)
+        for case_name, expected_points in (("gold", gold_points), ("empty", 0), ("malformed", 0)):
             submission = json.loads(
                 (destination / "examples" / (case_name + ".json")).read_text(encoding="utf-8")
             )
@@ -539,15 +555,21 @@ certification.  `official_answer_source_found` remains `false`.
             smoke_cases[case_name] = {
                 "expected_points": expected_points,
                 "earned_points": report["summary"]["earned_points"],
-                "GB-2025-Math-Obj": report["summary"]["GB-2025-Math-Obj"],
+                "primary_metric": report["primary_metric"],
                 "failure_counts": report["summary"]["failure_counts"],
             }
         gold_report = evaluate_submission(
             reviewed_dataset,
             json.loads((destination / "examples" / "gold.json").read_text(encoding="utf-8"))["answers"],
         )
-        if gold_report["summary"]["earned_points"] != 353 or gold_report["summary"]["correct_questions"] != 74:
-            raise MaterializationError("materialised dataset no longer scores gold at 353/353")
+        if (
+            gold_report["summary"]["earned_points"] != gold_points
+            or gold_report["summary"]["correct_questions"] != len(reviewed_dataset.questions)
+        ):
+            raise MaterializationError(
+                "materialised dataset no longer scores gold at %d/%d"
+                % (gold_points, gold_points)
+            )
     except Exception:
         shutil.rmtree(destination, ignore_errors=True)
         raise

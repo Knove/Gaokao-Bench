@@ -33,16 +33,17 @@ def main() -> int:
     dataset_version = str(manifest["dataset_version"])
     dataset = load_dataset(data_dir)
     audit = validate_dataset(dataset)
+    possible_points = sum(int(question["points"]) for question in dataset.questions)
     cases = {}
-    for name, expected_points in (("gold", 353), ("empty", 0), ("malformed", 0)):
+    for name, expected_points in (("gold", possible_points), ("empty", 0), ("malformed", 0)):
         submission = json.loads((data_dir / "examples" / (name + ".json")).read_text(encoding="utf-8"))
         report = evaluate_submission(dataset, submission["answers"])
         assert report["summary"]["earned_points"] == expected_points, name
-        assert report["summary"]["possible_points"] == 353, name
+        assert report["summary"]["possible_points"] == possible_points, name
         cases[name] = {
             "expected_points": expected_points,
             "earned_points": report["summary"]["earned_points"],
-            "GB-2025-Math-Obj": report["summary"]["GB-2025-Math-Obj"],
+            "primary_metric": report["primary_metric"],
             "failure_counts": report["summary"]["failure_counts"],
         }
     payload = {

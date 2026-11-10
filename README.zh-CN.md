@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="版本 0.0.1" src="https://img.shields.io/badge/version-0.0.1-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine 版本 0.1.0" src="https://img.shields.io/badge/engine-0.1.0-171513?style=flat-square"></a>
   <a href="#计分规则"><img alt="确定性评分" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Hugging Face 数据集" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -50,6 +50,12 @@
 
 > [!NOTE]
 > 本仓库提供评测框架（Harness）、确定性判分器与数据校验工具。真题数据包发布在 [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench)，通过版本标签固定（详见 [`SCOPE.md`](SCOPE.md)）。
+
+> [!IMPORTANT]
+> 公开的 `0.0.1` 数据 manifest 明确设置 `public_ranking_allowed=false`，第三方试卷素材记为 `NOASSERTION`。结果可用于研究或内部评测，但在没有另行书面授权时，不得用于第三方公开榜单、厂商营销或其他模型的公开排名。项目的 CC BY 4.0 授权只覆盖原创的题目编排、schema 和评分元数据，不重新许可原始试卷素材。
+
+> [!TIP]
+> Engine `0.1.0` 已将通用 Harness、版本化 Benchmark Spec 和不可变数据包分层。全学科、rubric、Provider 和指标协议见 [`ARCHITECTURE.md`](ARCHITECTURE.md)。
 
 ## 数据集概览
 
@@ -170,13 +176,34 @@ python3 scripts/run_benchmark.py \
 
 内置支持 `openai_compatible`、`anthropic`、`gemini_cli` 和 `mock` 四种调用方式。如果只想预览生成的 Prompt 而不实际调用接口，可以加上 `--prepare-only` 参数。
 
+正式运行会记录完整评测协议。建议使用带日期的模型快照、固定 seed，并在接口支持时固定上游 provider：
+
+```bash
+python3 scripts/run_benchmark.py \
+  --data-dir "$GB_DATA" \
+  --provider openai_compatible \
+  --model "<带日期模型快照>" \
+  --seed 7 \
+  --provider-pin "<上游-provider>" \
+  --allow-fallbacks false \
+  --max-tokens 32768 \
+  --reasoning-budget 8192 \
+  --resume \
+  --output-dir runs/<run-id>
+```
+
+`--max-tokens` 是完成 token 上限，在很多模型上包含隐藏推理 token；`--reasoning-budget` 可选，且必须小于 `--max-tokens`。进度事件以 JSON 行输出到 stderr；中断后使用 `--resume` 继续，`--retry-failed` 只在同一协议下重试 provider 错误、运行器错误和截断输出。
+
 ## 计分规则
 
-$$\text{总得分率} = \frac{\text{实际获得题分}}{\text{固定卷面总分 (353)}}$$
+$$\text{score.weighted\_points} = \frac{\text{当前作用域内获得题分}}{\text{当前作用域内可能题分}}$$
 
+- **唯一主指标：** 值为 `0–1` ratio，并带明确作用域（`full_dataset`、`full_view` 或 `selected_subset`）。对外百分比只是 `100 × ratio`，不再同时维护另一套 full-test 分数。完整 `0.0.1` 数据包的作用域分母是 **353 分**。
+- **诊断切片：** `slice.text_answerable.weighted_points`、`slice.vision_required.weighted_points` 和 `diagnostic.exact_accuracy` 都是带独立 ID 和分母的次级指标，不替代主指标。
 - **单题全对得分：** `0.0.1` 版本暂不启用多选题与多空填空题的部分分，单题所有空位全部匹配才得分。
 - **失败样本不剔除：** 漏答、JSON 解析失败、请求超时、API 报错一律记录在案并记 `0` 分。
 - **文本与多模态统一分母：** 两种模式均以 353 分为基准分母。在 `text` 模式下，4 道必须看图的题目不会发送给模型，直接记 `0` 分（因此纯文本模式最高可得 334/353 分）；在 `vision` 模式下，这 4 道题会附带对应的题图裁片。
+- **失败分类：** provider 错误、运行器错误、解析错误、缺图和输出截断都保留在分母内并分别计数；推理输出被截断不会被悄悄当成普通答错。
 - **公开题库与污染区分：** 已公开年份的试卷在评测报告中会明确标注（如 `retrospective_public_2025`），与每年最新高考放榜前的零污染实时评测（Fresh Exam Evaluation）严格区分。
 
 ## 路线图（Roadmap）
@@ -209,6 +236,7 @@ Gaokao-Bench 的长期目标是构建**覆盖中国高考恢复以来（1977 年
 | `scripts/upload_hf_data.py` | 校验、上传并创建数据版本标签 |
 | `tests/` | 数学解析、计分逻辑与发布包校验的单元测试 |
 | `SCOPE.md` | 代码与数据分离策略及评测方法说明 |
+| `ARCHITECTURE.md` | Engine / Spec / Data 边界、指标协议与全学科架构 |
 | `CITATION.cff` | 引用元数据 |
 | [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench) | 按版本分发的客观题数据包 |
 

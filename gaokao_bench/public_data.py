@@ -7,8 +7,15 @@ import hashlib
 import json
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
+from .benchmark_spec import (
+    BENCHMARK_SPEC_FILENAME,
+    BenchmarkSpec,
+    load_benchmark_spec,
+    question_requires_vision,
+    question_type,
+)
 from .scoring import (
     PUBLIC_HUB_MANAGED_FILES,
     PUBLIC_PACKAGE_PROFILE,
@@ -17,12 +24,28 @@ from .scoring import (
 )
 
 
+SUBJECT_TAGS = {
+    "数学": "mathematics",
+    "物理": "physics",
+    "化学": "chemistry",
+    "生物": "biology",
+    "语文": "chinese-language",
+    "英语": "english-language",
+    "历史": "history",
+    "地理": "geography",
+    "政治": "politics",
+}
+
+
 PUBLIC_QUESTION_FIELDS = (
     "id",
     "paper_id",
     "number",
     "display_number",
     "type",
+    "task_type",
+    "subject",
+    "year",
     "stem",
     "content",
     "content_format",
@@ -31,6 +54,8 @@ PUBLIC_QUESTION_FIELDS = (
     "answer_slot_count",
     "asset_dependency",
     "input_modalities",
+    "vision_required",
+    "text_sufficient",
     "image_path",
     "image_bytes",
     "image_sha256",
@@ -125,7 +150,7 @@ def _project_root(source: Path) -> Path:
 
 def _project_question(row: Mapping[str, Any]) -> Dict[str, Any]:
     projected = {field: row[field] for field in PUBLIC_QUESTION_FIELDS if field in row}
-    if projected.get("asset_dependency") != "required":
+    if not question_requires_vision(row):
         for field in ("image_path", "image_bytes", "image_sha256"):
             projected.pop(field, None)
     source = row.get("source")
@@ -147,6 +172,7 @@ def _public_audit(
     papers: Sequence[Mapping[str, Any]],
     questions: Sequence[Mapping[str, Any]],
     catalog: Sequence[Mapping[str, Any]],
+    spec: Optional[BenchmarkSpec] = None,
 ) -> Dict[str, Any]:
     paper_points = {
         str(paper["id"]): sum(
@@ -156,28 +182,35 @@ def _public_audit(
         )
         for paper in papers
     }
+    if spec is not None:
+        choice_types = {name for name, shape in spec.task_types.items() if shape.shape == "choice"}
+        single_choice_types = {
+            name
+            for name in choice_types
+            if spec.task_types[name].max_selections == 1
+        }
+        multi_choice_types = choice_types - single_choice_types
+        slot_types = {name for name, shape in spec.task_types.items() if shape.shape == "slots"}
+    else:
+        choice_types = {"single_choice", "multi_choice"}
+        single_choice_types = {"single_choice"}
+        multi_choice_types = {"multi_choice"}
+        slot_types = {"fill_blank"}
+    image_questions = [q for q in questions if question_requires_vision(q)]
     return {
         "papers": len(papers),
         "questions": len(questions),
-        "choice_questions": len(
-            [q for q in questions if q.get("type") in ("single_choice", "multi_choice")]
-        ),
-        "single_choice_questions": len(
-            [q for q in questions if q.get("type") == "single_choice"]
-        ),
-        "multi_choice_questions": len(
-            [q for q in questions if q.get("type") == "multi_choice"]
-        ),
-        "fill_questions": len([q for q in questions if q.get("type") == "fill_blank"]),
-        "answer_slots": sum(int(q["answer_slot_count"]) for q in questions),
+        "choice_questions": len([q for q in questions if question_type(q) in choice_types]),
+        "single_choice_questions": len([q for q in questions if question_type(q) in single_choice_types]),
+        "multi_choice_questions": len([q for q in questions if question_type(q) in multi_choice_types]),
+        "fill_questions": len([q for q in questions if question_type(q) in slot_types]),
+        "answer_slots": sum(int(q.get("answer_slot_count") or 0) for q in questions),
         "objective_points": sum(int(q["points"]) for q in questions),
-        "image_required_questions": len(
-            [q for q in questions if q.get("asset_dependency") == "required"]
-        ),
+        "image_required_questions": len(image_questions),
         "text_points": sum(
             int(q["points"])
             for q in questions
-            if q.get("asset_dependency") != "required"
+            if not question_requires_vision(q)
         ),
         "paper_points": paper_points,
         "catalog_subjective_questions": len(catalog),
@@ -185,8 +218,45 @@ def _public_audit(
     }
 
 
-def _dataset_card(*, repo_id: str, dataset_version: str, audit: Mapping[str, Any]) -> str:
+def _dataset_card(
+    *,
+    repo_id: str,
+    dataset_version: str,
+    audit: Mapping[str, Any],
+    public_ranking_allowed: bool = False,
+    benchmark_spec: Mapping[str, Any] | None = None,
+    spec: Optional[BenchmarkSpec] = None,
+    papers: Sequence[Mapping[str, Any]] = (),
+    score_label: str = "public_retrospective",
+) -> str:
     dataset_url = "https://huggingface.co/datasets/%s" % repo_id
+    if spec is not None:
+        subject = spec.subject
+        years = list(spec.years)
+    else:
+        subject = str(papers[0].get("subject") or "数学") if papers else "数学"
+        years = sorted({int(paper["year"]) for paper in papers if paper.get("year") is not None}) or [2025]
+    years_label = "、".join(str(year) for year in years)
+    paper_titles = "、".join(str(paper.get("title") or paper.get("id")) for paper in papers) or "多套试卷"
+    paper_count = int(audit.get("papers", len(papers) or 0))
+    subject_tag = SUBJECT_TAGS.get(subject, "education")
+    year_tags = "\n".join('- "%d"' % year for year in years)
+    citation_title = "Gaokao-Bench %s: %s Gaokao %s Benchmark" % (
+        dataset_version,
+        "-".join(str(year) for year in years),
+        subject,
+    )
+    catalog_questions = int(audit.get("catalog_subjective_questions", 0))
+    spec_file_line = (
+        "`benchmark_spec.json`：题型、答案形状、视图、分母和评分协议；"
+        if benchmark_spec
+        else "历史兼容：本包不包含 `benchmark_spec.json`，由 Engine 的显式兼容规范执行；新版本必须随包提供。"
+    )
+    catalog_file_line = (
+        "`catalog/subjective_catalog.jsonl`：主观题目录，`included_in_scoring=false`；"
+        if catalog_questions
+        else "`catalog/`：本数据包没有编目主观题；"
+    )
     return """---
 license: other
 license_name: gaokao-bench-data-terms
@@ -198,9 +268,9 @@ tags:
 - gaokao
 - benchmark
 - evaluation
-- mathematics
+- {subject_tag}
 - education
-- "2025"
+{year_tags}
 task_categories:
 - question-answering
 size_categories:
@@ -218,11 +288,11 @@ configs:
 
 **全国选拔标尺 · 历年动态演进 · 真实卷面评测**
 
-`v{version}` · 2025 高考数学 · {questions} 题 / {points} 分 · 确定性判分
+`v{version}` · {years_label} 高考{subject} · {questions} 题 / {points} 分 · 确定性判分
 
-Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包是 `{version}` 版，覆盖 **2025 年高考数学 5 套试卷**的客观题部分，按真实卷面分值计分，并以固定分母处理漏答、超时和格式失败。
+Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包是 `{version}` 版，覆盖 **{years_label} 年高考{subject} {paper_count} 套试卷**的计分题部分，按真实卷面分值计分，并以固定分母处理漏答、超时和格式失败。
 
-**English:** Gaokao-Bench is a deterministic, point-weighted benchmark built from real Chinese Gaokao papers. Version `{version}` covers the objective sections of five 2025 mathematics papers, uses a fixed 353-point denominator, and ships only the four figure crops required by the vision profile.
+**English:** Gaokao-Bench is a deterministic, point-weighted benchmark built from real Chinese Gaokao papers. Version `{version}` covers the scored sections of {paper_count} {subject} paper(s) from {years_label}, uses a fixed {points}-point denominator, and ships only the figure crops required by the vision profile.
 
 ## 为什么用高考
 
@@ -232,8 +302,8 @@ Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包
 
 | 项目 | 规格 |
 | --- | --- |
-| 年份与科目 | 2025 · 数学 |
-| 覆盖试卷 | 全国卷 I、全国卷 II、北京卷、上海卷、天津卷 |
+| 年份与科目 | {years_label} · {subject} |
+| 覆盖试卷 | {paper_titles} |
 | 计分题目 | **{questions} 题** |
 | 卷面总分 | **{points} 分** |
 | 答案槽 | **{slots} 个** |
@@ -273,11 +343,12 @@ gaokao-bench validate --data-dir data/{version}
 ## 文件结构
 
 - `manifest.json`：数据集版本、统计、文件哈希和发布信息；
-- `papers.jsonl`：5 套试卷元数据；
-- `questions.jsonl`：74 道客观题及题面结构；
+- `papers.jsonl`：{paper_count} 套试卷元数据；
+- `questions.jsonl`：{questions} 道计分题及题面结构；
+- {spec_file_line}
 - `answer_keys.jsonl`：答案键和空位定义；
-- `assets.jsonl` 与 `assets/`：4 道图形必需题的裁图、字节数与哈希；
-- `catalog/subjective_catalog.jsonl`：主观题目录，`included_in_scoring=false`；
+- `assets.jsonl` 与 `assets/`：{image_questions} 道图形必需题的裁图、字节数与哈希；
+- {catalog_file_line}
 - `examples/`：空提交、标准答案和非法提交示例。
 - `CITATION.cff`：与数据版本绑定的引用信息。
 
@@ -285,13 +356,17 @@ gaokao-bench validate --data-dir data/{version}
 
 | 文件 | 关键字段 | 用途 |
 | --- | --- | --- |
-| `questions.jsonl` | `id`、`paper_id`、`type`、`stem`、`options`、`points`、`answer_slot_count`、`asset_dependency`、`source` | 74 道计分题及匿名化评测所需的题面结构 |
+| `questions.jsonl` | `id`、`paper_id`、`type`、`stem`、`options`、`points`、`answer_slot_count`、`asset_dependency`、`source` | {questions} 道计分题及匿名化评测所需的题面结构 |
 | `answer_keys.jsonl` | `question_id`、`kind`、`canonical`、`correct_options`、`slots`、`points` | 确定性判分使用的标准答案 |
-| `papers.jsonl` | `id`、`title`、`year`、`region`、`objective_points`、`pdf_url` | 5 套试卷元数据与来源 |
-| `assets.jsonl` | `question_id`、`path`、`bytes`、`sha256`、`dependency` | 4 道图形必需题的裁图索引 |
+| `papers.jsonl` | `id`、`title`、`year`、`region`、`objective_points`、`pdf_url` | {paper_count} 套试卷元数据与来源 |
+| `assets.jsonl` | `question_id`、`path`、`bytes`、`sha256`、`dependency` | {image_questions} 道图形必需题的裁图索引 |
 | `catalog/subjective_catalog.jsonl` | `id`、`type`、`content`、`points`、`included_in_scoring` | 主观题目录，仅作后续扩展记录 |
 
-Dataset Viewer 使用单一 `questions` config 展示 74 道计分题；其他 JSONL 保留为直接下载文件，避免不同字段结构混表。评分答案键 `answer_keys.jsonl` 供 Harness 读取，其中 `canonical` 同时包含单值和多空数组，不交给 Viewer 自动推断。
+Dataset Viewer 使用单一 `questions` config 展示 {questions} 道计分题；其他 JSONL 保留为直接下载文件，避免不同字段结构混表。评分答案键 `answer_keys.jsonl` 供 Harness 读取，其中 `canonical` 同时包含单值和多空数组，不交给 Viewer 自动推断。
+
+## 使用与排名限制
+
+本数据包 manifest 当前记录 `public_ranking_allowed={public_ranking_allowed}`。在项目的书面授权或数据 manifest 另有明确声明之前，不应把本数据包的结果用于第三方公开榜单、厂商营销或对其他模型作公开排名。题目素材的 `exam_material_license` 为 `NOASSERTION`，原始试卷权利仍归相应权利人；项目只授权自己原创的编排、schema 和评分元数据。
 
 ## 评分规则
 
@@ -303,24 +378,24 @@ $$
 - 缺失、格式错误、超时和 API 错误计 `0` 分；
 - 判分完全确定，不调用 LLM 裁判；
 - 失败样本保留在分母内，分母不会因为接口失败而缩水；
-- 文本模式跳过 4 道图形必需题，按 `0` 分计入固定的 {points} 分分母；
-- 视觉模式只为 4 道图形必需题附加题图；
+- 文本模式跳过 {image_questions} 道图形必需题，按 `0` 分计入固定的 {points} 分分母；
+- 视觉模式只为 {image_questions} 道图形必需题附加题图；
 - 本数据集不把 {points} 分外推为 750 分高考总分。
 
 | 模式 | 实际可达 | 固定分母 | 说明 |
 | --- | --- | --- | --- |
-| Text | {text_questions} 题 / {text_points} 分 | {points} 分 | 4 道图形题不发送，直接记 0 分 |
-| Vision | {questions} 题 / {points} 分 | {points} 分 | 仅为 4 道图形题附带必需裁图 |
+| Text | {text_questions} 题 / {text_points} 分 | {points} 分 | {image_questions} 道图形题不发送，直接记 0 分 |
+| Vision | {questions} 题 / {points} 分 | {points} 分 | 仅为 {image_questions} 道图形题附带必需裁图 |
 
 ## 污染说明
 
-2025 年高考题目已经公开，可能存在于模型训练或检索语料中。所有结果必须标注 `retrospective_public_2025`，不得声称这是 held-out、零污染或“新鲜能力”评测。
+{years_label} 年高考题目已经公开，可能存在于模型训练或检索语料中。所有结果必须标注 `{score_label}`，不得声称这是 held-out、零污染或“新鲜能力”评测。
 
 ## 许可与来源
 
 项目原创的题目编排、答案键结构、评分元数据采用 **CC BY 4.0**。原始高考题干、答案原文、题图和其他第三方素材的权利仍归原权利人，本项目不通过这些文件重新许可第三方内容。公开分发采用项目 owner 的发布决定，并保留逐来源权利说明、署名和纠错/下架流程。详见 `LICENSE-DATA` 和 `THIRD_PARTY_NOTICES.md`。
 
-代码和 Harness 使用 **Apache License 2.0**。
+代码和 Harness 使用 **Apache License 2.0**。公开排名与营销授权边界见上节和 `manifest.json` 的 `release.public_ranking_allowed`。
 
 ## 相关文件
 
@@ -332,20 +407,20 @@ $$
 
 ## 版本记录
 
-- `0.0.1`（2026-11-09）：首个公开版本；2025 高考数学 5 套试卷客观题，74 题 / 353 分，4 道图形必需题，主观题目录不计分。
+- `{version}`：{years_label} 高考{subject} {paper_count} 套试卷计分题，{questions} 题 / {points} 分，{image_questions} 道图形必需题，主观题目录不计分。
 
-数据版本：`{version}` · 生成时间：`{created_at}` · 分数标签：`retrospective_public_2025`
+数据版本：`{version}` · 生成时间：`{created_at}` · 分数标签：`{score_label}`
 
 ## 引用
 
 ```bibtex
-@misc{{gaokao_bench_2025_math_objective,
+@misc{{gaokao_bench_{citation_key},
   author       = {{{{Gaokao-Bench contributors}}}},
-  title        = {{Gaokao-Bench {version}: 2025 Gaokao Mathematics Objective Benchmark}},
+  title        = {{{citation_title}}},
   year         = {{2026}},
   publisher    = {{Hugging Face}},
   howpublished = {{\\url{{{dataset_url}}}}},
-  note         = {{Data version {version}; fixed 353-point objective denominator}}
+  note         = {{Data version {version}; fixed {points}-point denominator}}
 }}
 ```
 
@@ -354,30 +429,51 @@ $$
         dataset_url=dataset_url,
         repo_id=repo_id,
         version=dataset_version,
+        subject=subject,
+        years_label=years_label,
+        paper_titles=paper_titles,
+        paper_count=paper_count,
+        spec_file_line=spec_file_line,
+        catalog_file_line=catalog_file_line,
+        subject_tag=subject_tag,
+        year_tags=year_tags,
+        citation_title=citation_title,
+        citation_key=("%s-%s" % ("-".join(str(year) for year in years), subject_tag)).replace("-", "_"),
         questions=int(audit["questions"]),
         points=int(audit["objective_points"]),
         text_points=int(audit["text_points"]),
         slots=int(audit["answer_slots"]),
         image_questions=int(audit["image_required_questions"]),
         text_questions=int(audit["questions"]) - int(audit["image_required_questions"]),
-        catalog_questions=int(audit["catalog_subjective_questions"]),
-        catalog_points=int(audit["catalog_subjective_points"]),
+        catalog_questions=catalog_questions,
+        catalog_points=int(audit.get("catalog_subjective_points", 0)),
         created_at=audit.get("created_at", ""),
+        public_ranking_allowed=str(public_ranking_allowed).lower(),
+        score_label=score_label,
     )
 
 
-def _third_party_notice(repo_id: str, papers: Sequence[Mapping[str, Any]]) -> str:
+def _third_party_notice(
+    repo_id: str,
+    papers: Sequence[Mapping[str, Any]],
+    audit: Mapping[str, Any],
+) -> str:
     source_lines = "\n".join(
         "- %s: %s" % (paper.get("title", paper.get("id", "")), paper.get("pdf_url", ""))
         for paper in papers
     )
+    image_questions = int(audit.get("image_required_questions", 0))
+    material = (
+        "%d reviewed question crop(s)" % image_questions
+        if image_questions
+        else "no question crops"
+    )
     return """# Third-Party Notices
 
-Gaokao-Bench includes exam questions, answer text, and four question crops
-derived from public 2025 Gaokao mathematics papers and third-party source
-material. Those materials remain subject to their original rights and are not
-relicensed by the project's Apache-2.0 code license or the project's CC BY 4.0
-editorial license.
+Gaokao-Bench includes exam questions, answer text, and %s derived from public
+Gaokao papers and third-party source material. Those materials remain subject
+to their original rights and are not relicensed by the project's Apache-2.0
+code license or the project's CC BY 4.0 editorial license.
 
 The paper sources retained in this package are:
 
@@ -387,13 +483,35 @@ Source identifiers and links are kept in `papers.jsonl`, `questions.jsonl`,
 `answer_keys.jsonl`, and `assets.jsonl` for attribution and auditability. If you
 believe material in this package should be corrected, attributed differently,
 or removed, open a discussion at https://huggingface.co/datasets/%s/discussions.
-""" % (source_lines, repo_id)
+""" % (material, source_lines, repo_id)
 
 
-def _citation(*, repo_id: str, dataset_version: str, created_at: str) -> str:
+def _citation(
+    *,
+    repo_id: str,
+    dataset_version: str,
+    created_at: str,
+    subject: str,
+    years: Sequence[int],
+    audit: Mapping[str, Any],
+) -> str:
     dataset_url = "https://huggingface.co/datasets/%s" % repo_id
+    years_label = "-".join(str(year) for year in years)
+    subject_tag = SUBJECT_TAGS.get(subject, "education")
+    abstract = (
+        "A deterministic benchmark containing %d scored %s questions from %d Gaokao paper(s) (%s). "
+        "The fixed objective denominator is %d points; %d question(s) require figures."
+        % (
+            int(audit.get("questions", 0)),
+            subject,
+            int(audit.get("papers", 0)),
+            years_label,
+            int(audit.get("objective_points", 0)),
+            int(audit.get("image_required_questions", 0)),
+        )
+    )
     return """cff-version: 1.2.0
-title: "Gaokao-Bench {version}: 2025 Gaokao Mathematics Objective Benchmark"
+title: "Gaokao-Bench {version}: {years_label} Gaokao {subject} Objective Benchmark"
 message: "Please cite this exact dataset version. Underlying exam material has separate rights and is not relicensed by the project."
 type: dataset
 version: {version}
@@ -407,10 +525,18 @@ keywords:
   - gaokao
   - benchmark
   - evaluation
-  - mathematics
+  - {subject_tag}
   - education
-abstract: "A deterministic benchmark containing 74 choice and fill-in mathematics questions from five 2025 Chinese Gaokao papers. The fixed objective denominator is 353 points; four questions require figures."
-""".format(version=dataset_version, date=created_at[:10], url=dataset_url)
+abstract: "{abstract}"
+""".format(
+        version=dataset_version,
+        date=created_at[:10],
+        url=dataset_url,
+        years_label=years_label,
+        subject=subject,
+        subject_tag=subject_tag,
+        abstract=abstract,
+    )
 
 
 def _gitattributes() -> str:
@@ -429,6 +555,8 @@ def _build_manifest(
     audit: Mapping[str, Any],
     repo_id: str,
     created_at: str,
+    spec: Optional[BenchmarkSpec] = None,
+    benchmark_spec_ref: Optional[str] = None,
 ) -> Dict[str, Any]:
     file_map: Dict[str, Dict[str, Any]] = {}
     for path in sorted(output.rglob("*")):
@@ -439,6 +567,12 @@ def _build_manifest(
             file_map[relative] = {"bytes": None, "sha256": None, "managed_by": "huggingface"}
         else:
             file_map[relative] = {"bytes": path.stat().st_size, "sha256": _sha256(path)}
+    source_release = source_manifest.get("release") if isinstance(source_manifest.get("release"), dict) else {}
+    years = list(spec.years) if spec is not None else []
+    score_label = str(
+        source_release.get("score_label")
+        or ("retrospective_public_%s" % "-".join(str(year) for year in years) if years else "public_retrospective")
+    )
     manifest = {
         "dataset": "Gaokao-Bench",
         "dataset_version": output.name,
@@ -448,6 +582,8 @@ def _build_manifest(
         "release_channel": "huggingface",
         "public_release": True,
         "created_at": created_at,
+        "subject": spec.subject if spec is not None else None,
+        "years": years,
         "supersedes": source_manifest.get("supersedes"),
         "scope": source_manifest.get("scope"),
         "counts": {
@@ -465,6 +601,7 @@ def _build_manifest(
         },
         "points": source_manifest.get("points"),
         "scoring": source_manifest.get("scoring"),
+        "benchmark_spec": benchmark_spec_ref,
         "quality": source_manifest.get("quality"),
         "rights": {
             "code_license": "Apache-2.0",
@@ -477,8 +614,8 @@ def _build_manifest(
             "channel": "huggingface",
             "repo_id": repo_id,
             "revision": "v%s" % output.name,
-            "public_ranking_allowed": False,
-            "score_label": "retrospective_public_2025",
+            "public_ranking_allowed": bool(source_release.get("public_ranking_allowed", False)),
+            "score_label": score_label,
         },
         "files": file_map,
     }
@@ -499,6 +636,7 @@ def build_public_data_package(
     output.mkdir(parents=True)
     project_root = _project_root(source)
     source_manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    spec = load_benchmark_spec(source, source_manifest)
     source_version = str(source_manifest.get("dataset_version", ""))
     if output.name != source_version:
         raise ValueError(
@@ -527,8 +665,9 @@ def build_public_data_package(
             % (sorted(asset_ids), sorted(required_ids))
         )
     assets = _project_rows(selected_assets, PUBLIC_ASSET_FIELDS)
-    catalog = _project_rows(_read_jsonl(source / "catalog" / "subjective_catalog.jsonl"), PUBLIC_CATALOG_FIELDS)
-    audit = _public_audit(papers=papers, questions=questions, catalog=catalog)
+    catalog_path = source / "catalog" / "subjective_catalog.jsonl"
+    catalog = _project_rows(_read_jsonl(catalog_path) if catalog_path.is_file() else [], PUBLIC_CATALOG_FIELDS)
+    audit = _public_audit(papers=papers, questions=questions, catalog=catalog, spec=spec)
     created = created_at or dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
     audit["created_at"] = created
 
@@ -538,6 +677,21 @@ def build_public_data_package(
     _write_jsonl(output / "assets.jsonl", assets)
     (output / "catalog").mkdir()
     _write_jsonl(output / "catalog" / "subjective_catalog.jsonl", catalog)
+    declared_spec = source_manifest.get("benchmark_spec")
+    benchmark_spec_ref: Optional[str] = None
+    if isinstance(declared_spec, Mapping):
+        spec_relative = Path(BENCHMARK_SPEC_FILENAME)
+        (output / spec_relative).write_text(
+            json.dumps(declared_spec, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        benchmark_spec_ref = spec_relative.as_posix()
+    elif isinstance(declared_spec, str) and declared_spec.strip():
+        spec_relative = Path(declared_spec)
+        if spec_relative.is_absolute() or ".." in spec_relative.parts:
+            raise ValueError("unsafe benchmark_spec path: %s" % declared_spec)
+        shutil.copy2(source / spec_relative, output / spec_relative)
+        benchmark_spec_ref = spec_relative.as_posix()
 
     for asset in assets:
         relative = str(asset["path"])
@@ -555,15 +709,36 @@ def build_public_data_package(
         output / "brand" / "hero-hf-zh.png",
     )
     (output / "THIRD_PARTY_NOTICES.md").write_text(
-        _third_party_notice(repo_id, papers), encoding="utf-8"
+        _third_party_notice(repo_id, papers, audit), encoding="utf-8"
     )
     (output / "CITATION.cff").write_text(
-        _citation(repo_id=repo_id, dataset_version=output.name, created_at=created),
+        _citation(
+            repo_id=repo_id,
+            dataset_version=output.name,
+            created_at=created,
+            subject=spec.subject,
+            years=spec.years,
+            audit=audit,
+        ),
         encoding="utf-8",
     )
     (output / ".gitattributes").write_text(_gitattributes(), encoding="utf-8")
     (output / "README.md").write_text(
-        _dataset_card(repo_id=repo_id, dataset_version=output.name, audit=audit),
+        _dataset_card(
+            repo_id=repo_id,
+            dataset_version=output.name,
+            audit=audit,
+            public_ranking_allowed=bool(
+                (source_manifest.get("release") or {}).get("public_ranking_allowed", False)
+            ),
+            benchmark_spec=benchmark_spec_ref,
+            spec=spec,
+            papers=papers,
+            score_label=str(
+                (source_manifest.get("release") or {}).get("score_label")
+                or "retrospective_public_%s" % "-".join(str(year) for year in spec.years)
+            ),
+        ),
         encoding="utf-8",
     )
     manifest = _build_manifest(
@@ -572,6 +747,8 @@ def build_public_data_package(
         audit=audit,
         repo_id=repo_id,
         created_at=created,
+        spec=spec,
+        benchmark_spec_ref=benchmark_spec_ref,
     )
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

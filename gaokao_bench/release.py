@@ -12,15 +12,13 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from .harness import (
     HARNESS_VERSION,
-    PROMPT_IMAGE_CROPS,
-    PROMPT_IMAGE_PIXEL_SHA256,
-    PROMPT_VERSION,
     prepare_prompt,
 )
+from .benchmark_spec import question_requires_vision
 from .materialize import signed_content_hashes
 from .scoring import SCORER_VERSION, file_sha256, load_dataset, validate_dataset
 
@@ -297,12 +295,18 @@ def _review_check(
 
 def _prompt_crop_check(data_dir: Path) -> Dict[str, Any]:
     dataset = load_dataset(data_dir)
-    required = {question["id"]: question for question in dataset.questions if question.get("asset_dependency") == "required"}
-    if set(required) != set(PROMPT_IMAGE_CROPS) or set(required) != set(PROMPT_IMAGE_PIXEL_SHA256):
+    required = {
+        question["id"]: question
+        for question in dataset.questions
+        if question_requires_vision(question)
+    }
+    crops = dataset.spec.prompt.image_crops
+    hashes = dataset.spec.prompt.image_pixel_sha256
+    if set(required) != set(crops) or set(required) != set(hashes):
         return {"status": "fail", "detail": "prompt crop registry does not match required-vision questions"}
     for qid, question in required.items():
-        _, image = prepare_prompt(question, data_dir, "vision")
-        if image is None or image.pixel_sha256 != PROMPT_IMAGE_PIXEL_SHA256[qid]:
+        _, image = prepare_prompt(question, data_dir, "vision", prompt_spec=dataset.spec.prompt)
+        if image is None or image.pixel_sha256 != hashes[qid]:
             return {"status": "fail", "detail": "prompt crop pixel hash mismatch for %s" % qid}
     return {
         "status": "pass",
@@ -317,6 +321,7 @@ def _smoke_check(
     manifest_sha: str,
     dataset_version: str,
     expected_items: int,
+    possible_points: int,
 ) -> Dict[str, Any]:
     report = _read_json(report_path)
     if report is None:
@@ -333,7 +338,7 @@ def _smoke_check(
     if report.get("status") != "pass":
         return {"status": "fail", "detail": "smoke report status is %s" % report.get("status")}
     cases = report.get("smoke_cases") if isinstance(report.get("smoke_cases"), dict) else {}
-    expected_points = {"gold": 353, "empty": 0, "malformed": 0}
+    expected_points = {"gold": possible_points, "empty": 0, "malformed": 0}
     for name, points in expected_points.items():
         case = cases.get(name) if isinstance(cases.get(name), dict) else {}
         if case.get("expected_points") != points or case.get("earned_points") != points:
@@ -375,14 +380,21 @@ def _contamination_check(
     manifest_sha: str,
     dataset_version: str,
     source_root: Path,
+    dataset_years: Sequence[int],
 ) -> Dict[str, Any]:
     if policy is None:
         return {"status": "fail", "detail": "release policy with contamination disclosure is missing"}
     if policy.get("dataset_manifest_sha256") != manifest_sha or policy.get("dataset_version") != dataset_version:
         return {"status": "fail", "detail": "contamination disclosure is bound to a different dataset"}
     disclosure = policy.get("contamination_disclosure") if isinstance(policy.get("contamination_disclosure"), dict) else {}
-    if disclosure.get("status") != "public_2025_contaminated_disclosed":
-        return {"status": "fail", "detail": "public 2025 contamination is not explicitly disclosed"}
+    accepted_statuses = {"public_%s_contaminated_disclosed" % "-".join(str(year) for year in dataset_years)}
+    accepted_statuses.add("public_2025_contaminated_disclosed")
+    if disclosure.get("status") not in accepted_statuses:
+        return {
+            "status": "fail",
+            "detail": "public %s contamination is not explicitly disclosed"
+            % "/".join(str(year) for year in dataset_years),
+        }
     if disclosure.get("freshness_claim_allowed") is not False:
         return {"status": "fail", "detail": "contaminated public questions must not allow a freshness claim"}
     label = str(disclosure.get("score_label", "")).strip().lower()
@@ -396,7 +408,8 @@ def _contamination_check(
         return {"status": "fail", "detail": "contamination disclosure document is missing"}
     return {
         "status": "pass",
-        "detail": "public 2025 leakage is disclosed; freshness claims are disabled and the score label is retrospective_public_2025",
+        "detail": "public %s leakage is disclosed; freshness claims are disabled and score_label=%s"
+        % ("/".join(str(year) for year in dataset_years), disclosure.get("score_label")),
     }
 
 
@@ -578,12 +591,37 @@ def evaluate_release_gate(
     if public_code:
         ids = {question["id"] for question in dataset.questions}
         points = sum(int(question["points"]) for question in dataset.questions)
-        if len(dataset.questions) != 74 or len(ids) != 74 or points != 353:
-            _add(checks, "dataset_validation", "fail", "dataset metadata does not match the frozen 74-question/353-point manifest", public_blocking=True)
+        expected = dataset.spec.expected
+        expected_questions = expected.question_count
+        expected_points = expected.total_points
+        if (
+            expected_questions is not None
+            and (len(dataset.questions) != expected_questions or len(ids) != expected_questions)
+        ) or (expected_points is not None and points != expected_points):
+            _add(
+                checks,
+                "dataset_validation",
+                "fail",
+                "dataset metadata does not match the benchmark specification",
+                public_blocking=True,
+            )
         else:
-            _add(checks, "dataset_validation", "pass", "74-question/353-point metadata loads without requiring local image assets", public_blocking=False)
+            _add(
+                checks,
+                "dataset_validation",
+                "pass",
+                "%d-question/%d-point metadata loads without requiring local image assets"
+                % (len(dataset.questions), points),
+                public_blocking=False,
+            )
     else:
-        _add(checks, "dataset_validation", "pass", "74 questions, 353 points, manifest hashes validated")
+        _add(
+            checks,
+            "dataset_validation",
+            "pass",
+            "%d questions, %d points, manifest hashes validated"
+            % (len(dataset.questions), sum(int(q["points"]) for q in dataset.questions)),
+        )
 
         answer_audit = _read_jsonl(root / "answer_audit.jsonl")
         if len(answer_audit) != len(dataset.questions):
@@ -594,7 +632,9 @@ def evaluate_release_gate(
                 status = str(row.get("status", "unspecified"))
                 status_counts[status] = status_counts.get(status, 0) + 1
             pending = sum(count for status, count in status_counts.items() if "pending" in status or status == "ocr_match_pending_visual")
-            detail = "74/74 answer audit rows; statuses=%s; pending_visual=%d" % (
+            detail = "%d/%d answer audit rows; statuses=%s; pending_visual=%d" % (
+                len(answer_audit),
+                len(dataset.questions),
                 json.dumps(status_counts, ensure_ascii=False, sort_keys=True),
                 pending,
             )
@@ -723,6 +763,7 @@ def evaluate_release_gate(
             manifest_sha=manifest_sha,
             dataset_version=dataset_version,
             expected_items=len(dataset.questions),
+            possible_points=sum(int(question["points"]) for question in dataset.questions),
         )
         _add(checks, "smoke_report", smoke["status"], smoke["detail"], public_blocking=True)
 
@@ -777,10 +818,18 @@ def evaluate_release_gate(
             manifest_sha=manifest_sha,
             dataset_version=dataset_version,
             source_root=source_root,
+            dataset_years=dataset.spec.years,
         )
         _add(checks, "contamination", contamination_check["status"], contamination_check["detail"], public_blocking=True)
     else:
-        _add(checks, "contamination", "warning", "public-contaminated 2025 items; no fresh-ability claim is allowed", public_blocking=False)
+        _add(
+            checks,
+            "contamination",
+            "warning",
+            "public %s items are potentially contaminated; no fresh-ability claim is allowed"
+            % "/".join(str(year) for year in dataset.spec.years),
+            public_blocking=False,
+        )
 
     git = _git_state(Path(repo_root).resolve())
     git_detail = "HEAD=%s; dirty=%s" % (git.get("head"), git.get("dirty"))
@@ -809,7 +858,7 @@ def evaluate_release_gate(
         "dataset_version": dataset_version,
         "harness_version": HARNESS_VERSION,
         "scorer_version": SCORER_VERSION,
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": dataset.spec.prompt.version,
         "dataset_manifest_sha256": manifest_sha,
         "checks": checks,
         "blocking_checks": blocking,
@@ -821,7 +870,8 @@ def evaluate_release_gate(
             ]
             if public_code
             else [
-                "Owner completes 74/74 review rows and imports a signed owner report.",
+                "Owner completes %d/%d review rows and imports a signed owner report."
+                % (len(dataset.questions), len(dataset.questions)),
                 "Two independent reviewers complete answer and point reviews without conflicts.",
                 "Run validate, smoke, pytest, gold scoring, and a fresh vision run with the fixed harness.",
                 "Sign the rights decision and answer-validation protocol if the full public dataset is to be released.",

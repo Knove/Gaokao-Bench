@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gaokao-bench"
-version = "0.0.1"
-description = "A deterministic, point-weighted benchmark toolkit for Chinese Gaokao objective questions"
+version = "0.1.0"
+description = "A deterministic, point-weighted benchmark toolkit for Chinese Gaokao questions"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "Apache-2.0"}
