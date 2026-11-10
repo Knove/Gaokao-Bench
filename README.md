@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine version 0.1.0" src="https://img.shields.io/badge/engine-0.1.0-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine version 0.1.1" src="https://img.shields.io/badge/engine-0.1.1-171513?style=flat-square"></a>
   <a href="#scoring-rules"><img alt="Deterministic scoring" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Dataset on Hugging Face" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -52,16 +52,13 @@
 > This repository contains the evaluation harness, deterministic scorer, and verification tools. Exam datasets are published separately on [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench) and pinned by version tag (see [`SCOPE.md`](SCOPE.md)).
 
 > [!IMPORTANT]
-> The public `0.0.1` dataset manifest sets `public_ranking_allowed=false`, and third-party exam material is recorded as `NOASSERTION`. Results may be used for research and internal evaluation, but not for public leaderboard placement, vendor marketing, or comparative public ranking without separate written authorization. The project's CC BY 4.0 grant covers original selection, schema, and scoring metadata only; it does not relicense the underlying exam material.
-
-> [!TIP]
-> Engine `0.1.0` separates the generic harness, versioned benchmark specification, and immutable data package. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the all-subject, rubric, provider, and metric contracts.
+> Starting with dataset `0.0.2`, the public manifest sets `public_ranking_allowed=true`. Third parties may publish leaderboards, comparative rankings, and model evaluation results using that exact revision, provided they cite the dataset version and evaluation protocol and do not imply endorsement. Dataset `0.0.1` keeps its historical `false` policy inside the immutable package. Exam material remains `NOASSERTION`; the CC BY 4.0 grant covers original selection, schema, and scoring metadata only.
 
 ## Dataset Overview
 
-The initial `0.0.1` release covers the objective sections of the **2025 Gaokao Mathematics** papers, verified through independent derivations and two-person blind review:
+The current `0.0.2` release is a metadata-only update to `0.0.1`. It contains the same objective sections of the **2025 Gaokao Mathematics** papers and enables public leaderboard and comparative-ranking use:
 
-| Metric | `0.0.1` Scope |
+| Metric | `0.0.2` Scope |
 | --- | --- |
 | **Subject & Year** | 2025 · Mathematics |
 | **Exam Papers** | 5 papers (National I, National II, Beijing, Shanghai, Tianjin) |
@@ -70,7 +67,7 @@ The initial `0.0.1` release covers the objective sections of the **2025 Gaokao M
 | **Figure-dependent Questions** | **4** items |
 | **Text Mode** | **70 items / 334 reachable points** (denominated over 353) |
 | **Vision Mode** | **74 items / 353 points** (includes the 4 cropped figures) |
-| **Distribution** | [Hugging Face dataset](https://huggingface.co/datasets/Knove/Gaokao-Bench), revision `v0.0.1` |
+| **Distribution** | [Hugging Face dataset](https://huggingface.co/datasets/Knove/Gaokao-Bench), revision `v0.0.2` |
 
 *Note: The 353-point denominator is the exact sum of the objective questions across the 5 papers, without linear extrapolation to a 750-point full exam score.*
 
@@ -113,13 +110,13 @@ Download the immutable public release from Hugging Face and verify every file ha
 
 ```bash
 python -m pip install -e ".[data]"
-gaokao-bench fetch-data --version 0.0.1
+gaokao-bench fetch-data --version 0.0.2
 
-export GB_DATA=data/0.0.1
+export GB_DATA=data/0.0.2
 gaokao-bench validate --data-dir "$GB_DATA"
 ```
 
-The command downloads revision `v0.0.1` into `data/0.0.1`, removes Hugging Face cache metadata, and refuses to trust an unverified or unrelated directory. If you prefer to download manually:
+The command downloads revision `v0.0.2` into `data/0.0.2`, removes Hugging Face cache metadata, and refuses to trust an unverified or unrelated directory. If you prefer to download manually:
 
 ```bash
 python - <<'PY'
@@ -127,11 +124,11 @@ from huggingface_hub import snapshot_download
 snapshot_download(
     repo_id="Knove/Gaokao-Bench",
     repo_type="dataset",
-    revision="v0.0.1",
-    local_dir="data/0.0.1",
+    revision="v0.0.2",
+    local_dir="data/0.0.2",
 )
 PY
-gaokao-bench validate --data-dir data/0.0.1
+gaokao-bench validate --data-dir data/0.0.2
 ```
 
 `GB_DATA` points at the version directory, not the repository root. Do not mix files from different dataset versions.
@@ -196,11 +193,11 @@ python3 scripts/run_benchmark.py \
 
 ## Scoring Rules
 
-$$\text{score.weighted\_points} = \frac{\text{Earned Points in Scope}}{\text{Possible Points in Scope}}$$
+$$\mathrm{score.weighted\_points} = \frac{\text{Earned Points in Scope}}{\text{Possible Points in Scope}}$$
 
-- **One primary metric:** the value is a `0–1` ratio with an explicit scope (`full_dataset`, `full_view`, or `selected_subset`). A displayed percentage is only `100 × ratio`; there is no second full-test metric. For the complete `0.0.1` data package, the scope denominator is **353 points**.
+- **One primary metric:** the value is a `0–1` ratio with an explicit scope (`full_dataset`, `full_view`, or `selected_subset`). A displayed percentage is only `100 × ratio`; there is no second full-test metric. For the complete `0.0.2` data package, the scope denominator is **353 points**.
 - **Diagnostic slices:** `slice.text_answerable.weighted_points`, `slice.vision_required.weighted_points`, and `diagnostic.exact_accuracy` are secondary metrics with their own IDs and denominators. They never replace the primary metric.
-- **Exact Match per Question:** In `0.0.1`, multi-select and multi-blank questions are all-or-nothing. Every slot must match to earn the question's points.
+- **Exact Match per Question:** In `0.0.2`, multi-select and multi-blank questions are all-or-nothing. Every slot must match to earn the question's points.
 - **No Dropped Samples:** Missing outputs, JSON format errors, timeouts, and API failures are recorded and scored as `0`.
 - **Text vs. Vision Profiles:** Both profiles are evaluated against the same 353-point denominator. In `text` mode, the 4 figure-dependent questions are skipped and scored `0` (capping the reachable score at 334/353). In `vision` mode, the cropped figures are attached for those 4 questions.
 - **Failure taxonomy:** provider errors, harness errors, parse errors, unavailable images, and output truncation remain in the denominator and are counted separately. A truncated reasoning response is not silently treated as an ordinary wrong answer.
@@ -257,7 +254,7 @@ If you find Gaokao-Bench useful in your research or evaluations, please cite:
   author       = {{Gaokao-Bench contributors}},
   title        = {Gaokao-Bench},
   year         = {2026},
-  version      = {0.0.1},
+  version      = {0.0.2},
   url          = {https://huggingface.co/datasets/Knove/Gaokao-Bench}
 }
 ```

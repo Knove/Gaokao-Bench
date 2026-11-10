@@ -71,10 +71,38 @@ def test_public_package_contract_is_documented():
     for document in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
         text = document.read_text(encoding="utf-8")
         assert "https://huggingface.co/datasets/Knove/Gaokao-Bench" in text
-        assert "gaokao-bench fetch-data --version 0.0.1" in text
+        assert "gaokao-bench fetch-data --version 0.0.2" in text
 
 
 def test_huggingface_dataset_card_metadata_is_hub_compatible():
+    card = _dataset_card(
+        repo_id="Knove/Gaokao-Bench",
+        dataset_version="0.0.2",
+        audit={
+            "questions": 74,
+            "objective_points": 353,
+            "text_points": 334,
+            "answer_slots": 78,
+            "image_required_questions": 4,
+            "catalog_subjective_questions": 26,
+            "catalog_subjective_points": 397,
+            "created_at": "2026-11-10T00:00:00+00:00",
+        },
+        public_ranking_allowed=True,
+    )
+    front_matter = card.split("---", 2)[1]
+    license_name = re.search(r"^license_name: (.+)$", front_matter, re.MULTILINE)
+    assert license_name is not None
+    assert re.fullmatch(r"[a-z0-9.-]+", license_name.group(1))
+    assert "brand/hero-hf-zh.png" in card
+    configs = re.findall(r"^- config_name: (.+)$", front_matter, re.MULTILINE)
+    assert configs == ["questions"]
+    assert "本包不包含 `benchmark_spec.json`" in card
+    assert "`public_ranking_allowed=true`" in card
+    assert "公开榜单" in card
+
+
+def test_historical_dataset_card_keeps_ranking_restriction():
     card = _dataset_card(
         repo_id="Knove/Gaokao-Bench",
         dataset_version="0.0.1",
@@ -88,15 +116,29 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
             "catalog_subjective_points": 397,
             "created_at": "2026-11-09T00:00:00+00:00",
         },
+        public_ranking_allowed=False,
     )
-    front_matter = card.split("---", 2)[1]
-    license_name = re.search(r"^license_name: (.+)$", front_matter, re.MULTILINE)
-    assert license_name is not None
-    assert re.fullmatch(r"[a-z0-9.-]+", license_name.group(1))
-    assert "brand/hero-hf-zh.png" in card
-    configs = re.findall(r"^- config_name: (.+)$", front_matter, re.MULTILINE)
-    assert configs == ["questions"]
-    assert "本包不包含 `benchmark_spec.json`" in card
+    assert "`public_ranking_allowed=false`" in card
+    assert "不应把本数据包的结果用于第三方公开榜单" in card
+
+
+def test_dataset_card_defaults_to_no_public_ranking():
+    card = _dataset_card(
+        repo_id="Knove/Gaokao-Bench",
+        dataset_version="0.0.0-test",
+        audit={
+            "questions": 1,
+            "objective_points": 5,
+            "text_points": 5,
+            "answer_slots": 1,
+            "image_required_questions": 0,
+            "catalog_subjective_questions": 0,
+            "catalog_subjective_points": 0,
+            "created_at": "2026-11-10T00:00:00+00:00",
+        },
+    )
+    assert "`public_ranking_allowed=false`" in card
+    assert "不应把本数据包的结果用于第三方公开榜单" in card
 
 
 def test_huggingface_dataset_card_is_spec_driven_for_other_subjects():

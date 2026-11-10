@@ -257,6 +257,20 @@ def _dataset_card(
         if catalog_questions
         else "`catalog/`：本数据包没有编目主观题；"
     )
+    if public_ranking_allowed:
+        ranking_policy = (
+            "本数据包 manifest 记录 `public_ranking_allowed=true`。第三方可以使用本版本结果发布公开榜单、"
+            "进行模型对比，或在模型介绍中展示评测结果；引用时应注明数据版本、Benchmark Spec 和评测协议，"
+            "不得暗示项目或原始素材权利人背书。题目素材的 `exam_material_license` 为 `NOASSERTION`，"
+            "原始试卷权利仍归相应权利人；项目只授权自己原创的编排、schema 和评分元数据。"
+        )
+    else:
+        ranking_policy = (
+            "本数据包 manifest 记录 `public_ranking_allowed=false`。在书面授权或 manifest 另有明确声明之前，"
+            "不应把本数据包的结果用于第三方公开榜单、厂商营销或对其他模型作公开排名。题目素材的 "
+            "`exam_material_license` 为 `NOASSERTION`，原始试卷权利仍归相应权利人；项目只授权自己原创的"
+            "编排、schema 和评分元数据。"
+        )
     return """---
 license: other
 license_name: gaokao-bench-data-terms
@@ -364,14 +378,14 @@ gaokao-bench validate --data-dir data/{version}
 
 Dataset Viewer 使用单一 `questions` config 展示 {questions} 道计分题；其他 JSONL 保留为直接下载文件，避免不同字段结构混表。评分答案键 `answer_keys.jsonl` 供 Harness 读取，其中 `canonical` 同时包含单值和多空数组，不交给 Viewer 自动推断。
 
-## 使用与排名限制
+## 使用与排名政策
 
-本数据包 manifest 当前记录 `public_ranking_allowed={public_ranking_allowed}`。在项目的书面授权或数据 manifest 另有明确声明之前，不应把本数据包的结果用于第三方公开榜单、厂商营销或对其他模型作公开排名。题目素材的 `exam_material_license` 为 `NOASSERTION`，原始试卷权利仍归相应权利人；项目只授权自己原创的编排、schema 和评分元数据。
+{ranking_policy}
 
 ## 评分规则
 
 $$
-\\text{{Score}} = \\frac{{\\text{{Earned Points}}}}{{{points}}}
+\\mathrm{{score.weighted\\_points}} = \\frac{{\\text{{Earned Points}}}}{{{points}}}
 $$
 
 - 单题默认全对得分，多选和多空题在 `{version}` 中不启用部分分；
@@ -449,6 +463,7 @@ $$
         catalog_points=int(audit.get("catalog_subjective_points", 0)),
         created_at=audit.get("created_at", ""),
         public_ranking_allowed=str(public_ranking_allowed).lower(),
+        ranking_policy=ranking_policy,
         score_label=score_label,
     )
 
@@ -615,6 +630,11 @@ def _build_manifest(
             "repo_id": repo_id,
             "revision": "v%s" % output.name,
             "public_ranking_allowed": bool(source_release.get("public_ranking_allowed", False)),
+            "public_ranking_policy": (
+                "allowed_with_attribution_and_version_pin"
+                if source_release.get("public_ranking_allowed", False)
+                else "not_allowed_without_written_authorization"
+            ),
             "score_label": score_label,
         },
         "files": file_map,

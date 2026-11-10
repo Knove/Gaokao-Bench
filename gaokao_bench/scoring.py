@@ -3,7 +3,7 @@
 The public contract is intentionally narrow:
 
 * a submission is ``{"answers": {question_id: answer, ...}}``;
-* every question is all-or-nothing in 0.0.1;
+* every question is all-or-nothing in the 0.0.x line;
 * missing, malformed, empty, and incorrect answers receive zero;
 * the weighted denominator is the sum of reviewed per-question points;
   those points are media-crosschecked in this alpha and remain pending
@@ -33,7 +33,7 @@ from .benchmark_spec import (
 # Default version for the checked-in alpha package.  Dataset validation uses
 # the version recorded in manifest.json so signed review materialisation can
 # produce a new immutable patch version without editing the scorer.
-DATASET_VERSION = "0.0.1"
+DATASET_VERSION = "0.0.2"
 SCHEMA_VERSION = "1.0"
 SCORER_VERSION = "0.1.0"
 ANSWER_AUDIT_STATUSES = {

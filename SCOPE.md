@@ -20,7 +20,7 @@ objective-question package is published at
 tag:
 
 ```bash
-gaokao-bench fetch-data --version 0.0.1
+gaokao-bench fetch-data --version 0.0.2
 ```
 
 The public data package carries its own manifest, file hashes, third-party

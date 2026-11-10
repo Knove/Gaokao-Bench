@@ -698,7 +698,7 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 
 ## 16. 当前实现状态
 
-Engine `0.1.0` 已完成：
+Engine `0.1.1` 已完成：
 
 - Spec-driven validation and legacy adapter.
 - `score.weighted_points` primary metric with explicit scopes.
@@ -717,6 +717,7 @@ Engine `0.1.0` 已完成：
 - smoke/release/baseline 工具不再把 74/353 当作通用常量；
 - `task_type` 与 legacy `type` 统一由 `question_type()` 解析；
 - 运行摘要只保留一个主指标和带 scope 的切片。
+- 数据版本 `0.0.2` 保持题目不变，明确允许第三方在注明版本和协议的前提下发布公开榜单与模型对比。
 
 尚未实现、但结构已预留：
 

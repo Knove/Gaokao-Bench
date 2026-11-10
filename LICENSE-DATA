@@ -20,7 +20,11 @@ not replace the separate rights that apply to third-party exam material.
    project-owner release decision. It does not assert that the project owns
    third-party exam material or that every source has an identified open
    license. Corrections and removal requests should be submitted through the
-   discussions page of the published dataset.
+   discussions page of the published dataset. Each version manifest records
+   whether public leaderboard and ranking use is authorized. Starting with
+   dataset 0.0.2, public_ranking_allowed is true; dataset 0.0.1 retains its
+   historical false value. Permission to publish model results does not grant
+   any rights in the underlying third-party exam material.
 
 4. Full CC BY 4.0 text. The complete legal text follows and applies only to the
    project contributions identified in paragraph 1.

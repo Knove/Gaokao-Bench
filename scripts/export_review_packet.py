@@ -16,7 +16,7 @@ from gaokao_bench.review import export_review_packet  # noqa: E402
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.1")
+    parser.add_argument("--data-dir", default="data/0.0.2")
     parser.add_argument("--out", help="defaults to review_packets/<dataset-version>-independent")
     parser.add_argument("--created-at", help="optional deterministic ISO-8601 timestamp")
     parser.add_argument("--force", action="store_true", help="replace a non-empty output directory")

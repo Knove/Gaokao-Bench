@@ -16,7 +16,7 @@ from gaokao_bench.release import evaluate_release_gate, write_release_report  # 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.1")
+    parser.add_argument("--data-dir", default="data/0.0.2")
     parser.add_argument("--target", choices=("internal", "public-code", "public"), default="internal")
     parser.add_argument("--owner-report", help="defaults to reports/<dataset-version>-owner-signoff.json")
     parser.add_argument("--independent-report", help="defaults to reports/<dataset-version>-independent-review-import.json")

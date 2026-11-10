@@ -93,8 +93,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--version",
-        default="0.0.1",
-        help="dataset version under dist/public-data (default: 0.0.1)",
+        default="0.0.2",
+        help="dataset version under dist/public-data (default: 0.0.2)",
     )
     parser.add_argument(
         "--data-dir",
@@ -106,7 +106,7 @@ def main() -> int:
     parser.add_argument("--replace", action="store_true", help="delete stale files on the main branch")
     parser.add_argument(
         "--commit-message",
-        default="Publish Gaokao-Bench 0.0.1 public data",
+        default="Publish Gaokao-Bench 0.0.2 public data",
     )
     parser.add_argument(
         "--execute",

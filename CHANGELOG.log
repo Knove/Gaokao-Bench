@@ -1,0 +1,45 @@
+Gaokao-Bench Changelog
+======================
+
+Versioning
+----------
+- Engine versions track the harness, scorer, CLI, packaging, and release tools.
+- Dataset versions track questions, answers, points, assets, and manifest policy.
+- A published result must record both versions plus the dataset and protocol hashes.
+
+2026-11-10
+----------
+Engine 0.1.1 / Dataset 0.0.2
+
+- Dataset 0.0.2 is a metadata-only update to 0.0.1. Questions, answers, points,
+  and figure crops are unchanged.
+- Set public_ranking_allowed=true for dataset 0.0.2. Third parties may publish
+  leaderboards, comparative rankings, and model evaluation results when they cite
+  the exact dataset revision and evaluation protocol.
+- Keep exam_material_license=NOASSERTION. Permission to rank model results does
+  not relicense the underlying exam text, figures, or third-party material.
+- Dataset 0.0.1 remains immutable and keeps its historical
+  public_ranking_allowed=false manifest.
+- Fix the scoring formula so the metric identifier renders correctly in KaTeX.
+- Remove the engine release tip from README; release history is maintained here.
+
+2026-11-10
+----------
+Engine 0.1.0 / Dataset 0.0.1
+
+- Split the subject-neutral Engine from versioned Benchmark Specs and immutable
+  data packages.
+- Add scoped point-weighted metrics, text/vision slices, provider routing records,
+  failure usage accounting, progress events, resume, and retry-failed.
+- Fix set-builder interval false negatives in the deterministic scorer.
+- Add the all-subject construction, validator, evidence-level, and versioning
+  architecture in ARCHITECTURE.md.
+
+2026-11-09
+----------
+Dataset 0.0.1
+
+- Publish the 2025 Gaokao Mathematics objective baseline: five papers, 74 scored
+  questions, 353 official points, and four figure-required questions.
+- Add deterministic all-or-nothing scoring, text and vision profiles, gold/empty/
+  malformed examples, and immutable file hashes.

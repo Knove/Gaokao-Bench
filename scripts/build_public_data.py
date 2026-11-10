@@ -18,8 +18,8 @@ from gaokao_bench.public_data import build_public_data_package  # noqa: E402
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source-dir", default="data/0.0.1")
-    parser.add_argument("--output-dir", default="dist/public-data/0.0.1")
+    parser.add_argument("--source-dir", default="data/0.0.2")
+    parser.add_argument("--output-dir", default="dist/public-data/0.0.2")
     parser.add_argument("--repo-id", default="Knove/Gaokao-Bench")
     parser.add_argument(
         "--created-at",

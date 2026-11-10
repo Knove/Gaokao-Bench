@@ -39,7 +39,7 @@ from .benchmark_spec import question_requires_vision
 from .specs.legacy_2025_math import LEGACY_SPEC
 from .scoring import SCORER_VERSION, Dataset, evaluate_submission, load_dataset, validate_dataset
 
-HARNESS_VERSION = "0.1.0"
+HARNESS_VERSION = "0.1.1"
 DEFAULT_MAX_TOKENS = 32768
 # Compatibility aliases for callers of the 0.0.1 harness.  A real run reads
 # these values from the dataset's benchmark specification.
@@ -1297,7 +1297,8 @@ def run_benchmark(
             "Public leaderboard placement, vendor marketing, or comparative ranking is not authorized "
             "unless the dataset manifest explicitly sets public_ranking_allowed=true."
             if not public_ranking_allowed
-            else "The dataset manifest permits public ranking; underlying exam material rights still apply."
+            else "The dataset manifest permits public leaderboards and comparative ranking with version "
+            "attribution; this does not imply endorsement and underlying exam-material rights still apply."
         ),
     }
     selected_possible_points = sum(int(question["points"]) for question in selected)
