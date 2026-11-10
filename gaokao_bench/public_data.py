@@ -210,18 +210,6 @@ configs:
   data_files:
   - split: test
     path: questions.jsonl
-- config_name: papers
-  data_files:
-  - split: test
-    path: papers.jsonl
-- config_name: assets
-  data_files:
-  - split: test
-    path: assets.jsonl
-- config_name: subjective_catalog
-  data_files:
-  - split: test
-    path: catalog/subjective_catalog.jsonl
 ---
 
 # Gaokao-Bench {version}
@@ -303,7 +291,7 @@ gaokao-bench validate --data-dir data/{version}
 | `assets.jsonl` | `question_id`、`path`、`bytes`、`sha256`、`dependency` | 4 道图形必需题的裁图索引 |
 | `catalog/subjective_catalog.jsonl` | `id`、`type`、`content`、`points`、`included_in_scoring` | 主观题目录，仅作后续扩展记录 |
 
-Dataset Viewer 提供 `questions`、`papers`、`assets`、`subjective_catalog` 四个独立 config，避免不同字段结构混表。评分答案键 `answer_keys.jsonl` 保留原始文件供 Harness 直接读取；其中 `canonical` 同时包含单值和多空数组，不适合交给 Viewer 自动推断。
+Dataset Viewer 使用单一 `questions` config 展示 74 道计分题；其他 JSONL 保留为直接下载文件，避免不同字段结构混表。评分答案键 `answer_keys.jsonl` 供 Harness 读取，其中 `canonical` 同时包含单值和多空数组，不交给 Viewer 自动推断。
 
 ## 评分规则
 
