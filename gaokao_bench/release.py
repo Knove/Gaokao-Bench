@@ -12,7 +12,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from .harness import (
     HARNESS_VERSION,
@@ -21,6 +21,7 @@ from .harness import (
 from .benchmark_spec import question_requires_vision
 from .materialize import signed_content_hashes
 from .scoring import SCORER_VERSION, file_sha256, load_dataset, validate_dataset
+from .version import DEFAULT_DATASET_VERSION
 
 
 RELEASE_TARGETS = ("internal", "public-code", "public")
@@ -100,6 +101,29 @@ def _default_release_evidence_path(data_dir: Path, filename: str) -> Path:
     version = str(manifest.get("dataset_version", data_dir.name))
     project_root = data_dir.parent.parent if data_dir.parent.name == "data" else data_dir.parent
     return project_root / "release" / version / filename
+
+
+def _evidence_path(
+    data_dir: Path,
+    manifest: Mapping[str, Any],
+    filename: str,
+) -> Path:
+    """Resolve a ledger in either the source or Hugging Face public layout."""
+
+    audit = manifest.get("audit") if isinstance(manifest.get("audit"), Mapping) else {}
+    declared = audit.get("files") if isinstance(audit.get("files"), Mapping) else {}
+    candidates: List[Path] = []
+    for value in declared.values():
+        if not isinstance(value, str):
+            continue
+        candidate = data_dir / value
+        if candidate.name == filename:
+            candidates.append(candidate)
+    candidates.extend((data_dir / filename, data_dir / "audit" / filename))
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return candidates[0]
 
 
 def resolve_release_report_paths(data_dir: Path | str, *, repo_root: Path | str = ".") -> Dict[str, Path]:
@@ -315,6 +339,87 @@ def _prompt_crop_check(data_dir: Path) -> Dict[str, Any]:
     }
 
 
+def _owner_attestation_check(
+    data_dir: Path,
+    manifest: Dict[str, Any],
+    *,
+    expected_items: int,
+    expected_points: int,
+) -> Dict[str, Any]:
+    """Verify the in-package single-owner attestation.
+
+    A single-owner protocol has no separate independent-review report.  The
+    gate must not invent one or leave a permanent ``pending`` state.  Instead,
+    it verifies the immutable attestation, the review protocol, the review
+    events, and every input hash committed by the owner.
+    """
+
+    signoff_path = _evidence_path(data_dir, manifest, "owner_signoff.json")
+    protocol_path = _evidence_path(data_dir, manifest, "review_protocol.json")
+    if not signoff_path.is_file() or not protocol_path.is_file():
+        return {
+            "status": "fail",
+            "detail": "owner-attested dataset is missing owner_signoff.json or review_protocol.json",
+        }
+    signoff = _read_json(signoff_path) or {}
+    protocol = _read_json(protocol_path) or {}
+    dataset_version = str(manifest.get("dataset_version", ""))
+    errors: List[str] = []
+    if signoff.get("dataset_version") != dataset_version:
+        errors.append("owner_signoff is bound to a different dataset version")
+    if signoff.get("status") not in {"audited_passed", "complete", "passed"}:
+        errors.append("owner_signoff status is not audited-passed")
+    if signoff.get("decision") != "accept_all" or signoff.get("owner_attested") is not True:
+        errors.append("owner_signoff does not record an accept-all owner attestation")
+    reviewer = signoff.get("reviewer") if isinstance(signoff.get("reviewer"), dict) else {}
+    errors.extend(_signed_identity_errors(reviewer, "owner_signoff"))
+    counts = signoff.get("counts") if isinstance(signoff.get("counts"), dict) else {}
+    if int(counts.get("questions", -1)) != expected_items:
+        errors.append("owner_signoff question count is stale")
+    if int(counts.get("points", -1)) != expected_points:
+        errors.append("owner_signoff point total is stale")
+    for name, digest in (signoff.get("input_sha256") or {}).items():
+        path = data_dir / str(name)
+        if not path.is_file():
+            path = _evidence_path(data_dir, manifest, Path(str(name)).name)
+        if not path.is_file():
+            errors.append("owner_signoff input is missing: %s" % name)
+        elif digest != file_sha256(path):
+            errors.append("owner_signoff input hash is stale: %s" % name)
+    if protocol.get("protocol") != "owner_attested_single_review":
+        errors.append("review protocol is not owner_attested_single_review")
+    if protocol.get("status") not in {"audited_passed", "complete", "passed"}:
+        errors.append("review protocol status is not audited-passed")
+    if protocol.get("owner_signoff") not in {"audited_passed", "complete", "passed"}:
+        errors.append("review protocol owner_signoff is not audited-passed")
+    if protocol.get("independent_review") not in {
+        "not_required_single_owner_attestation",
+        "not_applicable_single_owner_attestation",
+    }:
+        errors.append("single-owner protocol must explicitly mark independent review as not applicable")
+    if int(protocol.get("review_event_count", -1)) != expected_items:
+        errors.append("review protocol event count is stale")
+    reviews = _read_jsonl(_evidence_path(data_dir, manifest, "reviews.jsonl"))
+    if len(reviews) != expected_items:
+        errors.append("review events cover %d/%d questions" % (len(reviews), expected_items))
+    for row in reviews:
+        if row.get("review_protocol", row.get("protocol")) not in (None, "owner_attested_single_review"):
+            errors.append("review event uses a different protocol: %s" % row.get("review_event_id"))
+            break
+        if row.get("status") not in {"audited_passed", "complete", "passed"}:
+            errors.append("review event is not audited-passed: %s" % row.get("review_event_id"))
+            break
+    if errors:
+        return {"status": "fail", "detail": "; ".join(errors)}
+    return {
+        "status": "pass",
+        "detail": (
+            "single-owner attestation is complete; %d review events and all input hashes verified"
+            % len(reviews)
+        ),
+    }
+
+
 def _smoke_check(
     report_path: Optional[Path | str],
     *,
@@ -502,11 +607,32 @@ def _answer_protocol_check(
     manifest_sha: str,
     dataset_version: str,
     independent_pass: bool,
+    owner_attested: bool = False,
     protocol_path: Optional[Path | str],
     source_root: Path,
 ) -> Dict[str, Any]:
     if bool((manifest.get("quality") or {}).get("official_answer_source_found")):
         return {"status": "pass", "detail": "official answer source is recorded"}
+    if owner_attested:
+        quality = manifest.get("quality") if isinstance(manifest.get("quality"), dict) else {}
+        if quality.get("answer_status") not in {"audited_passed", "complete", "passed"}:
+            return {
+                "status": "fail",
+                "detail": "no official answer source and owner-attested answer audit is not complete",
+            }
+        if quality.get("review_protocol") != "owner_attested_single_review":
+            return {
+                "status": "fail",
+                "detail": "owner-attested answer protocol is not declared by the manifest",
+            }
+        return {
+            "status": "pass",
+            "detail": (
+                "no official answer source; the single-owner attestation covers every canonical "
+                "answer and explicitly states that independent review is not claimed"
+            ),
+            "warning": "official_answer_source_absent",
+        }
     if not independent_pass:
         return {"status": "fail", "detail": "official answer source is absent and independent review is not complete"}
     path = Path(protocol_path) if protocol_path else _default_release_evidence_path(source_root / "data" / dataset_version, "answer-protocol.json")
@@ -540,7 +666,7 @@ def _answer_protocol_check(
 
 
 def evaluate_release_gate(
-    data_dir: Path | str = "data/0.0.3",
+    data_dir: Path | str = "data/%s" % DEFAULT_DATASET_VERSION,
     *,
     target: str = "internal",
     owner_report: Optional[Path | str] = None,
@@ -623,7 +749,7 @@ def evaluate_release_gate(
             % (len(dataset.questions), sum(int(q["points"]) for q in dataset.questions)),
         )
 
-        answer_audit = _read_jsonl(root / "answer_audit.jsonl")
+        answer_audit = _read_jsonl(_evidence_path(root, manifest, "answer_audit.jsonl"))
         if len(answer_audit) != len(dataset.questions):
             _add(checks, "answer_audit", "fail", "answer audit covers %d/%d questions" % (len(answer_audit), len(dataset.questions)), public_blocking=True)
         else:
@@ -651,7 +777,7 @@ def evaluate_release_gate(
             else:
                 _add(checks, "answer_audit", "pass", detail, public_blocking=True)
 
-        point_audit = _read_jsonl(root / "point_audit.jsonl")
+        point_audit = _read_jsonl(_evidence_path(root, manifest, "point_audit.jsonl"))
         pending_points = sum(
             1 for row in point_audit if "pending" in str(row.get("status", "")).lower()
         )
@@ -671,14 +797,23 @@ def evaluate_release_gate(
             _add(checks, "point_audit", "pass", "%d/%d point rows are complete" % (len(point_audit), len(point_audit)), public_blocking=True)
 
         quality = manifest.get("quality") if isinstance(manifest.get("quality"), dict) else {}
+        owner_attested = quality.get("review_protocol") == "owner_attested_single_review"
         if public_full:
             stale_quality = []
-            for field in ("owner_signoff", "human_independent_review"):
-                if quality.get(field) != "complete":
-                    stale_quality.append("%s=%s" % (field, quality.get(field)))
-            for field in ("answer_status", "point_status"):
-                if "pending" in str(quality.get(field, "")).lower():
-                    stale_quality.append("%s=%s" % (field, quality.get(field)))
+            if owner_attested:
+                for field in ("owner_signoff", "review_status"):
+                    if quality.get(field) not in {"audited_passed", "complete", "passed"}:
+                        stale_quality.append("%s=%s" % (field, quality.get(field)))
+                for field in ("answer_status", "point_status", "asset_status", "question_audit_status"):
+                    if str(quality.get(field, "")).lower() not in {"audited_passed", "complete", "passed"}:
+                        stale_quality.append("%s=%s" % (field, quality.get(field)))
+            else:
+                for field in ("owner_signoff", "human_independent_review"):
+                    if quality.get(field) != "complete":
+                        stale_quality.append("%s=%s" % (field, quality.get(field)))
+                for field in ("answer_status", "point_status"):
+                    if "pending" in str(quality.get(field, "")).lower():
+                        stale_quality.append("%s=%s" % (field, quality.get(field)))
             if stale_quality:
                 _add(
                     checks,
@@ -688,70 +823,107 @@ def evaluate_release_gate(
                     public_blocking=True,
                 )
             else:
-                _add(checks, "dataset_quality_closure", "pass", "dataset metadata records completed human review", public_blocking=True)
+                detail = (
+                    "dataset metadata records a completed single-owner audit"
+                    if owner_attested
+                    else "dataset metadata records completed human review"
+                )
+                _add(checks, "dataset_quality_closure", "pass", detail, public_blocking=True)
 
-    independent_status = "pending"
+    quality = manifest.get("quality") if isinstance(manifest.get("quality"), dict) else {}
+    owner_attested = quality.get("review_protocol") == "owner_attested_single_review"
+    independent_status = "not_applicable" if owner_attested else "pending"
     if not public_code:
-        owner_report = owner_report or default_reports["owner_report"]
-        owner = _review_check(
-            owner_report,
-            manifest_sha=manifest_sha,
-            expected_items=len(dataset.questions),
-            kind="owner",
-            public_blocking=True,
-            lineage=review_lineage,
-            current_signed_content=current_signed_content,
-        )
-        _add(checks, "owner_signoff", owner["status"], owner["detail"], public_blocking=True)
+        if owner_attested:
+            owner = _owner_attestation_check(
+                root,
+                manifest,
+                expected_items=len(dataset.questions),
+                expected_points=sum(int(question["points"]) for question in dataset.questions),
+            )
+            _add(checks, "owner_signoff", owner["status"], owner["detail"], public_blocking=True)
+            _add(
+                checks,
+                "review_protocol",
+                "pass" if owner["status"] == "pass" else "fail",
+                "owner_attested_single_review; independent review is explicitly not claimed",
+                public_blocking=True,
+            )
+            _add(
+                checks,
+                "independent_review",
+                "pass",
+                "not applicable: the dataset declares a single-owner attestation protocol",
+                public_blocking=public_full,
+            )
+            _add(
+                checks,
+                "reviewer_separation",
+                "pass",
+                "not applicable: no independent-reviewer identities are claimed",
+                public_blocking=public_full,
+            )
+        else:
+            owner_report = owner_report or default_reports["owner_report"]
+            owner = _review_check(
+                owner_report,
+                manifest_sha=manifest_sha,
+                expected_items=len(dataset.questions),
+                kind="owner",
+                public_blocking=True,
+                lineage=review_lineage,
+                current_signed_content=current_signed_content,
+            )
+            _add(checks, "owner_signoff", owner["status"], owner["detail"], public_blocking=True)
 
-        independent_report = independent_report or default_reports["independent_report"]
-        independent = _review_check(
-            independent_report,
-            manifest_sha=manifest_sha,
-            expected_items=len(dataset.questions),
-            kind="independent",
-            public_blocking=True,
-            lineage=review_lineage,
-            current_signed_content=current_signed_content,
-        )
-        independent_status = independent["status"]
-        # Internal alpha can be demonstrated before the independent review, but
-        # the full public target always requires it.
-        _add(
-            checks,
-            "independent_review",
-            independent["status"] if public_full else "warning",
-            independent["detail"] if public_full else "independently reviewed: %s (internal warning only)" % independent["detail"],
-            public_blocking=public_full,
-        )
-        if owner["status"] == "pass" and independent["status"] == "pass":
-            owner_payload = _read_json(owner_report) or {}
-            independent_payload = _read_json(independent_report) or {}
-            owner_identity = owner_payload.get("reviewer") if isinstance(owner_payload.get("reviewer"), dict) else {}
-            reviewers = independent_payload.get("reviewers") if isinstance(independent_payload.get("reviewers"), dict) else {}
-            collisions = []
-            for slot in ("1", "2"):
-                reviewer = reviewers.get(slot) if isinstance(reviewers.get(slot), dict) else {}
-                if owner_identity.get("reviewer_id") == reviewer.get("reviewer_id"):
-                    collisions.append("owner and reviewer-%s share reviewer_id" % slot)
-                if owner_identity.get("reviewer_name") == reviewer.get("reviewer_name"):
-                    collisions.append("owner and reviewer-%s share reviewer_name" % slot)
-            if collisions:
-                _add(
-                    checks,
-                    "reviewer_separation",
-                    "fail" if public_full else "warning",
-                    "; ".join(collisions),
-                    public_blocking=public_full,
-                )
-            else:
-                _add(
-                    checks,
-                    "reviewer_separation",
-                    "pass",
-                    "owner and two independent reviewers are three distinct identities",
-                    public_blocking=public_full,
-                )
+            independent_report = independent_report or default_reports["independent_report"]
+            independent = _review_check(
+                independent_report,
+                manifest_sha=manifest_sha,
+                expected_items=len(dataset.questions),
+                kind="independent",
+                public_blocking=True,
+                lineage=review_lineage,
+                current_signed_content=current_signed_content,
+            )
+            independent_status = independent["status"]
+            # Internal alpha can be demonstrated before the independent review, but
+            # the full public target always requires it.
+            _add(
+                checks,
+                "independent_review",
+                independent["status"] if public_full else "warning",
+                independent["detail"] if public_full else "independently reviewed: %s (internal warning only)" % independent["detail"],
+                public_blocking=public_full,
+            )
+            if owner["status"] == "pass" and independent["status"] == "pass":
+                owner_payload = _read_json(owner_report) or {}
+                independent_payload = _read_json(independent_report) or {}
+                owner_identity = owner_payload.get("reviewer") if isinstance(owner_payload.get("reviewer"), dict) else {}
+                reviewers = independent_payload.get("reviewers") if isinstance(independent_payload.get("reviewers"), dict) else {}
+                collisions = []
+                for slot in ("1", "2"):
+                    reviewer = reviewers.get(slot) if isinstance(reviewers.get(slot), dict) else {}
+                    if owner_identity.get("reviewer_id") == reviewer.get("reviewer_id"):
+                        collisions.append("owner and reviewer-%s share reviewer_id" % slot)
+                    if owner_identity.get("reviewer_name") == reviewer.get("reviewer_name"):
+                        collisions.append("owner and reviewer-%s share reviewer_name" % slot)
+                if collisions:
+                    _add(
+                        checks,
+                        "reviewer_separation",
+                        "fail" if public_full else "warning",
+                        "; ".join(collisions),
+                        public_blocking=public_full,
+                    )
+                else:
+                    _add(
+                        checks,
+                        "reviewer_separation",
+                        "pass",
+                        "owner and two independent reviewers are three distinct identities",
+                        public_blocking=public_full,
+                    )
 
     if not public_code:
         crop = _prompt_crop_check(root)
@@ -781,6 +953,7 @@ def evaluate_release_gate(
             manifest_sha=manifest_sha,
             dataset_version=dataset_version,
             independent_pass=independent_status == "pass",
+            owner_attested=owner_attested,
             protocol_path=answer_protocol,
             source_root=source_root,
         )
@@ -791,6 +964,14 @@ def evaluate_release_gate(
         official_answer = bool((manifest.get("quality") or {}).get("official_answer_source_found"))
         if official_answer:
             _add(checks, "official_answer_source", "pass", "official answer source is recorded", public_blocking=False)
+        elif owner_attested:
+            _add(
+                checks,
+                "official_answer_source",
+                "warning",
+                "no official answer source; the single-owner answer attestation is closed and independent review is not claimed",
+                public_blocking=False,
+            )
         else:
             _add(checks, "official_answer_source", "warning", "official answer source not found; independent review is required for full public data", public_blocking=False)
 
@@ -851,6 +1032,29 @@ def evaluate_release_gate(
         if row["status"] == "warning"
     ]
     status = "blocked" if blocking else "pass"
+    if not blocking:
+        next_actions: List[str] = []
+    elif public_code:
+        next_actions = [
+            "Freeze a clean commit/tag for the code-and-documentation-only public release.",
+            "Build the public-code bundle and verify that it contains no data, assets, or third-party evidence.",
+        ]
+    elif owner_attested:
+        next_actions = [
+            "Resolve the blocking checks above; the single-owner audit is already closed.",
+            "Run validate, smoke, pytest, gold scoring, and a fresh vision run with the fixed harness.",
+            "Sign the rights decision if the full public dataset is to be released.",
+            "Freeze a clean commit/tag and only then consider a public release.",
+        ]
+    else:
+        next_actions = [
+            "Owner completes %d/%d review rows and imports a signed owner report."
+            % (len(dataset.questions), len(dataset.questions)),
+            "Two independent reviewers complete answer and point reviews without conflicts.",
+            "Run validate, smoke, pytest, gold scoring, and a fresh vision run with the fixed harness.",
+            "Sign the rights decision and answer-validation protocol if the full public dataset is to be released.",
+            "Freeze a clean commit/tag and only then consider a public release.",
+        ]
     return {
         "schema_version": "1.0",
         "target": target,
@@ -863,23 +1067,7 @@ def evaluate_release_gate(
         "checks": checks,
         "blocking_checks": blocking,
         "warnings": warnings,
-        "next_actions": (
-            [
-                "Freeze a clean commit/tag for the code-and-documentation-only public release.",
-                "Build the public-code bundle and verify that it contains no data, assets, or third-party evidence.",
-            ]
-            if public_code
-            else [
-                "Owner completes %d/%d review rows and imports a signed owner report."
-                % (len(dataset.questions), len(dataset.questions)),
-                "Two independent reviewers complete answer and point reviews without conflicts.",
-                "Run validate, smoke, pytest, gold scoring, and a fresh vision run with the fixed harness.",
-                "Sign the rights decision and answer-validation protocol if the full public dataset is to be released.",
-                "Freeze a clean commit/tag and only then consider a public release.",
-            ]
-        )
-        if blocking
-        else [],
+        "next_actions": next_actions,
     }
 
 

@@ -20,7 +20,7 @@ objective-question package is published at
 tag:
 
 ```bash
-gaokao-bench fetch-data --version 0.0.3
+gaokao-bench fetch-data --version 0.0.4
 ```
 
 The public data package carries its own manifest, file hashes, third-party
@@ -71,6 +71,8 @@ held-out set.
 ## Answer review
 
 The code supports media cross-checking and independent human review. It does not
-certify an exam-authority answer source. The materialiser only writes a new
-dataset version after an owner and two distinct independent reviewers complete
-every answer and point row without unresolved disputes or proposed changes.
+certify an exam-authority answer source. Dataset `0.0.4` uses a declared
+`owner_attested_single_review` protocol: the project owner accepted every answer,
+question, point row, and figure asset, and the package records that limitation
+explicitly. The independent-review materialiser remains available for future
+versions that choose the two-reviewer protocol.

@@ -25,6 +25,7 @@ import io
 import json
 import os
 import re
+import random
 import statistics
 import subprocess
 import tempfile
@@ -38,9 +39,18 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Proto
 from .benchmark_spec import question_requires_vision
 from .specs.legacy_2025_math import LEGACY_SPEC
 from .scoring import SCORER_VERSION, Dataset, evaluate_submission, load_dataset, validate_dataset
+from .version import (
+    ENGINE_VERSION,
+    HARNESS_VERSION,
+    SUMMARY_SCHEMA_VERSION,
+    compatibility_matrix,
+)
 
-HARNESS_VERSION = "0.1.2"
 DEFAULT_MAX_TOKENS = 32768
+DEFAULT_TIMEOUT_SECONDS = 900.0
+DEFAULT_REPEATS = 5
+CANONICAL_MIN_REPEATS = 5
+DEFAULT_CONSTRAINED_REASONING_BUDGET = 8192
 # Compatibility aliases for callers of the 0.0.1 harness.  A real run reads
 # these values from the dataset's benchmark specification.
 PROMPT_VERSION = "gbmath-objective-anonymous-v2"
@@ -605,6 +615,7 @@ class OpenAICompatibleProvider:
         self.provider_order = tuple(provider_order or ())
         self.allow_fallbacks = allow_fallbacks
         self.extra_body = dict(extra_body or {})
+        self.openrouter_routing = "openrouter.ai" in self.base_url.lower()
 
     def complete(
         self,
@@ -640,11 +651,15 @@ class OpenAICompatibleProvider:
             if self.reasoning_budget <= 0:
                 raise ValueError("reasoning budget must be positive")
             payload["reasoning"] = {"max_tokens": self.reasoning_budget}
-        if self.provider_order:
-            payload["provider"] = {
-                "order": list(self.provider_order),
-                "allow_fallbacks": bool(self.allow_fallbacks) if self.allow_fallbacks is not None else False,
+        if self.provider_order or (self.openrouter_routing and self.allow_fallbacks is not None):
+            provider_routing: Dict[str, Any] = {
+                "allow_fallbacks": bool(self.allow_fallbacks)
+                if self.allow_fallbacks is not None
+                else False,
             }
+            if self.provider_order:
+                provider_routing["order"] = list(self.provider_order)
+            payload["provider"] = provider_routing
         for key, value in self.extra_body.items():
             if key in payload:
                 raise ValueError("extra_body cannot override %s" % key)
@@ -913,6 +928,12 @@ def _jsonl_write(handle: Any, row: Mapping[str, Any]) -> None:
     handle.flush()
 
 
+def _jsonl_write_path(path: Path, row: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        _jsonl_write(handle, row)
+
+
 def _aggregate_usage(attempts: Sequence[Mapping[str, Any]]) -> Dict[str, int]:
     totals: Dict[str, int] = {}
     for attempt in attempts:
@@ -936,8 +957,394 @@ def _percentile(values: Sequence[float], fraction: float) -> float:
     return float(ordered[lower] * (1.0 - weight) + ordered[upper] * weight)
 
 
+def _bootstrap_ratio_ci(
+    repeat_summaries: Sequence[Mapping[str, Any]],
+    *,
+    samples: int = 2000,
+    seed: int = 20261110,
+    include_qids: Optional[set[str]] = None,
+) -> Optional[Dict[str, float]]:
+    """Bootstrap questions, not repeats, for a stable primary-metric interval."""
+
+    outcomes: Dict[str, List[Mapping[str, Any]]] = {}
+    for repeat in repeat_summaries:
+        for qid, outcome in (repeat.get("outcomes") or {}).items():
+            if isinstance(outcome, Mapping):
+                outcomes.setdefault(str(qid), []).append(outcome)
+    qids = sorted(
+        qid
+        for qid, rows in outcomes.items()
+        if rows and (include_qids is None or qid in include_qids)
+    )
+    if len(qids) < 2:
+        return None
+    mean_awarded = {
+        qid: statistics.mean(float(row.get("awarded", 0)) for row in outcomes[qid])
+        for qid in qids
+    }
+    points = {
+        qid: int(outcomes[qid][0].get("points", 0))
+        for qid in qids
+    }
+    if not any(points.values()):
+        return None
+    rng = random.Random(seed)
+    estimates: List[float] = []
+    for _ in range(samples):
+        numerator = 0.0
+        denominator = 0
+        for _ in range(len(qids)):
+            qid = qids[rng.randrange(len(qids))]
+            numerator += mean_awarded[qid]
+            denominator += points[qid]
+        if denominator:
+            estimates.append(numerator / denominator)
+    if not estimates:
+        return None
+    return {
+        "low": _percentile(estimates, 0.025),
+        "median": _percentile(estimates, 0.5),
+        "high": _percentile(estimates, 0.975),
+        "samples": samples,
+        "method": "question_cluster_percentile_bootstrap",
+    }
+
+
+def _question_flip_summary(
+    repeat_summaries: Sequence[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    outcomes: Dict[str, List[Mapping[str, Any]]] = {}
+    for repeat in repeat_summaries:
+        for qid, outcome in (repeat.get("outcomes") or {}).items():
+            if isinstance(outcome, Mapping):
+                outcomes.setdefault(str(qid), []).append(outcome)
+    score_flips: List[Dict[str, Any]] = []
+    status_flips: List[Dict[str, Any]] = []
+    for qid in sorted(outcomes):
+        rows = outcomes[qid]
+        awarded = [int(row.get("awarded", 0)) for row in rows]
+        statuses = [str(row.get("status", "")) for row in rows]
+        if len(set(awarded)) > 1:
+            score_flips.append({"question_id": qid, "awarded_values": awarded})
+        if len(set(statuses)) > 1:
+            status_flips.append({"question_id": qid, "status_values": statuses})
+    total = len(outcomes)
+    return {
+        "questions": total,
+        "score_flip_questions": len(score_flips),
+        "score_flip_rate": len(score_flips) / total if total else 0.0,
+        "status_flip_questions": len(status_flips),
+        "status_flip_rate": len(status_flips) / total if total else 0.0,
+        "score_flip_details": score_flips,
+        "status_flip_details": status_flips,
+    }
+
+
+def _reproducibility_summary(
+    repeat_summaries: Sequence[Mapping[str, Any]],
+    attempts: Sequence[Mapping[str, Any]],
+    *,
+    repeats: int,
+    canonical_min_repeats: int,
+    seed: Optional[int],
+    provider_order: Sequence[str],
+    allow_fallbacks: Optional[bool],
+    requested_model: str,
+    model_snapshot: Optional[str],
+    timeout_seconds: float,
+    max_tokens: int,
+    reasoning_budget: Optional[int],
+    canonical_timeout_seconds: float,
+    canonical_max_tokens: int,
+) -> Dict[str, Any]:
+    primary_values = [
+        float((row.get("primary_metric") or {}).get("value"))
+        for row in repeat_summaries
+        if (row.get("primary_metric") or {}).get("value") is not None
+    ]
+    providers = sorted(
+        {
+            str(row.get("upstream_provider"))
+            for row in attempts
+            if row.get("upstream_provider") not in (None, "")
+        }
+    )
+    fingerprints = sorted(
+        {
+            str(row.get("system_fingerprint"))
+            for row in attempts
+            if row.get("system_fingerprint") not in (None, "")
+        }
+    )
+    echoed_seeds = sorted(
+        {
+            int(row.get("seed"))
+            for row in attempts
+            if isinstance(row.get("seed"), int) and not isinstance(row.get("seed"), bool)
+        }
+    )
+    repetitions_ok = repeats >= canonical_min_repeats
+    provider_pin_configured = bool(provider_order)
+    fallbacks_disabled = allow_fallbacks is False
+    seed_requested = seed is not None
+    seed_echo_observed = seed_requested and seed in echoed_seeds
+    fingerprint_observed = bool(fingerprints)
+    routing_consistent = len(providers) <= 1
+    model_snapshot_recorded = bool(model_snapshot)
+    prompt_determinism = _prompt_determinism_summary(attempts)
+    seed_contract_observed = seed_echo_observed or fingerprint_observed
+    pinned_lower = {value.casefold() for value in provider_order}
+    routing_matches_pin = bool(provider_order) and bool(providers) and all(
+        provider.casefold() in pinned_lower for provider in providers
+    )
+    timeout_meets_canonical = timeout_seconds >= canonical_timeout_seconds
+    max_tokens_meets_canonical = max_tokens >= canonical_max_tokens
+    reasoning_unconstrained = reasoning_budget is None
+    verified = all(
+        (
+            repetitions_ok,
+            provider_pin_configured,
+            fallbacks_disabled,
+            seed_requested,
+            seed_contract_observed,
+            routing_consistent,
+            routing_matches_pin,
+            model_snapshot_recorded,
+            prompt_determinism["verdict"] == "observed_stable",
+            timeout_meets_canonical,
+            max_tokens_meets_canonical,
+            reasoning_unconstrained,
+        )
+        if pinned_lower
+        else (
+            repetitions_ok,
+            provider_pin_configured,
+            fallbacks_disabled,
+            seed_requested,
+            seed_contract_observed,
+            routing_consistent,
+            model_snapshot_recorded,
+            prompt_determinism["verdict"] == "observed_stable",
+            timeout_meets_canonical,
+            max_tokens_meets_canonical,
+            reasoning_unconstrained,
+        )
+    )
+    caveats: List[str] = []
+    if not repetitions_ok:
+        caveats.append("fewer than %d repeats" % canonical_min_repeats)
+    if not provider_pin_configured:
+        caveats.append("no upstream provider pin recorded")
+    if not fallbacks_disabled:
+        caveats.append("upstream fallbacks were not explicitly disabled")
+    if not seed_requested:
+        caveats.append("no seed was requested")
+    elif not seed_echo_observed:
+        caveats.append("provider did not echo the requested seed")
+    if not fingerprint_observed:
+        caveats.append("provider did not return a system_fingerprint")
+    if not seed_contract_observed:
+        caveats.append("upstream did not expose seed echo or a system fingerprint; seed handling is unverified")
+    if not routing_consistent:
+        caveats.append("multiple upstream providers served the run")
+    if provider_order and providers and not routing_matches_pin:
+        caveats.append("observed upstream provider does not match the configured provider pin")
+    if not model_snapshot_recorded:
+        caveats.append("no canonical model snapshot was recorded")
+    if prompt_determinism["verdict"] != "observed_stable":
+        caveats.append(
+            "same-prompt/same-seed probe was %s" % prompt_determinism["verdict"]
+        )
+    if not timeout_meets_canonical:
+        caveats.append(
+            "timeout is below the canonical %g seconds" % canonical_timeout_seconds
+        )
+    if not max_tokens_meets_canonical:
+        caveats.append(
+            "max_tokens is below the canonical %d" % canonical_max_tokens
+        )
+    if not reasoning_unconstrained:
+        caveats.append(
+            "reasoning_budget is set; this run belongs to the constrained reasoning track"
+        )
+    if repetitions_ok and prompt_determinism["verdict"] == "observed_stable":
+        caveats.append("temperature=0 is recorded as a request parameter, not a determinism guarantee")
+    return {
+        "status": "verified" if verified else "not_verified",
+        "canonical_eligible": verified,
+        "canonical_min_repeats": canonical_min_repeats,
+        "repeats": repeats,
+        "repetitions_met": repetitions_ok,
+        "canonical_conditions": {
+            "timeout_seconds": timeout_seconds,
+            "canonical_timeout_seconds": canonical_timeout_seconds,
+            "timeout_met": timeout_meets_canonical,
+            "max_tokens": max_tokens,
+            "canonical_max_tokens": canonical_max_tokens,
+            "max_tokens_met": max_tokens_meets_canonical,
+            "reasoning_budget": reasoning_budget,
+            "reasoning_unconstrained": reasoning_unconstrained,
+        },
+        "primary_metric": {
+            "mean": statistics.mean(primary_values) if primary_values else None,
+            "min": min(primary_values) if primary_values else None,
+            "max": max(primary_values) if primary_values else None,
+            "stddev": statistics.pstdev(primary_values) if len(primary_values) > 1 else 0.0,
+            "values": primary_values,
+        },
+        "bootstrap_95_ci": _bootstrap_ratio_ci(repeat_summaries),
+        "question_flips": _question_flip_summary(repeat_summaries),
+        "same_prompt_same_seed_probe": prompt_determinism,
+        "provider_routing": {
+            "provider_pin_configured": provider_pin_configured,
+            "provider_order": list(provider_order),
+            "allow_fallbacks": allow_fallbacks,
+            "fallbacks_disabled": fallbacks_disabled,
+            "upstream_providers": providers,
+            "routing_consistent": routing_consistent,
+            "routing_matches_pin": routing_matches_pin if provider_order else None,
+        },
+        "seed": {
+            "requested": seed,
+            "echoed_values": echoed_seeds,
+            "echo_observed": seed_echo_observed,
+            "verification": (
+                "echoed_by_provider"
+                if seed_echo_observed
+                else "fingerprint_only"
+                if fingerprint_observed
+                else "unverified"
+            ),
+        },
+        "system_fingerprints": fingerprints,
+        "model": {
+            "requested": requested_model,
+            "snapshot": model_snapshot,
+            "response_models": sorted(
+                {
+                    str(row.get("response_model"))
+                    for row in attempts
+                    if row.get("response_model") not in (None, "")
+                }
+            ),
+        },
+        "caveats": caveats,
+    }
+
+
+def _prompt_determinism_summary(attempts: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    """Use repeated identical prompts as an observed determinism probe.
+
+    This deliberately uses the actual evaluation requests instead of a synthetic
+    extra API call.  A provider that ignores ``seed`` will usually show up as
+    different text or a different failure status for the same prompt.
+    """
+
+    groups: Dict[Tuple[str, Optional[str], Optional[int]], List[Mapping[str, Any]]] = {}
+    for row in attempts:
+        prompt_sha = row.get("prompt_sha256")
+        if not prompt_sha:
+            continue
+        seed = row.get("seed")
+        groups.setdefault((str(prompt_sha), row.get("image_sha256"), seed), []).append(row)
+    comparable = 0
+    stable = 0
+    unstable: List[Dict[str, Any]] = []
+    for (prompt_sha, image_sha, seed), rows in sorted(groups.items()):
+        if len(rows) < 2:
+            continue
+        comparable += 1
+        texts = [row.get("response_text") for row in rows]
+        statuses = [row.get("status") for row in rows]
+        if all(text is not None for text in texts) and len(set(texts)) == 1 and len(set(statuses)) == 1:
+            stable += 1
+        else:
+            unstable.append(
+                {
+                    "prompt_sha256": prompt_sha,
+                    "image_sha256": image_sha,
+                    "seed": seed,
+                    "statuses": statuses,
+                    "response_sha256": [
+                        _sha256_bytes(text.encode("utf-8")) if isinstance(text, str) else None
+                        for text in texts
+                    ],
+                }
+            )
+    if comparable == 0:
+        verdict = "insufficient_samples"
+    elif stable == comparable:
+        verdict = "observed_stable"
+    else:
+        verdict = "observed_unstable"
+    return {
+        "method": "actual_same_prompt_same_seed_requests",
+        "comparable_prompt_groups": comparable,
+        "stable_groups": stable,
+        "unstable_groups": len(unstable),
+        "exact_response_match_rate": stable / comparable if comparable else None,
+        "verdict": verdict,
+        "unstable_details": unstable,
+    }
+
+
+def _usage_summary(
+    attempts: Sequence[Mapping[str, Any]],
+    latencies: Sequence[float],
+    *,
+    truncations: int,
+    provider_metadata: Optional[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    usage = _aggregate_usage(attempts)
+    output_tokens = int(usage.get("output_tokens", 0))
+    reasoning_tokens = int(usage.get("reasoning_tokens", 0))
+    summary: Dict[str, Any] = {
+        "tokens": usage,
+        "reasoning_token_share": reasoning_tokens / output_tokens if output_tokens else 0.0,
+        "max_output_tokens": max(
+            (int((row.get("usage") or {}).get("output_tokens", 0)) for row in attempts),
+            default=0,
+        ),
+        "max_reasoning_tokens": max(
+            (int((row.get("usage") or {}).get("reasoning_tokens", 0)) for row in attempts),
+            default=0,
+        ),
+        "truncation_rate": truncations / len(attempts) if attempts else 0.0,
+        "latency_over_60s": sum(1 for value in latencies if value >= 60000),
+        "latency_over_90s": sum(1 for value in latencies if value >= 90000),
+        "latency_over_120s": sum(1 for value in latencies if value >= 120000),
+        "estimated_cost_usd": None,
+    }
+    metadata = dict(provider_metadata or {})
+    input_price = metadata.get("input_price_per_million_tokens")
+    output_price = metadata.get("output_price_per_million_tokens")
+    if all(isinstance(value, (int, float)) and not isinstance(value, bool) for value in (input_price, output_price)):
+        input_cost = int(usage.get("input_tokens", 0)) * float(input_price) / 1_000_000.0
+        output_cost = output_tokens * float(output_price) / 1_000_000.0
+        summary["cost"] = {
+            "currency": "USD",
+            "input_price_per_million_tokens": float(input_price),
+            "output_price_per_million_tokens": float(output_price),
+            "input_cost": input_cost,
+            "output_cost": output_cost,
+            "total": input_cost + output_cost,
+        }
+        summary["estimated_cost_usd"] = input_cost + output_cost
+    else:
+        summary["cost"] = None
+    return summary
+
+
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _reasoning_profile(dataset: Dataset, reasoning_budget: Optional[int]) -> str:
+    if reasoning_budget is None:
+        return "canonical_unconstrained_reasoning"
+    if reasoning_budget <= dataset.spec.reporting.constrained_reasoning_budget:
+        return "constrained_reasoning_budget"
+    return "custom_reasoning_budget"
 
 
 def build_evaluation_protocol(
@@ -955,7 +1362,8 @@ def build_evaluation_protocol(
     provider_metadata: Optional[Mapping[str, Any]] = None,
     seed: Optional[int] = None,
     provider_order: Optional[Sequence[str]] = None,
-    allow_fallbacks: Optional[bool] = None,
+    allow_fallbacks: Optional[bool] = False,
+    model_snapshot: Optional[str] = None,
     selection: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     safe_provider_config = {
@@ -965,6 +1373,7 @@ def build_evaluation_protocol(
     }
     protocol = {
         "protocol_version": "1.0",
+        "engine_version": ENGINE_VERSION,
         "benchmark": {
             "dataset_version": dataset.manifest.get("dataset_version"),
             "dataset_manifest_sha256": _sha256_bytes((dataset.data_dir / "manifest.json").read_bytes()),
@@ -978,15 +1387,30 @@ def build_evaluation_protocol(
             "metric_version": dataset.spec.scoring.metric_version,
             "primary_metric": dataset.spec.scoring.primary_metric,
             "partial_credit": dataset.spec.scoring.partial_credit,
+            "diagnostic_metrics": list(dataset.spec.scoring.diagnostic_metrics),
         },
         "prompt": {
             "version": dataset.spec.prompt.version,
             "system_sha256": _sha256_bytes(dataset.spec.prompt.system.encode("utf-8")),
             "answer_schema": dataset.spec.prompt.answer_schema,
         },
+        "reporting": {
+            "leaderboard_class": dataset.spec.reporting.leaderboard_class,
+            "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,
+            "held_out": dataset.spec.reporting.held_out,
+            "canonical_min_repeats": dataset.spec.reporting.canonical_min_repeats,
+            "canonical_timeout_seconds": dataset.spec.reporting.canonical_timeout_seconds,
+            "canonical_max_tokens": dataset.spec.reporting.canonical_max_tokens,
+            "constrained_reasoning_budget": dataset.spec.reporting.constrained_reasoning_budget,
+            "min_visual_questions_for_ranking": dataset.spec.reporting.min_visual_questions_for_ranking,
+            "visual_slice_role": dataset.spec.reporting.visual_slice_role,
+            "rounding_policy": dataset.spec.reporting.rounding_policy,
+            "live_track_required": dataset.spec.reporting.live_track_required,
+        },
         "model": {
             "provider": provider_name,
             "requested_model": model,
+            "model_snapshot": model_snapshot,
             "provider_config": safe_provider_config,
             "seed": seed,
             "provider_order": list(provider_order or ()),
@@ -996,11 +1420,22 @@ def build_evaluation_protocol(
             "harness_version": HARNESS_VERSION,
             "modality": modality,
             "repeats": repeats,
+            "condition_profile": _reasoning_profile(dataset, reasoning_budget),
             "max_tokens": max_tokens,
             "reasoning_budget": reasoning_budget,
             "temperature": temperature,
             "timeout_seconds": timeout,
             "concurrency": concurrency,
+            "canonical_reproducibility_requirements": {
+                "minimum_repeats": dataset.spec.reporting.canonical_min_repeats,
+                "recommended_timeout_seconds": dataset.spec.reporting.canonical_timeout_seconds,
+                "recommended_max_tokens": dataset.spec.reporting.canonical_max_tokens,
+                "seed_required": True,
+                "provider_pin_required": True,
+                "allow_fallbacks": False,
+                "seed_echo_or_system_fingerprint_required_for_verification": True,
+                "temperature_zero_is_not_a_determinism_guarantee": True,
+            },
         },
         "selection": dict(selection or {}),
     }
@@ -1118,6 +1553,7 @@ def _aggregate_metrics(
             "numerator_unit": first.get("numerator_unit"),
             "definition": first.get("definition"),
             "scope": first.get("scope"),
+            "role": first.get("role"),
             "coverage": first.get("coverage"),
             "aggregation": "mean_over_repeats",
             "repeat_values": ratio_values,
@@ -1137,7 +1573,7 @@ def run_benchmark(
     paper_ids: Optional[Sequence[str]] = None,
     limit: Optional[int] = None,
     view_id: str = "full",
-    timeout: float = 120.0,
+    timeout: float = DEFAULT_TIMEOUT_SECONDS,
     max_tokens: int = DEFAULT_MAX_TOKENS,
     reasoning_budget: Optional[int] = None,
     temperature: Optional[float] = 0.0,
@@ -1149,7 +1585,8 @@ def run_benchmark(
     retry_failed: bool = False,
     seed: Optional[int] = None,
     provider_order: Optional[Sequence[str]] = None,
-    allow_fallbacks: Optional[bool] = None,
+    allow_fallbacks: Optional[bool] = False,
+    model_snapshot: Optional[str] = None,
     progress_callback: Optional[Callable[[Mapping[str, Any]], None]] = None,
 ) -> Dict[str, Any]:
     """Run a reproducible evaluation and write an audited, resumable bundle."""
@@ -1198,6 +1635,7 @@ def run_benchmark(
         seed=seed,
         provider_order=provider_order,
         allow_fallbacks=allow_fallbacks,
+        model_snapshot=model_snapshot,
         selection={
             "coverage_label": coverage_label,
             "papers": sorted(paper_ids or ()),
@@ -1309,6 +1747,7 @@ def run_benchmark(
     missing_answers = sorted(set(dataset.answer_keys) - selected_ids)
     manifest: Dict[str, Any] = {
         "harness": "Gaokao-Bench",
+        "engine_version": ENGINE_VERSION,
         "harness_version": HARNESS_VERSION,
         "prompt_version": dataset.spec.prompt.version,
         "scorer_version": SCORER_VERSION,
@@ -1327,6 +1766,7 @@ def run_benchmark(
         "provider": provider_name,
         "provider_config": dict(provider_metadata or {}),
         "model": model,
+        "model_snapshot": model_snapshot,
         "modality": modality,
         "repeats": repeats,
         "temperature": temperature,
@@ -1361,7 +1801,9 @@ def run_benchmark(
         "contamination": {
             "status": str((dataset.manifest.get("quality") or {}).get("contamination_status", "unspecified")),
             "score_label": str(release_info.get("score_label") or "public_retrospective"),
-            "freshness_claim_allowed": False,
+            "leaderboard_class": dataset.spec.reporting.leaderboard_class,
+            "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,
+            "held_out": dataset.spec.reporting.held_out,
         },
         "rights_notice": rights_notice,
         "status": "prepared" if prepare_only else "running",
@@ -1374,13 +1816,20 @@ def run_benchmark(
         return manifest
 
     attempt_path = destination / "attempts.jsonl"
+    progress_path = destination / "progress.jsonl"
     all_attempts: Dict[Tuple[int, str], Dict[str, Any]] = dict(existing_attempts)
     repeat_summaries: List[Dict[str, Any]] = []
 
     def progress(stage: str, **payload: Any) -> None:
+        event = {
+            "stage": stage,
+            "run_id": run_id,
+            "modality": modality,
+            "created_at": _utc_timestamp(),
+        }
+        event.update(payload)
+        _jsonl_write_path(progress_path, event)
         if progress_callback is not None:
-            event = {"stage": stage, "run_id": run_id, "modality": modality}
-            event.update(payload)
             progress_callback(event)
 
     def execute_one(question: Mapping[str, Any], repeat_index: int, position: int) -> Tuple[Dict[str, Any], Any]:
@@ -1402,6 +1851,7 @@ def run_benchmark(
             "prompt_sha256": _sha256_bytes(prompt.encode("utf-8")),
             "image_sha256": image.sha256 if image else None,
             "requested_model": model,
+            "model_snapshot": model_snapshot,
             "response_model": None,
             "response_id": None,
             "finish_reason": None,
@@ -1620,8 +2070,21 @@ def run_benchmark(
                     "possible_points": report["summary"]["possible_points"],
                     "correct_questions": report["summary"]["correct_questions"],
                     "total_questions": report["summary"]["total_questions"],
+                    "borderline_questions": report["summary"].get("borderline_questions", 0),
+                    "borderline_candidate_questions": report["summary"].get(
+                        "borderline_candidate_questions", 0
+                    ),
                     "primary_metric": primary,
                     "metrics": report["metrics"],
+                    "outcomes": {
+                        row["question_id"]: {
+                            "awarded": int(row["awarded"]),
+                            "points": int(row["points"]),
+                            "status": row["status"],
+                            "borderline": bool(row.get("borderline")),
+                        }
+                        for row in report["results"]
+                    },
                     "slices": {
                         "text_answerable": slices["text_answerable"],
                         "vision_required": slices["vision_required"],
@@ -1666,9 +2129,75 @@ def run_benchmark(
     primary_metric = metrics.get(dataset.spec.scoring.primary_metric)
     if primary_metric is None:
         raise ValueError("scoring reports did not produce the declared primary metric")
+    reproducibility = _reproducibility_summary(
+        repeat_summaries,
+        attempts,
+        repeats=repeats,
+        canonical_min_repeats=dataset.spec.reporting.canonical_min_repeats,
+        seed=seed,
+        provider_order=tuple(provider_order or ()),
+        allow_fallbacks=allow_fallbacks,
+        requested_model=model,
+        model_snapshot=model_snapshot,
+        timeout_seconds=timeout,
+        max_tokens=max_tokens,
+        reasoning_budget=reasoning_budget,
+        canonical_timeout_seconds=dataset.spec.reporting.canonical_timeout_seconds,
+        canonical_max_tokens=dataset.spec.reporting.canonical_max_tokens,
+    )
+    usage_summary = _usage_summary(
+        attempts,
+        latencies,
+        truncations=truncations,
+        provider_metadata=provider_metadata,
+    )
+    borderline_count = sum(int(row.get("borderline_questions", 0)) for row in repeat_summaries)
+    warnings = list(reproducibility.get("caveats") or ())
+    if repeats < dataset.spec.reporting.canonical_min_repeats:
+        warnings.append(
+            "fewer than %d repeats: report this as a pilot, not a canonical score"
+            % dataset.spec.reporting.canonical_min_repeats
+        )
+    if (
+        reasoning_budget is not None
+        and reasoning_budget <= dataset.spec.reporting.constrained_reasoning_budget
+    ):
+        warnings.append(
+            "reasoning_budget <= %d is a constrained track, not the canonical reasoning profile"
+            % dataset.spec.reporting.constrained_reasoning_budget
+        )
+    first_slices = repeat_summaries[0].get("slices", {}) if repeat_summaries else {}
+    vision_slice = first_slices.get("vision_required") if isinstance(first_slices, Mapping) else None
+    if isinstance(vision_slice, Mapping):
+        coverage = vision_slice.get("coverage") if isinstance(vision_slice.get("coverage"), Mapping) else {}
+        if coverage.get("small_sample_warning"):
+            warnings.append("vision slice is too small for a standalone visual-capability claim")
+    versions = compatibility_matrix(
+        dataset_version=str(dataset.manifest.get("dataset_version", "")),
+        benchmark_spec_version=dataset.spec.version,
+        metric_version=dataset.spec.scoring.metric_version,
+    )
+    slice_metrics = {
+        metric_id.removeprefix("slice.").rsplit(".", 1)[0]: metric
+        for metric_id, metric in metrics.items()
+        if metric_id.startswith("slice.")
+    }
+    vision_qids = {
+        str(question["id"]) for question in selected if question_requires_vision(question)
+    }
+    text_qids = {str(question["id"]) for question in selected} - vision_qids
+    if "text_answerable" in slice_metrics:
+        slice_metrics["text_answerable"]["bootstrap_95_ci"] = _bootstrap_ratio_ci(
+            repeat_summaries, include_qids=text_qids
+        )
+    if "vision_required" in slice_metrics:
+        slice_metrics["vision_required"]["bootstrap_95_ci"] = _bootstrap_ratio_ci(
+            repeat_summaries, include_qids=vision_qids
+        )
     summary = {
-        "schema_version": "2.0",
+        "schema_version": SUMMARY_SCHEMA_VERSION,
         "status": "completed",
+        "result_status": "canonical" if reproducibility.get("canonical_eligible") else "pilot",
         "run_id": run_id,
         "dataset": "Gaokao-Bench",
         "dataset_version": dataset.manifest.get("dataset_version", ""),
@@ -1677,24 +2206,31 @@ def run_benchmark(
         "subject": dataset.spec.subject,
         "years": list(dataset.spec.years),
         "harness_version": HARNESS_VERSION,
+        "engine_version": ENGINE_VERSION,
         "prompt_version": dataset.spec.prompt.version,
         "scorer_version": SCORER_VERSION,
+        "versions": versions,
+        "compatibility": versions,
         "scoring_profile": dataset.spec.scoring.profile,
+        "metric_version": dataset.spec.scoring.metric_version,
         "evaluation_protocol": protocol,
         "evaluation_protocol_sha256": protocol_sha256,
         "provider": provider_name,
         "model": model,
+        "model_snapshot": model_snapshot,
         "modality": modality,
         "repeats": repeats,
         "concurrency": concurrency,
         "created_at": created_at,
         "conditions": {
+            "condition_profile": _reasoning_profile(dataset, reasoning_budget),
             "max_tokens": max_tokens,
             "reasoning_budget": reasoning_budget,
             "temperature": temperature,
             "seed": seed,
             "provider_order": list(provider_order or ()),
             "allow_fallbacks": allow_fallbacks,
+            "model_snapshot": model_snapshot,
             "timeout_seconds": timeout,
             "concurrency": concurrency,
         },
@@ -1721,17 +2257,66 @@ def run_benchmark(
                 "min": min(correct_questions),
                 "max": max(correct_questions),
             },
-            "possible_points": first_scope.get("possible_points"),
-            "questions": first_scope.get("selected_questions"),
+            "possible_points": selected_possible_points,
+            "questions": len(selected),
+            "borderline_questions": borderline_count,
+            "borderline_candidate_questions": sum(
+                int(row.get("borderline_candidate_questions", 0)) for row in repeat_summaries
+            ),
+            "primary_metric": reproducibility["primary_metric"],
+            "slices": slice_metrics,
         },
         "primary_metric": primary_metric,
         "metrics": metrics,
+        "slices": slice_metrics,
+        "modality_summary": {
+            "profile": modality,
+            "answerable_questions": len(answerable_ids),
+            "answerable_points": answerable_possible_points,
+            "selected_questions": len(selected),
+            "selected_possible_points": selected_possible_points,
+            "skipped_image_required_questions": len(selected) - len(answerable_ids),
+            "fixed_scope_denominator": selected_possible_points,
+            "text_slice_role": "diagnostic",
+            "vision_slice_role": dataset.spec.reporting.visual_slice_role,
+            "vision_standalone_ranking_allowed": (
+                int((first_slices.get("vision_required") or {}).get("coverage", {}).get("slice_questions", 0))
+                >= dataset.spec.reporting.min_visual_questions_for_ranking
+            ),
+        },
+        "reproducibility": reproducibility,
+        "compatibility": versions,
+        "leaderboard": {
+            "class": dataset.spec.reporting.leaderboard_class,
+            "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,
+            "held_out": dataset.spec.reporting.held_out,
+            "separate_live_leaderboard_required": dataset.spec.reporting.live_track_required,
+            "public_ranking_allowed": bool(release_info.get("public_ranking_allowed", False)),
+            "public_ranking_scope": release_info.get("public_ranking_scope"),
+            "tracks": [
+                {
+                    "id": dataset.spec.reporting.leaderboard_class,
+                    "status": "active",
+                    "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,
+                    "held_out": dataset.spec.reporting.held_out,
+                },
+                {
+                    "id": "post_cutoff_live",
+                    "status": "required" if dataset.spec.reporting.live_track_required else "optional",
+                    "freshness_claim_allowed": True,
+                    "held_out": True,
+                },
+            ],
+        },
+        "usage": usage_summary,
+        "warnings": warnings,
         "attempts": {
             "total": len(attempts),
             "provider_errors": provider_errors,
             "harness_errors": harness_errors,
             "parse_errors": parse_errors,
             "truncations": truncations,
+            "truncation_rate": truncations / len(attempts) if attempts else 0.0,
             "status_counts": {
                 status: sum(1 for row in attempts if row["status"] == status)
                 for status in sorted({row["status"] for row in attempts})
@@ -1752,6 +2337,7 @@ def run_benchmark(
             "manifest": "manifest.json",
             "prompts": "prompts.jsonl",
             "attempts": "attempts.jsonl",
+            "progress": "progress.jsonl",
             "submissions": "submissions/",
             "reports": "reports/",
         },
@@ -1770,6 +2356,8 @@ def run_benchmark(
             "summary_sha256": _sha256_bytes(summary_path.read_bytes()),
             "attempts_sha256": _sha256_bytes(attempt_path.read_bytes()),
             "prompts_sha256": _sha256_bytes(prompt_manifest_path.read_bytes()),
+            "progress_sha256": _sha256_bytes(progress_path.read_bytes()) if progress_path.is_file() else None,
+            "versions": versions,
         }
     )
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -1804,7 +2392,7 @@ def build_provider(
     reasoning_budget: Optional[int] = None,
     seed: Optional[int] = None,
     provider_order: Optional[Sequence[str]] = None,
-    allow_fallbacks: Optional[bool] = None,
+    allow_fallbacks: Optional[bool] = False,
     extra_body: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[Provider, Dict[str, Any]]:
     """Instantiate a provider and return a safe, non-secret launch record."""

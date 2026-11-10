@@ -67,6 +67,22 @@ class ScoringSpec:
     metric_version: str
     primary_metric: str = "score.weighted_points"
     partial_credit: bool = False
+    diagnostic_metrics: Tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ReportingSpec:
+    leaderboard_class: str = "retrospective_public"
+    freshness_claim_allowed: bool = False
+    held_out: bool = False
+    canonical_min_repeats: int = 5
+    canonical_timeout_seconds: float = 900.0
+    canonical_max_tokens: int = 32768
+    constrained_reasoning_budget: int = 8192
+    min_visual_questions_for_ranking: int = 30
+    visual_slice_role: str = "diagnostic"
+    rounding_policy: str = "question_statement"
+    live_track_required: bool = True
 
 
 @dataclass(frozen=True)
@@ -81,6 +97,7 @@ class BenchmarkSpec:
     views: Mapping[str, ViewSpec]
     prompt: PromptSpec
     scoring: ScoringSpec
+    reporting: ReportingSpec
     validators: Tuple[str, ...]
     custom_validators: Tuple[str, ...]
     raw: Mapping[str, Any] = field(default_factory=dict, repr=False)
@@ -288,6 +305,72 @@ def _parse_prompt(raw: Any) -> PromptSpec:
     )
 
 
+def _parse_reporting(raw: Any) -> ReportingSpec:
+    if raw is None:
+        return ReportingSpec()
+    if not isinstance(raw, Mapping):
+        raise BenchmarkSpecError("reporting must be an object")
+    canonical_min_repeats = raw.get("canonical_min_repeats", 5)
+    canonical_timeout_seconds = raw.get("canonical_timeout_seconds", 900.0)
+    canonical_max_tokens = raw.get("canonical_max_tokens", 32768)
+    constrained_reasoning_budget = raw.get("constrained_reasoning_budget", 8192)
+    min_visual_questions = raw.get("min_visual_questions_for_ranking", 30)
+    if (
+        isinstance(canonical_min_repeats, bool)
+        or not isinstance(canonical_min_repeats, int)
+        or canonical_min_repeats < 1
+    ):
+        raise BenchmarkSpecError("reporting.canonical_min_repeats must be a positive integer")
+    if (
+        isinstance(canonical_timeout_seconds, bool)
+        or not isinstance(canonical_timeout_seconds, (int, float))
+        or canonical_timeout_seconds <= 0
+    ):
+        raise BenchmarkSpecError("reporting.canonical_timeout_seconds must be positive")
+    if (
+        isinstance(canonical_max_tokens, bool)
+        or not isinstance(canonical_max_tokens, int)
+        or canonical_max_tokens <= 0
+    ):
+        raise BenchmarkSpecError("reporting.canonical_max_tokens must be a positive integer")
+    if (
+        isinstance(constrained_reasoning_budget, bool)
+        or not isinstance(constrained_reasoning_budget, int)
+        or constrained_reasoning_budget <= 0
+    ):
+        raise BenchmarkSpecError(
+            "reporting.constrained_reasoning_budget must be a positive integer"
+        )
+    if constrained_reasoning_budget >= canonical_max_tokens:
+        raise BenchmarkSpecError(
+            "reporting.constrained_reasoning_budget must be smaller than canonical_max_tokens"
+        )
+    if (
+        isinstance(min_visual_questions, bool)
+        or not isinstance(min_visual_questions, int)
+        or min_visual_questions < 0
+    ):
+        raise BenchmarkSpecError(
+            "reporting.min_visual_questions_for_ranking must be a non-negative integer"
+        )
+    visual_slice_role = str(raw.get("visual_slice_role", "diagnostic"))
+    if visual_slice_role not in ("primary", "diagnostic"):
+        raise BenchmarkSpecError("reporting.visual_slice_role must be primary or diagnostic")
+    return ReportingSpec(
+        leaderboard_class=str(raw.get("leaderboard_class", "retrospective_public")),
+        freshness_claim_allowed=bool(raw.get("freshness_claim_allowed", False)),
+        held_out=bool(raw.get("held_out", False)),
+        canonical_min_repeats=canonical_min_repeats,
+        canonical_timeout_seconds=float(canonical_timeout_seconds),
+        canonical_max_tokens=canonical_max_tokens,
+        constrained_reasoning_budget=constrained_reasoning_budget,
+        min_visual_questions_for_ranking=min_visual_questions,
+        visual_slice_role=visual_slice_role,
+        rounding_policy=str(raw.get("rounding_policy", "question_statement")),
+        live_track_required=bool(raw.get("live_track_required", True)),
+    )
+
+
 def parse_benchmark_spec(raw: Mapping[str, Any]) -> BenchmarkSpec:
     if not isinstance(raw, Mapping):
         raise BenchmarkSpecError("benchmark spec must be an object")
@@ -314,9 +397,16 @@ def parse_benchmark_spec(raw: Mapping[str, Any]) -> BenchmarkSpec:
         metric_version=str(scoring_raw.get("metric_version", "1.0")),
         primary_metric=str(scoring_raw.get("primary_metric", "score.weighted_points")),
         partial_credit=bool(scoring_raw.get("partial_credit", False)),
+        diagnostic_metrics=_tuple_of_strings(
+            scoring_raw.get("diagnostic_metrics"), "scoring.diagnostic_metrics"
+        ),
     )
     if not scoring.profile:
         raise BenchmarkSpecError("scoring.profile is required")
+    if not scoring.primary_metric:
+        raise BenchmarkSpecError("scoring.primary_metric must be non-empty")
+    if scoring.primary_metric in scoring.diagnostic_metrics:
+        raise BenchmarkSpecError("the primary metric cannot also be declared diagnostic")
     choice_labels = _tuple_of_strings(raw.get("choice_labels"), "choice_labels") or tuple("ABCD")
     if len(set(choice_labels)) != len(choice_labels):
         raise BenchmarkSpecError("choice_labels must be unique")
@@ -331,6 +421,7 @@ def parse_benchmark_spec(raw: Mapping[str, Any]) -> BenchmarkSpec:
         views=_parse_views(raw.get("views")),
         prompt=_parse_prompt(raw.get("prompt")),
         scoring=scoring,
+        reporting=_parse_reporting(raw.get("reporting")),
         validators=_tuple_of_strings(raw.get("validators"), "validators"),
         custom_validators=_tuple_of_strings(raw.get("custom_validators"), "custom_validators"),
         raw=dict(raw),

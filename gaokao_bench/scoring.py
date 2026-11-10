@@ -6,8 +6,8 @@ The public contract is intentionally narrow:
 * every question is all-or-nothing in the 0.0.x line;
 * missing, malformed, empty, and incorrect answers receive zero;
 * the weighted denominator is the sum of reviewed per-question points;
-  those points are media-crosschecked in this alpha and remain pending
-  owner signoff.
+  released datasets record the review state explicitly instead of hiding it
+  behind a second metric.
 
 No model output is interpreted with an LLM.  LaTeX / Unicode math is
 normalised with a small, auditable expression parser.
@@ -20,6 +20,7 @@ import math
 import re
 import unicodedata
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -29,13 +30,18 @@ from .benchmark_spec import (
     question_requires_vision,
     question_type,
 )
+from .version import (
+    DATA_SCHEMA_VERSION,
+    DEFAULT_DATASET_VERSION,
+    SCORER_VERSION,
+    SUMMARY_SCHEMA_VERSION,
+)
 
 # Default version for the checked-in alpha package.  Dataset validation uses
 # the version recorded in manifest.json so signed review materialisation can
 # produce a new immutable patch version without editing the scorer.
-DATASET_VERSION = "0.0.3"
-SCHEMA_VERSION = "1.0"
-SCORER_VERSION = "0.1.0"
+DATASET_VERSION = DEFAULT_DATASET_VERSION
+SCHEMA_VERSION = DATA_SCHEMA_VERSION
 ANSWER_AUDIT_STATUSES = {
     "match",
     "source_and_derivation_confirmed",
@@ -48,6 +54,8 @@ ANSWER_AUDIT_STATUSES = {
     "derived_independently",
     "unverified",
     "owner_and_two_independent_reviewers_complete",
+    "owner_attested_complete",
+    "audited_passed",
 }
 SOURCE_STEM_MATCHES = {
     "exact_stem_match",
@@ -59,6 +67,21 @@ SOURCE_ASSESSMENT_ROLES = {"supporting", "rejected"}
 POINT_AUDIT_STATUSES = {
     "source_points_crosschecked_pending_owner_signoff",
     "owner_and_two_independent_reviewers_complete",
+    "owner_attested_complete",
+    "audited_passed",
+}
+REVIEW_STATES = {
+    "pending",
+    "complete",
+    "waived_by_owner",
+    "audited_passed",
+    "not_required_single_owner_attestation",
+}
+AUDIT_PASSED_STATUSES = {"audited_passed", "passed", "complete"}
+QUESTION_REVIEW_STATUSES = {
+    "independently_derived_pending_owner_signoff",
+    "owner_attested_complete",
+    "audited_passed",
 }
 QUESTION_STEM_VERDICTS = {"pdf_exact", "pdf_corrected"}
 QUESTION_OPTION_VERDICTS = {"pdf_exact", "pdf_corrected", "not_applicable"}
@@ -70,7 +93,9 @@ PUBLIC_REQUIRED_FILES = {
     ".gitattributes",
     "README.md",
     "CITATION.cff",
+    "COMPATIBILITY.md",
     "LICENSE-DATA",
+    "RELEASE_CARD.json",
     "THIRD_PARTY_NOTICES.md",
     "answer_keys.jsonl",
     "assets.jsonl",
@@ -82,6 +107,19 @@ PUBLIC_REQUIRED_FILES = {
     "examples/malformed.json",
     "papers.jsonl",
     "questions.jsonl",
+}
+PUBLIC_AUDIT_REQUIRED_FILES = {
+    "audit/answer_audit.jsonl",
+    "audit/answer_sources.jsonl",
+    "audit/asset_audit.jsonl",
+    "audit/owner_signoff.json",
+    "audit/point_audit.jsonl",
+    "audit/question_audit.jsonl",
+    "audit/README.md",
+    "audit/review_protocol.json",
+    "audit/reviews.jsonl",
+    "audit/sources.jsonl",
+    "audit/summary.json",
 }
 PUBLIC_IGNORED_LOCAL_PREFIXES = (".cache/", ".git/")
 PUBLIC_FORBIDDEN_QUESTION_FIELDS = {"notes"}
@@ -114,6 +152,23 @@ PUBLIC_FORBIDDEN_PATHS = {
     "reviews.jsonl",
     "sources.jsonl",
 }
+
+
+def _requires_canonical_metric_contract(
+    dataset_version: Any, scoring: Optional[Mapping[str, Any]] = None
+) -> bool:
+    """Return whether a dataset opts into the single-primary-metric contract.
+
+    ``0.0.1`` and ``0.0.3`` are immutable historical releases with a legacy
+    ``main_metric`` field.  They must remain loadable for regression tests and
+    citations.  New releases start at ``0.0.4`` and expose exactly one metric,
+    ``scoring.primary_metric``, whose value must match the benchmark spec.
+    """
+
+    return bool(
+        isinstance(scoring, Mapping)
+        and scoring.get("contract") == "single_primary_metric_v1"
+    )
 
 
 def _validate_source_assessments(
@@ -236,6 +291,19 @@ def load_dataset(data_dir: Path | str, validate: bool = True) -> Dataset:
 def _validate_public_manifest(dataset: Dataset) -> None:
     errors: List[str] = []
     manifest = dataset.manifest
+
+    def nested_keys(value: Any, target: str) -> List[str]:
+        found: List[str] = []
+        if isinstance(value, Mapping):
+            for key, item in value.items():
+                if str(key) == target:
+                    found.append(str(key))
+                found.extend(nested_keys(item, target))
+        elif isinstance(value, list):
+            for item in value:
+                found.extend(nested_keys(item, target))
+        return found
+
     if manifest.get("package_profile") != PUBLIC_PACKAGE_PROFILE:
         errors.append("public package_profile must be %s" % PUBLIC_PACKAGE_PROFILE)
     if manifest.get("public_release") is not True:
@@ -243,6 +311,65 @@ def _validate_public_manifest(dataset: Dataset) -> None:
     rights = manifest.get("rights") if isinstance(manifest.get("rights"), dict) else {}
     if str(rights.get("public_redistribution", "")).startswith("not_cleared"):
         errors.append("public dataset still declares that redistribution is not cleared")
+    scoring = manifest.get("scoring") if isinstance(manifest.get("scoring"), dict) else {}
+    if scoring.get("primary_metric") != dataset.spec.scoring.primary_metric:
+        errors.append(
+            "public primary metric differs from benchmark spec: %s != %s"
+            % (scoring.get("primary_metric"), dataset.spec.scoring.primary_metric)
+        )
+    if "main_metric" in scoring:
+        errors.append("public manifest must not expose a second main_metric")
+    if nested_keys(manifest, "main_metric"):
+        errors.append("public manifest must expose exactly one canonical metric named scoring.primary_metric")
+    if scoring.get("unit") != "ratio":
+        errors.append("public primary metric unit must be ratio")
+    if not str(scoring.get("definition", "")).strip():
+        errors.append("public primary metric must declare its definition")
+    diagnostic_metrics = scoring.get("diagnostic_metrics")
+    if diagnostic_metrics != list(dataset.spec.scoring.diagnostic_metrics):
+        errors.append("public diagnostic metrics differ from benchmark spec")
+    release = manifest.get("release") if isinstance(manifest.get("release"), dict) else {}
+    leaderboard = manifest.get("leaderboard") if isinstance(manifest.get("leaderboard"), dict) else {}
+    expected_class = dataset.spec.reporting.leaderboard_class
+    for name, value in (
+        ("release.leaderboard_class", release.get("leaderboard_class")),
+        ("leaderboard.class", leaderboard.get("class")),
+    ):
+        if value != expected_class:
+            errors.append("public %s differs from benchmark spec" % name)
+    for name, value in (
+        ("release.freshness_claim_allowed", release.get("freshness_claim_allowed")),
+        ("leaderboard.freshness_claim_allowed", leaderboard.get("freshness_claim_allowed")),
+    ):
+        if value is not dataset.spec.reporting.freshness_claim_allowed:
+            errors.append("public %s differs from benchmark spec" % name)
+    if release.get("separate_live_leaderboard_required") is not True:
+        errors.append("public release must require a separate post-cutoff/live leaderboard")
+    if leaderboard.get("post_cutoff_live_track_required") is not True:
+        errors.append("public leaderboard must require a separate post-cutoff/live track")
+    tracks = leaderboard.get("tracks") if isinstance(leaderboard.get("tracks"), list) else []
+    if not any(
+        isinstance(track, dict)
+        and track.get("id") == expected_class
+        and track.get("status") == "active"
+        for track in tracks
+    ):
+        errors.append("public leaderboard is missing its active retrospective track")
+    if dataset.spec.reporting.live_track_required and not any(
+        isinstance(track, dict)
+        and track.get("id") == "post_cutoff_live"
+        and track.get("status") in {"required", "not_released"}
+        for track in tracks
+    ):
+        errors.append("public leaderboard is missing the separate post-cutoff/live track")
+    compatibility = manifest.get("compatibility") if isinstance(manifest.get("compatibility"), dict) else {}
+    if compatibility.get("dataset") not in (None, dataset.manifest.get("dataset_version")):
+        errors.append("public compatibility dataset version is stale")
+    if compatibility.get("benchmark_spec") not in (None, dataset.spec.version):
+        errors.append("public compatibility benchmark spec version is stale")
+    versions = manifest.get("versions") if isinstance(manifest.get("versions"), dict) else {}
+    if versions and versions != compatibility:
+        errors.append("public versions and compatibility blocks differ")
 
     files = manifest.get("files")
     if not isinstance(files, dict) or not files:
@@ -250,6 +377,9 @@ def _validate_public_manifest(dataset: Dataset) -> None:
         files = {}
     required_files = set(PUBLIC_REQUIRED_FILES)
     counts = manifest.get("counts") if isinstance(manifest.get("counts"), dict) else {}
+    audit_block = manifest.get("audit")
+    if isinstance(audit_block, dict):
+        required_files.update(PUBLIC_AUDIT_REQUIRED_FILES)
     if int(counts.get("catalog_subjective_questions", 0)) == 0:
         required_files.discard("catalog/subjective_catalog.jsonl")
     missing_files = sorted(required_files - set(files))
@@ -271,6 +401,68 @@ def _validate_public_manifest(dataset: Dataset) -> None:
             forbidden.append(relative_path)
     if forbidden:
         errors.append("public manifest contains internal paths: %s" % ", ".join(sorted(forbidden)[:5]))
+
+    quality = manifest.get("quality") if isinstance(manifest.get("quality"), dict) else {}
+    if isinstance(audit_block, dict):
+        for field in (
+            "owner_signoff",
+            "human_independent_review",
+            "independent_review",
+            "review_status",
+            "question_audit_status",
+            "point_status",
+            "asset_status",
+        ):
+            value = quality.get(field)
+            if isinstance(value, str) and any(
+                marker in value.lower() for marker in ("pending", "waived", "provisional", "tbd", "todo")
+            ):
+                errors.append("public quality field %s is not audited-passed: %s" % (field, value))
+        if quality.get("owner_signoff") not in {"audited_passed", "complete", "passed"}:
+            errors.append("public owner_signoff must be audited_passed")
+        if quality.get("review_status") not in {"audited_passed", "complete", "passed"}:
+            errors.append("public review_status must be audited_passed")
+        if quality.get("review_protocol") != "owner_attested_single_review":
+            errors.append("public review_protocol must be owner_attested_single_review")
+        rows = audit_block.get("rows") if isinstance(audit_block.get("rows"), dict) else {}
+        for field, expected in (
+            ("answer_audit", int(counts.get("answer_audit_rows", 0))),
+            ("question_audit", int(counts.get("question_audit_rows", 0))),
+            ("point_audit", int(counts.get("point_audit_rows", 0))),
+            ("asset_audit", int(counts.get("asset_audit_rows", 0))),
+            ("reviews", int(counts.get("review_records", 0))),
+        ):
+            if expected and int(rows.get(field, -1)) != expected:
+                errors.append("public audit row count %s does not match manifest" % field)
+        if audit_block.get("status") not in AUDIT_PASSED_STATUSES:
+            errors.append("public audit evidence status must be audited-passed")
+        if audit_block.get("owner_signoff") not in {"audited_passed", "complete", "passed"}:
+            errors.append("public audit owner_signoff must be audited_passed")
+    review_evidence = manifest.get("review_evidence") if isinstance(manifest.get("review_evidence"), dict) else {}
+    if review_evidence.get("status") not in AUDIT_PASSED_STATUSES:
+        errors.append("public review evidence status must be audited-passed")
+    if review_evidence.get("owner_signoff") not in {"audited_passed", "complete", "passed"}:
+        errors.append("public review evidence owner_signoff must be audited_passed")
+
+    release_card_path = dataset.data_dir / "RELEASE_CARD.json"
+    release_card = json.loads(release_card_path.read_text(encoding="utf-8"))
+    card_scoring = release_card.get("scoring") if isinstance(release_card.get("scoring"), dict) else {}
+    if card_scoring.get("primary_metric") != dataset.spec.scoring.primary_metric:
+        errors.append("RELEASE_CARD primary metric differs from benchmark spec")
+    if "main_metric" in card_scoring or nested_keys(release_card, "main_metric"):
+        errors.append("RELEASE_CARD must not expose a second main metric")
+    card_reporting = release_card.get("reporting") if isinstance(release_card.get("reporting"), dict) else {}
+    if card_reporting.get("leaderboard_class") != expected_class:
+        errors.append("RELEASE_CARD leaderboard class differs from benchmark spec")
+    if card_reporting.get("freshness_claim_allowed") is not dataset.spec.reporting.freshness_claim_allowed:
+        errors.append("RELEASE_CARD freshness policy differs from benchmark spec")
+    card_audit = release_card.get("audit") if isinstance(release_card.get("audit"), dict) else {}
+    if card_audit.get("status") not in AUDIT_PASSED_STATUSES:
+        errors.append("RELEASE_CARD audit status must be audited-passed")
+    if card_audit.get("owner_signoff") not in {"audited_passed", "complete", "passed"}:
+        errors.append("RELEASE_CARD owner_signoff must be audited_passed")
+    if release_card.get("compatibility") != compatibility:
+        errors.append("RELEASE_CARD compatibility differs from manifest")
 
     actual_files = {
         path.relative_to(dataset.data_dir).as_posix()
@@ -382,6 +574,36 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     spec = dataset.spec
     expected = spec.expected
     dataset_version = dataset.manifest.get("dataset_version")
+    manifest_scoring = (
+        dataset.manifest.get("scoring")
+        if isinstance(dataset.manifest.get("scoring"), dict)
+        else {}
+    )
+    if _requires_canonical_metric_contract(dataset_version, manifest_scoring):
+        if manifest_scoring.get("primary_metric") != spec.scoring.primary_metric:
+            errors.append(
+                "manifest primary metric differs from benchmark spec: %s != %s"
+                % (manifest_scoring.get("primary_metric"), spec.scoring.primary_metric)
+            )
+        if "main_metric" in manifest_scoring:
+            errors.append("manifest must not expose a second main_metric")
+        if manifest_scoring.get("unit") != "ratio":
+            errors.append("manifest primary metric unit must be ratio")
+        content_lineage = (
+            dataset.manifest.get("content_lineage")
+            if isinstance(dataset.manifest.get("content_lineage"), dict)
+            else {}
+        )
+        for group in ("content_files", "audit_files"):
+            declared_hashes = content_lineage.get(group)
+            if not isinstance(declared_hashes, dict) or not declared_hashes:
+                continue
+            for relative, declared in declared_hashes.items():
+                path = dataset.data_dir / str(relative)
+                if not path.is_file():
+                    errors.append("content lineage file is missing: %s" % relative)
+                elif file_sha256(path) != declared:
+                    errors.append("content lineage hash is stale: %s" % relative)
     if not isinstance(dataset_version, str) or not dataset_version.strip():
         errors.append("manifest dataset_version must be a non-empty string")
     elif dataset_version != dataset.data_dir.name:
@@ -394,6 +616,29 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             "manifest schema_version: expected %s, got %s"
             % (SCHEMA_VERSION, dataset.manifest.get("schema_version"))
         )
+    quality = (
+        dataset.manifest.get("quality")
+        if isinstance(dataset.manifest.get("quality"), dict)
+        else {}
+    )
+    if quality.get("review_protocol") == "owner_attested_single_review":
+        required_passed = (
+            "owner_signoff",
+            "review_status",
+            "question_audit_status",
+            "answer_status",
+            "point_status",
+            "asset_status",
+        )
+        for field in required_passed:
+            if quality.get(field) not in {"audited_passed", "complete", "passed"}:
+                errors.append("owner-attested quality field %s is not audited-passed: %s" % (field, quality.get(field)))
+        for field in ("human_independent_review", "independent_review"):
+            value = quality.get(field)
+            if isinstance(value, str) and any(
+                marker in value.lower() for marker in ("pending", "waived", "provisional", "tbd", "todo")
+            ):
+                errors.append("owner-attested quality field %s is not settled: %s" % (field, value))
     question_ids = [q["id"] for q in dataset.questions]
     if len(question_ids) != len(set(question_ids)):
         errors.append("question IDs are not unique")
@@ -619,7 +864,9 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             "catalog_subjective_questions": len(dataset.catalog_subjective),
             "catalog_subjective_points": catalog_subjective_points,
             "image_required_questions": len(required_assets),
-            "question_audit_rows": 0,
+        "question_audit_rows": int(
+            (dataset.manifest.get("counts") or {}).get("question_audit_rows", 0)
+        ),
         }
 
     questions_by_id = {question["id"]: question for question in dataset.questions}
@@ -655,7 +902,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             errors.append("answer audit reviewed canonical differs from answer key for %s" % qid)
         if row.get("status") not in ANSWER_AUDIT_STATUSES:
             errors.append("answer audit has unknown status for %s: %s" % (qid, row.get("status")))
-        if row.get("human_independent_review") not in ("pending", "complete"):
+        if row.get("human_independent_review") not in REVIEW_STATES:
             errors.append("answer audit has invalid independent-review state for %s" % qid)
         if not str(row.get("decision", "")).strip():
             errors.append("answer audit has no decision for %s" % qid)
@@ -708,7 +955,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             errors.append("point audit current delta must be zero for %s" % qid)
         if row.get("status") not in POINT_AUDIT_STATUSES:
             errors.append("point audit has unknown status for %s: %s" % (qid, row.get("status")))
-        if row.get("human_independent_review") not in ("pending", "complete"):
+        if row.get("human_independent_review") not in REVIEW_STATES:
             errors.append("point audit has invalid independent-review state for %s" % qid)
         for source_id in row.get("source_ids") or []:
             if source_id not in source_ids:
@@ -754,7 +1001,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
                 errors.append("question audit has no derivation for %s" % qid)
             if not str(row.get("reviewer", "")).strip() or not str(row.get("reviewed_at", "")).strip():
                 errors.append("question audit has no reviewer or timestamp for %s" % qid)
-            if row.get("review_status") != "independently_derived_pending_owner_signoff":
+            if row.get("review_status") not in QUESTION_REVIEW_STATUSES:
                 errors.append("question audit has unexpected review status for %s" % qid)
             source = question.get("source") or {}
             if row.get("source_pdf_sha256") != source.get("source_pdf_sha256"):
@@ -780,6 +1027,47 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
 
     quality = dataset.manifest.get("quality") if isinstance(dataset.manifest.get("quality"), dict) else {}
     review_lineage = dataset.manifest.get("review_lineage")
+    if quality.get("review_protocol") == "owner_attested_single_review":
+        signoff_path = dataset.data_dir / "owner_signoff.json"
+        if not signoff_path.is_file():
+            errors.append("owner_signoff.json is missing")
+        else:
+            signoff = json.loads(signoff_path.read_text(encoding="utf-8"))
+            if signoff.get("status") not in {"audited_passed", "complete", "passed"}:
+                errors.append("owner_signoff status is not audited-passed")
+            if signoff.get("dataset_version") != dataset_version:
+                errors.append("owner_signoff is bound to a different dataset version")
+            if signoff.get("decision") != "accept_all" or signoff.get("owner_attested") is not True:
+                errors.append("owner_signoff does not record an accept-all owner attestation")
+            for name, digest in (signoff.get("input_sha256") or {}).items():
+                path = dataset.data_dir / str(name)
+                if not path.is_file():
+                    errors.append("owner_signoff input is missing: %s" % name)
+                elif digest != file_sha256(path):
+                    errors.append("owner_signoff input hash is stale: %s" % name)
+        review_rows = _read_jsonl(dataset.data_dir / "reviews.jsonl")
+        expected_ids = set(question_ids)
+        seen_ids: set[str] = set()
+        for row in review_rows:
+            target_id = str(row.get("target_id", ""))
+            if row.get("role") != "owner" or row.get("target_type") != "answer_and_points":
+                errors.append("owner-attested review has an unexpected role or target type: %s" % target_id)
+            if target_id in seen_ids:
+                errors.append("duplicate owner-attested review event: %s" % target_id)
+            seen_ids.add(target_id)
+            if row.get("decision") != "accept":
+                errors.append("owner-attested review is not accepted for %s" % target_id)
+            if row.get("value") != row.get("canonical_value"):
+                errors.append("owner-attested review value differs from canonical for %s" % target_id)
+            if not str(row.get("reviewed_at", "")).strip():
+                errors.append("owner-attested review has no timestamp for %s" % target_id)
+        if seen_ids != expected_ids:
+            errors.append(
+                "owner-attested review coverage differs from scored questions: %d/%d"
+                % (len(seen_ids), len(expected_ids))
+            )
+        if int(counts.get("review_records", -1)) != len(review_rows):
+            errors.append("manifest review_records does not match owner-attested reviews.jsonl")
     if quality.get("review_materialization") == "complete" or review_lineage is not None:
         if not isinstance(review_lineage, dict):
             errors.append("materialized dataset is missing review_lineage")
@@ -1349,7 +1637,7 @@ def _strip_text_answer(value: Any) -> str:
     return re.sub(r"\s+", " ", _strip_answer_prefix(value)).strip()
 
 
-def _match_slot(value: Any, slot: Mapping[str, Any]) -> Tuple[bool, str]:
+def _match_slot(value: Any, slot: Mapping[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
     matcher_config = slot["matcher"]
     if isinstance(matcher_config, Mapping):
         matcher = str(matcher_config.get("validator", matcher_config.get("id", "")))
@@ -1359,7 +1647,50 @@ def _match_slot(value: Any, slot: Mapping[str, Any]) -> Tuple[bool, str]:
     if matcher == "numeric":
         actual = parse_numeric_expression(value)
         expected = float(slot["value"])
-        return abs(actual - expected) <= tolerance, "numeric=%s" % actual
+        difference = abs(actual - expected)
+        rounding_places = slot.get("round_to_decimal_places")
+        rounding_meta: Dict[str, Any] = {}
+        if rounding_places is not None:
+            if (
+                isinstance(rounding_places, bool)
+                or not isinstance(rounding_places, int)
+                or rounding_places < 0
+            ):
+                raise ValueError("round_to_decimal_places must be a non-negative integer")
+            quantum = Decimal(1).scaleb(-rounding_places)
+            try:
+                rounded_actual = Decimal(str(actual)).quantize(quantum, rounding=ROUND_HALF_UP)
+                rounded_expected = Decimal(str(expected)).quantize(quantum, rounding=ROUND_HALF_UP)
+            except InvalidOperation as exc:
+                raise ValueError("numeric answer cannot be rounded") from exc
+            ok = rounded_actual == rounded_expected
+            borderline = ok and difference > 1e-12
+            borderline_candidate = not ok and difference <= float(quantum) * 2 + 1e-12
+            rounding_meta = {
+                "round_to_decimal_places": rounding_places,
+                "rounding_mode": "ROUND_HALF_UP",
+                "rounded_actual": str(rounded_actual),
+                "rounded_expected": str(rounded_expected),
+                "borderline_candidate": borderline_candidate,
+            }
+        else:
+            ok = difference <= tolerance + 1e-12
+            borderline = tolerance > 1e-6 and difference >= tolerance * 0.8
+            borderline_candidate = not ok and tolerance > 1e-6 and difference <= tolerance * 2 + 1e-12
+        return (
+            ok,
+            "numeric=%s" % actual,
+            {
+                "matcher": matcher,
+                "expected": expected,
+                "actual": actual,
+                "difference": difference,
+                "tolerance": tolerance,
+                "borderline": borderline,
+                "borderline_candidate": borderline_candidate,
+                **rounding_meta,
+            },
+        )
     if matcher == "interval":
         actual = parse_interval(value)
         expected = (
@@ -1369,31 +1700,31 @@ def _match_slot(value: Any, slot: Mapping[str, Any]) -> Tuple[bool, str]:
             bool(slot["high_inclusive"]),
         )
         if abs(actual[0] - expected[0]) > tolerance or abs(actual[1] - expected[1]) > tolerance:
-            return False, "interval endpoints differ"
+            return False, "interval endpoints differ", {"matcher": matcher}
         if actual[2] != expected[2] or actual[3] != expected[3]:
-            return False, "interval inclusion differs"
-        return True, "interval"
+            return False, "interval inclusion differs", {"matcher": matcher}
+        return True, "interval", {"matcher": matcher}
     if matcher == "set_tokens":
         actual = parse_set_tokens(value)
         expected = tuple(sorted(slot["tokens"]))
-        return actual == expected, "set=%s" % (actual,)
+        return actual == expected, "set=%s" % (actual,), {"matcher": matcher}
     if matcher == "vector_linear":
         actual = parse_vector_linear(value)
         expected = (float(slot["coefficient_a"]), float(slot["coefficient_b"]))
         if abs(actual[0] - expected[0]) <= tolerance and abs(actual[1] - expected[1]) <= tolerance:
-            return True, "vector=(%s,%s)" % (actual[0], actual[1])
-        return False, "vector coefficients differ"
+            return True, "vector=(%s,%s)" % (actual[0], actual[1]), {"matcher": matcher}
+        return False, "vector coefficients differ", {"matcher": matcher}
     if matcher == "exact":
         actual = _strip_text_answer(value)
         expected = str(slot["value"]).strip()
-        return actual == expected, "exact=%s" % actual
+        return actual == expected, "exact=%s" % actual, {"matcher": matcher}
     if matcher == "normalized_text":
         actual = _clean_text(_strip_text_answer(value))
         expected = _clean_text(slot["value"])
         if not bool(slot.get("case_sensitive", True)):
             actual = actual.casefold()
             expected = expected.casefold()
-        return actual == expected, "text=%s" % actual
+        return actual == expected, "text=%s" % actual, {"matcher": matcher}
     raise ValueError("unknown matcher %r" % matcher)
 
 
@@ -1483,15 +1814,33 @@ def score_question(
             return result
 
         normalized: List[str] = []
-        for slot_value, slot in zip(slot_values, slots):
-            ok, detail = _match_slot(slot_value, slot)
+        slot_matches: List[Dict[str, Any]] = []
+        for slot_index, (slot_value, slot) in enumerate(zip(slot_values, slots), 1):
+            ok, detail, match_meta = _match_slot(slot_value, slot)
             normalized.append(detail)
+            slot_matches.append({"slot": slot_index, **match_meta})
             if not ok:
                 result["normalized_answer"] = "；".join(normalized)
+                result["slot_matches"] = slot_matches
+                borderline_candidate = any(
+                    bool(item.get("borderline_candidate")) for item in slot_matches
+                )
+                result["borderline"] = False
+                result["borderline_candidate"] = borderline_candidate
                 result.update({"status": "incorrect", "reason": "slot %s differs" % (len(normalized))})
                 return result
         result["normalized_answer"] = "；".join(normalized)
-        result.update({"awarded": points, "status": "correct", "reason": "all answer slots match"})
+        result["slot_matches"] = slot_matches
+        borderline = any(bool(item.get("borderline")) for item in slot_matches)
+        result.update(
+            {
+                "awarded": points,
+                "status": "correct",
+                "borderline": borderline,
+                "borderline_candidate": False,
+                "reason": "all answer slots match within a borderline tolerance" if borderline else "all answer slots match",
+            }
+        )
         return result
     except (ValueError, TypeError, ZeroDivisionError) as exc:
         result.update({"status": "parse_error", "reason": str(exc)})
@@ -1508,6 +1857,7 @@ def _metric(
     scope: str,
     definition: str,
     coverage: Mapping[str, Any],
+    role: str = "diagnostic",
 ) -> Dict[str, Any]:
     return {
         "id": metric_id,
@@ -1519,6 +1869,7 @@ def _metric(
         "numerator_unit": numerator_unit,
         "definition": definition,
         "scope": scope,
+        "role": role,
         "coverage": dict(coverage),
     }
 
@@ -1624,6 +1975,7 @@ def evaluate_submission(
         scope=scope,
         definition="earned reviewed exam points divided by possible points in the declared scope",
         coverage=coverage,
+        role="primary",
     )
     exact_accuracy = _metric(
         "diagnostic.exact_accuracy",
@@ -1634,6 +1986,7 @@ def evaluate_submission(
         scope=scope,
         definition="fully correct questions divided by questions in the declared scope",
         coverage=coverage,
+        role="diagnostic",
     )
     paper_accuracies = [paper_summaries[paper_id]["point_accuracy"] for paper_id in paper_summaries]
     paper_equal = _metric(
@@ -1645,6 +1998,7 @@ def evaluate_submission(
         scope=scope,
         definition="equal-weight mean of paper point accuracies; diagnostic only, never the primary score",
         coverage=coverage,
+        role="diagnostic",
     )
 
     required_ids = {
@@ -1670,6 +2024,7 @@ def evaluate_submission(
                 "slice_questions": len(text_rows),
                 "slice_possible_points": text_possible,
             },
+            role="diagnostic",
         ),
         "vision_required": _metric(
             "slice.vision_required.weighted_points",
@@ -1683,7 +2038,10 @@ def evaluate_submission(
                 **coverage,
                 "slice_questions": len(vision_rows),
                 "slice_possible_points": vision_possible,
+                "minimum_questions_for_standalone_ranking": dataset.spec.reporting.min_visual_questions_for_ranking,
+                "small_sample_warning": len(vision_rows) < dataset.spec.reporting.min_visual_questions_for_ranking,
             },
+            role=dataset.spec.reporting.visual_slice_role,
         ),
         "text_on_scope_denominator": _metric(
             "slice.text_on_scope_denominator.weighted_points",
@@ -1694,11 +2052,18 @@ def evaluate_submission(
             scope=scope,
             definition="text-answerable earned points divided by the full selected-scope denominator",
             coverage=coverage,
+            role="diagnostic",
         ),
     }
 
     unexpected_ids = sorted(set(answers) - known_ids)
     out_of_scope_ids = sorted((set(answers) & known_ids) - selected_ids)
+    borderline_ids = sorted(
+        row["question_id"] for row in results if bool(row.get("borderline"))
+    )
+    borderline_candidate_ids = sorted(
+        row["question_id"] for row in results if bool(row.get("borderline_candidate"))
+    )
     metrics = {
         weighted_points["id"]: weighted_points,
         exact_accuracy["id"]: exact_accuracy,
@@ -1706,7 +2071,7 @@ def evaluate_submission(
         **{metric["id"]: metric for metric in slices.values()},
     }
     return {
-        "schema_version": "2.0",
+        "schema_version": SUMMARY_SCHEMA_VERSION,
         "dataset": "Gaokao-Bench",
         "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
         "benchmark_spec": {
@@ -1727,11 +2092,42 @@ def evaluate_submission(
             "earned_points": total_awarded,
             "possible_points": total_possible,
             "correct_questions": correct_questions,
+            "borderline_questions": len(borderline_ids),
+            "borderline_question_ids": borderline_ids,
+            "borderline_candidate_questions": len(borderline_candidate_ids),
+            "borderline_candidate_question_ids": borderline_candidate_ids,
             "total_questions": len(results),
             "failure_counts": failure_counts,
             "primary_metric": weighted_points,
             "slices": slices,
             "papers": paper_summaries,
+        },
+        "reporting": {
+            "leaderboard_class": dataset.spec.reporting.leaderboard_class,
+            "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,
+            "held_out": dataset.spec.reporting.held_out,
+            "canonical_min_repeats": dataset.spec.reporting.canonical_min_repeats,
+            "canonical_timeout_seconds": dataset.spec.reporting.canonical_timeout_seconds,
+            "canonical_max_tokens": dataset.spec.reporting.canonical_max_tokens,
+            "constrained_reasoning_budget": dataset.spec.reporting.constrained_reasoning_budget,
+            "min_visual_questions_for_ranking": dataset.spec.reporting.min_visual_questions_for_ranking,
+            "visual_slice_role": dataset.spec.reporting.visual_slice_role,
+            "rounding_policy": dataset.spec.reporting.rounding_policy,
+            "live_track_required": dataset.spec.reporting.live_track_required,
+            "tracks": [
+                {
+                    "id": dataset.spec.reporting.leaderboard_class,
+                    "status": "active",
+                    "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,
+                    "held_out": dataset.spec.reporting.held_out,
+                },
+                {
+                    "id": "post_cutoff_live",
+                    "status": "required" if dataset.spec.reporting.live_track_required else "optional",
+                    "freshness_claim_allowed": True,
+                    "held_out": True,
+                },
+            ],
         },
         "unexpected_answer_ids": unexpected_ids,
         "out_of_scope_answer_ids": out_of_scope_ids,

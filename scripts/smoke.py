@@ -18,11 +18,12 @@ from gaokao_bench.scoring import (  # noqa: E402
     load_dataset,
     validate_dataset,
 )
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.3")
+    parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     parser.add_argument("--output", help="defaults to reports/<dataset-version>-smoke.json")
     args = parser.parse_args()
 

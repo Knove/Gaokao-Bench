@@ -39,6 +39,7 @@ build/
 /scripts/materialize_release_tag.py
 /tests/*
 !/tests/test_public_contract.py
+!/tests/test_release_contract.py
 
 # Source PDFs and question crops are local inputs and are never redistributed.
 *.pdf

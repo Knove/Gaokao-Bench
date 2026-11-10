@@ -33,10 +33,16 @@ def validate_q13_gate(row: Mapping[str, Any], errors: List[str]) -> None:
 
     if str(row.get("canonical") if "canonical" in row else row.get("reviewed_canonical")) != "2":
         errors.append("Q13 canonical answer must be 2")
-    if row.get("status") not in {
+    resolved_statuses = {
         "source_and_derivation_confirmed",
         "owner_and_two_independent_reviewers_complete",
-    }:
+        "audited_passed",
+    }
+    if row.get("status") in {"owner_attested_complete", "audited_passed"}:
+        resolved_statuses.add(str(row.get("status")))
+        if row.get("pre_attestation_status") != "source_and_derivation_confirmed":
+            errors.append("Q13 owner attestation must preserve source-and-derivation evidence")
+    if row.get("status") not in resolved_statuses:
         errors.append("Q13 audit must retain source-and-derivation evidence before or after signoff")
     if str(row.get("external_canonical")) != "2" or str(row.get("secondary_external_canonical")) != "2":
         errors.append("Q13 visible source answer values must both be 2")

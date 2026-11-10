@@ -13,12 +13,13 @@ sys.path.insert(0, str(ROOT))
 
 from gaokao_bench.release import resolve_release_report_paths  # noqa: E402
 from gaokao_bench.release_bundle import ReleaseBundleError, build_release_bundle  # noqa: E402
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=("internal-candidate", "public-code", "public-candidate"), required=True)
-    parser.add_argument("--data-dir", default="data/0.0.3")
+    parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     parser.add_argument("--output-dir", default="dist")
     parser.add_argument("--allow-blocked", action="store_true", help="build a clearly marked blocked diagnostic bundle")
     parser.add_argument("--owner-report", help="defaults from the dataset's review-materialisation lineage")

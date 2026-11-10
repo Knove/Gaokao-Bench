@@ -22,6 +22,7 @@ from .scoring import (
     load_dataset,
     validate_dataset,
 )
+from .version import compatibility_matrix
 
 
 SUBJECT_TAGS = {
@@ -136,6 +137,145 @@ def _write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> None:
     path.write_text(payload, encoding="utf-8")
 
 
+def _copy_audit_evidence(source: Path, output: Path) -> Dict[str, Any]:
+    """Publish the audited evidence bundle instead of only a pass/fail flag."""
+
+    destination = output / "audit"
+    destination.mkdir()
+    copied = (
+        "answer_audit.jsonl",
+        "answer_sources.jsonl",
+        "asset_audit.jsonl",
+        "owner_signoff.json",
+        "point_audit.jsonl",
+        "question_audit.jsonl",
+        "review_protocol.json",
+        "reviews.jsonl",
+        "sources.jsonl",
+    )
+    for name in copied:
+        source_path = source / name
+        if not source_path.is_file():
+            raise ValueError("audited package is missing review evidence: %s" % name)
+        shutil.copy2(source_path, destination / name)
+    counts = {
+        "answer_audit": len(_read_jsonl(destination / "answer_audit.jsonl")),
+        "asset_audit": len(_read_jsonl(destination / "asset_audit.jsonl")),
+        "point_audit": len(_read_jsonl(destination / "point_audit.jsonl")),
+        "question_audit": len(_read_jsonl(destination / "question_audit.jsonl")),
+        "reviews": len(_read_jsonl(destination / "reviews.jsonl")),
+    }
+    source_signoff_path = source / "owner_signoff.json"
+    source_signoff = json.loads(source_signoff_path.read_text(encoding="utf-8"))
+    public_questions = _read_jsonl(output / "questions.jsonl")
+    public_signoff_inputs = (
+        "questions.jsonl",
+        "answer_keys.jsonl",
+        "benchmark_spec.json",
+        "audit/answer_audit.jsonl",
+        "audit/question_audit.jsonl",
+        "audit/point_audit.jsonl",
+        "audit/asset_audit.jsonl",
+        "audit/reviews.jsonl",
+        "audit/review_protocol.json",
+    )
+    public_signoff = {
+        "schema_version": "1.0",
+        "dataset": "Gaokao-Bench",
+        "dataset_version": output.name,
+        "review_type": "derived_public_projection_owner_attestation",
+        "status": "audited_passed",
+        "decision": "accept_all",
+        "owner_attested": True,
+        "reviewer": source_signoff["reviewer"],
+        "review_scope": "all_public_scored_questions_answers_points_and_figure_assets",
+        "counts": {
+            "questions": len(public_questions),
+            "points": sum(int(question["points"]) for question in public_questions),
+            "review_events": counts["reviews"],
+            "answer_audit_rows": counts["answer_audit"],
+            "question_audit_rows": counts["question_audit"],
+            "point_audit_rows": counts["point_audit"],
+            "asset_audit_rows": counts["asset_audit"],
+        },
+        "source_dataset_version": source_signoff.get("source_dataset_version"),
+        "source_manifest_sha256": source_signoff.get("source_manifest_sha256"),
+        "source_owner_signoff_sha256": _sha256(source_signoff_path),
+        "input_sha256": {
+            name: _sha256(output / name)
+            for name in public_signoff_inputs
+        },
+        "derivation": {
+            "type": "deterministic_public_projection",
+            "source_owner_signoff_sha256": _sha256(source_signoff_path),
+            "statement": (
+                "The owner's source attestation is carried into the sanitized public projection; "
+                "the hashes below bind that attestation to the exact public files."
+            ),
+        },
+        "attestation": (
+            "The project owner reviewed every scored answer, question, point entry, and figure asset. "
+            "This public projection preserves the reviewed values and is bound by the listed hashes."
+        ),
+    }
+    (destination / "owner_signoff.json").write_text(
+        json.dumps(public_signoff, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    summary = {
+        "schema_version": "1.0",
+        "status": "audited_passed",
+        "review_protocol": "owner_attested_single_review",
+        "owner_signoff": "audited_passed",
+        "review_status": "audited_passed",
+        "counts": counts,
+        "rows": counts,
+        "notes": (
+            "The %s closure records an explicit owner attestation over every scored item. "
+            "The public projection carries a derived attestation bound to its own file hashes; "
+            "no external independent reviewers are claimed."
+        )
+        % source.name,
+    }
+    (destination / "summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (destination / "README.md").write_text(
+        "# Audit Evidence\n\n"
+        "This directory contains the row-level answer, question, points, asset, and review ledgers. "
+        "`owner_signoff.json` records the owner's attestation; `review_protocol.json` states the "
+        "closure protocol. Counts and status are repeated in `summary.json` and `manifest.json`.\n",
+        encoding="utf-8",
+    )
+    return summary
+
+
+def _compatibility_text(compatibility: Mapping[str, Any]) -> str:
+    return """# Compatibility Matrix
+
+This data package must be cited with all of the following versions. Dataset and
+engine versions are independent release tracks.
+
+| Artifact | Version |
+| --- | --- |
+| Engine | `{engine}` |
+| Harness | `{harness}` |
+| Scorer | `{scorer}` |
+| Dataset | `{dataset}` |
+| Benchmark Spec | `{benchmark_spec}` |
+| Benchmark Spec schema | `{benchmark_spec_schema}` |
+| Data schema | `{data_schema}` |
+| Summary schema | `{summary_schema}` |
+| Metric protocol | `{metric_version}` |
+| Minimum compatible engine | `{minimum_engine}` |
+
+The canonical result is `score.weighted_points`, a `0-1` ratio. A percentage is
+display-only: `100 x ratio`. Diagnostic metrics, including paper-equal and
+text/vision slices, must never replace the primary metric.
+""".format(**dict(compatibility))
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -247,6 +387,12 @@ def _dataset_card(
         subject,
     )
     catalog_questions = int(audit.get("catalog_subjective_questions", 0))
+    leaderboard_class = (
+        spec.reporting.leaderboard_class if spec is not None else "retrospective_public"
+    )
+    freshness_claim_allowed = bool(spec.reporting.freshness_claim_allowed) if spec is not None else False
+    review_records = int(audit.get("review_records", 0))
+    audit_rows = int(audit.get("question_audit_rows", 0))
     spec_file_line = (
         "`benchmark_spec.json`：题型、答案形状、视图、分母和评分协议；"
         if benchmark_spec
@@ -322,6 +468,8 @@ Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包
 | 文本模式 | **{text_questions} 题 / {text_points} 分可达**，以 {points} 分为固定分母 |
 | 视觉模式 | **{questions} 题 / {points} 分** |
 | 主观题目录 | {catalog_questions} 题 / {catalog_points} 分，编目但不计分 |
+| 榜单类别 | `{leaderboard_class}` |
+| 新鲜度声明 | {freshness_label} |
 
 ## 快速开始
 
@@ -360,6 +508,7 @@ gaokao-bench validate --data-dir data/{version}
 - `answer_keys.jsonl`：答案键和空位定义；
 - `assets.jsonl` 与 `assets/`：{image_questions} 道图形必需题的裁图、字节数与哈希；
 - {catalog_file_line}
+- `audit/`：{audit_rows} 行逐题审计、{review_records} 条验收记录、owner 签字和复核协议；
 - `examples/`：空提交、标准答案和非法提交示例。
 - `CITATION.cff`：与数据版本绑定的引用信息。
 
@@ -372,6 +521,8 @@ gaokao-bench validate --data-dir data/{version}
 | `papers.jsonl` | `id`、`title`、`year`、`region`、`objective_points`、`pdf_url` | {paper_count} 套试卷元数据与来源 |
 | `assets.jsonl` | `question_id`、`path`、`bytes`、`sha256`、`dependency` | {image_questions} 道图形必需题的裁图索引 |
 | `catalog/subjective_catalog.jsonl` | `id`、`type`、`content`、`points`、`included_in_scoring` | 主观题目录，仅作后续扩展记录 |
+| `audit/question_audit.jsonl` | `question_id`、`stem_verdict`、`answer_verdict`、`review_status` | {audit_rows} 道题的题面、答案、图形和分值审计 |
+| `audit/reviews.jsonl` | `target_id`、`decision`、`reviewed_at` | {review_records} 条 owner 验收事件 |
 
 Dataset Viewer 使用单一 `questions` config 展示 {questions} 道计分题；其他 JSONL 保留为直接下载文件，避免不同字段结构混表。评分答案键 `answer_keys.jsonl` 供 Harness 读取，其中 `canonical` 同时包含单值和多空数组，不交给 Viewer 自动推断。
 
@@ -398,9 +549,17 @@ $$
 | Text | {text_questions} 题 / {text_points} 分 | {points} 分 | {image_questions} 道图形题不发送，直接记 0 分 |
 | Vision | {questions} 题 / {points} 分 | {points} 分 | 仅为 {image_questions} 道图形题附带必需裁图 |
 
+视觉切片只有 {image_questions} 题；它用于诊断图形理解，不足以单独估计模型的多模态能力，也不应作为独立视觉榜单的唯一依据。
+
 ## 污染说明
 
 {years_label} 年高考题目已经公开，可能存在于模型训练或检索语料中。所有结果必须标注 `{score_label}`，不得声称这是 held-out、零污染或“新鲜能力”评测。
+
+本数据包属于 `{leaderboard_class}` 历史公开题榜单，不与 post-cutoff / live 新题榜单混排。
+
+## 审计与复核
+
+本版本已完成逐题审计收口：`review_status=audited_passed`，`owner_signoff={owner_signoff}`，`review_protocol=owner_attested_single_review`。`audit/` 提供 {audit_rows} 行逐题审计证据和 {review_records} 条验收记录。该表述是 owner 对全部计分项的责任性 attestation，不虚构两名外部独立审阅人。
 
 ## 许可与来源
 
@@ -462,6 +621,12 @@ $$
         public_ranking_allowed=str(public_ranking_allowed).lower(),
         ranking_policy=ranking_policy,
         score_label=score_label,
+        leaderboard_class=leaderboard_class,
+        freshness_claim_allowed=freshness_claim_allowed,
+        freshness_label="允许" if freshness_claim_allowed else "不允许",
+        review_records=review_records,
+        audit_rows=audit_rows,
+        owner_signoff=str(audit.get("owner_signoff", "complete")),
     )
 
 
@@ -568,6 +733,7 @@ def _build_manifest(
     created_at: str,
     spec: Optional[BenchmarkSpec] = None,
     benchmark_spec_ref: Optional[str] = None,
+    audit_evidence: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     file_map: Dict[str, Dict[str, Any]] = {}
     for path in sorted(output.rglob("*")):
@@ -584,12 +750,48 @@ def _build_manifest(
         source_release.get("score_label")
         or ("retrospective_public_%s" % "-".join(str(year) for year in years) if years else "public_retrospective")
     )
+    if spec is None:
+        raise ValueError("public data releases must ship a benchmark spec")
+    leaderboard_class = spec.reporting.leaderboard_class
+    compatibility = compatibility_matrix(
+        dataset_version=output.name,
+        benchmark_spec_version=spec.version,
+        metric_version=spec.scoring.metric_version,
+    )
+    scoring = {
+        "contract": "single_primary_metric_v1",
+        "primary_metric": spec.scoring.primary_metric,
+        "metric_version": spec.scoring.metric_version,
+        "definition": "earned reviewed exam points divided by possible points in the declared scope",
+        "unit": "ratio",
+        "percentage_display": "100 * ratio; display only, never a second score",
+        "partial_credit": spec.scoring.partial_credit,
+        "missing_or_invalid_is_zero": True,
+        "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
+    }
+    audit_block = dict(audit_evidence or {})
+    audit_counts = dict(audit_block.get("counts") or {})
+    audit_block["rows"] = audit_counts
+    audit_block["files"] = {
+        name: "audit/%s" % name
+        for name in (
+            "answer_audit.jsonl",
+            "answer_sources.jsonl",
+            "asset_audit.jsonl",
+            "owner_signoff.json",
+            "point_audit.jsonl",
+            "question_audit.jsonl",
+            "review_protocol.json",
+            "reviews.jsonl",
+            "sources.jsonl",
+        )
+    }
     manifest = {
         "dataset": "Gaokao-Bench",
         "dataset_version": output.name,
         "schema_version": "1.0",
         "package_profile": PUBLIC_PACKAGE_PROFILE,
-        "status": "public_data_release",
+        "status": "audited_passed",
         "release_channel": "huggingface",
         "public_release": True,
         "created_at": created_at,
@@ -609,11 +811,25 @@ def _build_manifest(
             "text_reachable_points": audit["text_points"],
             "catalog_subjective_questions": audit["catalog_subjective_questions"],
             "catalog_subjective_points": audit["catalog_subjective_points"],
+            "answer_audit_rows": int(audit_counts.get("answer_audit", 0)),
+            "question_audit_rows": int(audit_counts.get("question_audit", 0)),
+            "point_audit_rows": int(audit_counts.get("point_audit", 0)),
+            "asset_audit_rows": int(audit_counts.get("asset_audit", 0)),
+            "review_records": int(audit_counts.get("reviews", 0)),
         },
         "points": source_manifest.get("points"),
-        "scoring": source_manifest.get("scoring"),
+        "scoring": scoring,
         "benchmark_spec": benchmark_spec_ref,
         "quality": source_manifest.get("quality"),
+        "audit": audit_block,
+        "review_evidence": {
+            "status": "audited_passed",
+            "protocol": "owner_attested_single_review",
+            "owner_signoff": "audited_passed",
+            "review_status": "audited_passed",
+            "review_records": int((audit_evidence or {}).get("counts", {}).get("reviews", 0)),
+        },
+        "compatibility": compatibility,
         "rights": {
             "dataset_license": "CC-BY-4.0",
             "code_license": "Apache-2.0",
@@ -633,7 +849,51 @@ def _build_manifest(
                 else "not_allowed_without_written_authorization"
             ),
             "score_label": score_label,
+            "release_card": "RELEASE_CARD.json",
+            "compatibility": "COMPATIBILITY.md",
+            "leaderboard_class": leaderboard_class,
+            "public_ranking_scope": leaderboard_class,
+            "freshness_claim_allowed": spec.reporting.freshness_claim_allowed,
+            "held_out": spec.reporting.held_out,
+            "separate_live_leaderboard_required": spec.reporting.live_track_required,
+            "canonical_min_repeats": spec.reporting.canonical_min_repeats,
+            "canonical_timeout_seconds": spec.reporting.canonical_timeout_seconds,
+            "canonical_max_tokens": spec.reporting.canonical_max_tokens,
+            "constrained_reasoning_budget": spec.reporting.constrained_reasoning_budget,
+            "min_visual_questions_for_ranking": spec.reporting.min_visual_questions_for_ranking,
+            "visual_slice_role": spec.reporting.visual_slice_role,
+            "rounding_policy": spec.reporting.rounding_policy,
+            "live_track_required": spec.reporting.live_track_required,
         },
+        "leaderboard": {
+            "class": leaderboard_class,
+            "public_ranking_scope": leaderboard_class,
+            "freshness_claim_allowed": spec.reporting.freshness_claim_allowed,
+            "held_out": spec.reporting.held_out,
+            "post_cutoff_live_track_required": spec.reporting.live_track_required,
+            "canonical_min_repeats": spec.reporting.canonical_min_repeats,
+            "canonical_timeout_seconds": spec.reporting.canonical_timeout_seconds,
+            "canonical_max_tokens": spec.reporting.canonical_max_tokens,
+            "constrained_reasoning_budget": spec.reporting.constrained_reasoning_budget,
+            "min_visual_questions_for_ranking": spec.reporting.min_visual_questions_for_ranking,
+            "visual_slice_role": spec.reporting.visual_slice_role,
+            "rounding_policy": spec.reporting.rounding_policy,
+            "tracks": [
+                {
+                    "id": leaderboard_class,
+                    "status": "active",
+                    "freshness_claim_allowed": spec.reporting.freshness_claim_allowed,
+                    "held_out": spec.reporting.held_out,
+                },
+                {
+                    "id": "post_cutoff_live",
+                    "status": "required" if spec.reporting.live_track_required else "optional",
+                    "freshness_claim_allowed": True,
+                    "held_out": True,
+                },
+            ],
+        },
+        "versions": compatibility,
         "files": file_map,
     }
     return manifest
@@ -685,6 +945,20 @@ def build_public_data_package(
     catalog_path = source / "catalog" / "subjective_catalog.jsonl"
     catalog = _project_rows(_read_jsonl(catalog_path) if catalog_path.is_file() else [], PUBLIC_CATALOG_FIELDS)
     audit = _public_audit(papers=papers, questions=questions, catalog=catalog, spec=spec)
+    source_counts = source_manifest.get("counts") if isinstance(source_manifest.get("counts"), dict) else {}
+    source_quality = source_manifest.get("quality") if isinstance(source_manifest.get("quality"), dict) else {}
+    audit.update(
+        {
+            "answer_audit_rows": int(source_counts.get("answer_audit_rows", 0)),
+            "question_audit_rows": int(source_counts.get("question_audit_rows", 0)),
+            "point_audit_rows": int(source_counts.get("point_audit_rows", 0)),
+            "asset_audit_rows": int(source_counts.get("asset_audit_rows", 0)),
+            "review_records": int(source_counts.get("review_records", 0)),
+            "review_status": source_quality.get("review_status", "passed"),
+            "owner_signoff": source_quality.get("owner_signoff"),
+            "human_independent_review": source_quality.get("human_independent_review"),
+        }
+    )
     created = created_at or dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
     audit["created_at"] = created
 
@@ -719,6 +993,7 @@ def build_public_data_package(
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source / relative_path, destination)
     shutil.copytree(source / "examples", output / "examples")
+    audit_evidence = _copy_audit_evidence(source, output)
     shutil.copy2(project_root / "LICENSE-DATA", output / "LICENSE-DATA")
     (output / "brand").mkdir()
     shutil.copy2(
@@ -758,6 +1033,89 @@ def build_public_data_package(
         ),
         encoding="utf-8",
     )
+    compatibility = compatibility_matrix(
+        dataset_version=output.name,
+        benchmark_spec_version=spec.version,
+        metric_version=spec.scoring.metric_version,
+    )
+    release_info = source_manifest.get("release") if isinstance(source_manifest.get("release"), dict) else {}
+    release_card = {
+        "schema_version": "1.1",
+        "dataset": "Gaokao-Bench",
+        "dataset_version": output.name,
+        "release_tag": "v%s" % output.name,
+        "release_channel": "huggingface",
+        "created_at": created,
+        "subject": spec.subject,
+        "years": list(spec.years),
+        "license": "CC-BY-4.0",
+        "counts": {
+            "papers": int(audit["papers"]),
+            "questions": int(audit["questions"]),
+            "points": int(audit["objective_points"]),
+            "answer_slots": int(audit["answer_slots"]),
+            "vision_required_questions": int(audit["image_required_questions"]),
+        },
+        "scoring": {
+            "contract": "single_primary_metric_v1",
+            "primary_metric": spec.scoring.primary_metric,
+            "unit": "ratio",
+            "metric_version": spec.scoring.metric_version,
+            "definition": "earned reviewed exam points divided by possible points in the declared scope",
+            "partial_credit": spec.scoring.partial_credit,
+            "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
+        },
+        "reporting": {
+            "leaderboard_class": spec.reporting.leaderboard_class,
+            "score_label": str(release_info.get("score_label") or "retrospective_public_%s" % "-".join(str(year) for year in spec.years)),
+            "freshness_claim_allowed": spec.reporting.freshness_claim_allowed,
+            "held_out": spec.reporting.held_out,
+            "canonical_min_repeats": spec.reporting.canonical_min_repeats,
+            "canonical_timeout_seconds": spec.reporting.canonical_timeout_seconds,
+            "canonical_max_tokens": spec.reporting.canonical_max_tokens,
+            "constrained_reasoning_budget": spec.reporting.constrained_reasoning_budget,
+            "min_visual_questions_for_ranking": spec.reporting.min_visual_questions_for_ranking,
+            "visual_slice_role": spec.reporting.visual_slice_role,
+            "rounding_policy": spec.reporting.rounding_policy,
+            "public_ranking_allowed": bool(release_info.get("public_ranking_allowed", False)),
+            "live_track_required": spec.reporting.live_track_required,
+            "tracks": [
+                {
+                    "id": spec.reporting.leaderboard_class,
+                    "status": "active",
+                    "freshness_claim_allowed": spec.reporting.freshness_claim_allowed,
+                    "held_out": spec.reporting.held_out,
+                },
+                {
+                    "id": "post_cutoff_live",
+                    "status": "required" if spec.reporting.live_track_required else "optional",
+                    "freshness_claim_allowed": True,
+                    "held_out": True,
+                },
+            ],
+        },
+        "audit": {
+            "status": "audited_passed",
+            "protocol": "owner_attested_single_review",
+            "owner_signoff": "audited_passed",
+            "review_status": "audited_passed",
+            "counts": {
+                "questions": int(audit.get("question_audit_rows", 0)),
+                "points": int(audit["objective_points"]),
+                "answer_audit": int(audit_evidence["counts"].get("answer_audit", 0)),
+                "question_audit": int(audit_evidence["counts"].get("question_audit", 0)),
+                "point_audit": int(audit_evidence["counts"].get("point_audit", 0)),
+                "asset_audit": int(audit_evidence["counts"].get("asset_audit", 0)),
+                "reviews": int(audit.get("review_records", 0)),
+            },
+        },
+        "compatibility": compatibility,
+    }
+    (output / "COMPATIBILITY.md").write_text(_compatibility_text(compatibility), encoding="utf-8")
+    (output / "RELEASE_CARD.json").write_text(
+        json.dumps(release_card, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     manifest = _build_manifest(
         source_manifest=source_manifest,
         output=output,
@@ -766,6 +1124,7 @@ def build_public_data_package(
         created_at=created,
         spec=spec,
         benchmark_spec_ref=benchmark_spec_ref,
+        audit_evidence=audit_evidence,
     )
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

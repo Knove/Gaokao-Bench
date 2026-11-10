@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine 版本 0.1.2" src="https://img.shields.io/badge/engine-0.1.2-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine 版本 0.1.4" src="https://img.shields.io/badge/engine-0.1.4-171513?style=flat-square"></a>
   <a href="#计分规则"><img alt="确定性评分" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Hugging Face 数据集" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -53,9 +53,9 @@
 
 ## 数据集概览
 
-当前 `0.0.3` 收录 **2025 年高考数学** 5 套试卷的全部客观题：
+当前 `0.0.4` 收录 **2025 年高考数学** 5 套试卷的全部客观题：
 
-| 维度 | `0.0.3` 数据规格 |
+| 维度 | `0.0.4` 数据规格 |
 | --- | --- |
 | **年份与科目** | 2025 · 数学 |
 | **覆盖试卷** | 5 套（全国一卷、全国二卷、北京卷、上海卷、天津卷） |
@@ -65,7 +65,7 @@
 | **纯文本模式（Text）** | 实际作答 **70 题 / 满分上限 334 分**（仍以 353 分为总分母） |
 | **多模态模式（Vision）** | 完整作答 **74 题 / 353 分**（对 4 道含图题附带原题裁图） |
 | **数据许可** | **CC BY 4.0** |
-| **分发地址** | [Hugging Face 数据集](https://huggingface.co/datasets/Knove/Gaokao-Bench)，版本 `v0.0.3` |
+| **分发地址** | [Hugging Face 数据集](https://huggingface.co/datasets/Knove/Gaokao-Bench)，版本 `v0.0.4` |
 
 *注：353 分是 5 套试卷客观题真实分值的累加，不会按线性比例虚构折算成 750 分总分。*
 
@@ -80,7 +80,7 @@
 
 1. **匿名化提问：** 评测框架逐题独立请求模型，隐去试卷年份、地区、题号等元信息，仅要求模型返回结构化 JSON 答案。
 2. **确定性判分：** 解析器对模型输出做数学规范化处理（支持分数、根式、区间、集合、LaTeX 公式及多选组合），直接与标准答案比对。
-3. **多轮盲审固化：** 每个数据集版本在发布前，均需完成来源登记、独立解题推导、卷面分值核对以及两名审校员的独立复核签字。
+3. **审计闭环固化：** 每个数据集版本在发布前，均需完成来源登记、解题推导、卷面分值核对、题图复核和明确的 owner 审计签字。发布状态统一为 `audited_passed`；没有发生独立复核时不会写成已完成。
 
 ## 快速上手
 
@@ -108,13 +108,13 @@ python -m pytest -q
 
 ```bash
 python -m pip install -e ".[data]"
-gaokao-bench fetch-data --version 0.0.3
+gaokao-bench fetch-data --version 0.0.4
 
-export GB_DATA=data/0.0.3
+export GB_DATA=data/0.0.4
 gaokao-bench validate --data-dir "$GB_DATA"
 ```
 
-命令会下载 `v0.0.3` 到 `data/0.0.3`，清理 Hugging Face 缓存元数据，并拒绝使用未通过校验或不属于该仓库的目录。也可以手动下载：
+命令会下载 `v0.0.4` 到 `data/0.0.4`，清理 Hugging Face 缓存元数据，并拒绝使用未通过校验或不属于该仓库的目录。也可以手动下载：
 
 ```bash
 python - <<'PY'
@@ -122,11 +122,11 @@ from huggingface_hub import snapshot_download
 snapshot_download(
     repo_id="Knove/Gaokao-Bench",
     repo_type="dataset",
-    revision="v0.0.3",
-    local_dir="data/0.0.3",
+    revision="v0.0.4",
+    local_dir="data/0.0.4",
 )
 PY
-gaokao-bench validate --data-dir data/0.0.3
+gaokao-bench validate --data-dir data/0.0.4
 ```
 
 `GB_DATA` 指向具体的版本目录，而不是仓库根目录。不要混用不同版本的文件。
@@ -153,7 +153,7 @@ gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json
 
 ### 4. 运行完整模型评测
 
-配置好模型的 API Key 后，即可启动端到端评测。默认建议在 `temperature=0` 下重复运行 3 次：
+配置好模型的 API Key 后，即可启动端到端评测。canonical 运行使用 `temperature=0`、至少 5 次重复、900 秒超时和 32768 输出 token 上限：
 
 ```bash
 export OPENAI_API_KEY=...
@@ -164,7 +164,7 @@ python3 scripts/run_benchmark.py \
   --model "<model-snapshot>" \
   --api-key-env OPENAI_API_KEY \
   --modality vision \
-  --repeats 3 \
+  --repeats 5 \
   --temperature 0 \
   --output-dir runs/<run-id>
 ```
@@ -182,31 +182,31 @@ python3 scripts/run_benchmark.py \
   --provider-pin "<上游-provider>" \
   --allow-fallbacks false \
   --max-tokens 32768 \
-  --reasoning-budget 8192 \
   --resume \
   --output-dir runs/<run-id>
 ```
 
-`--max-tokens` 是完成 token 上限，在很多模型上包含隐藏推理 token；`--reasoning-budget` 可选，且必须小于 `--max-tokens`。进度事件以 JSON 行输出到 stderr；中断后使用 `--resume` 继续，`--retry-failed` 只在同一协议下重试 provider 错误、运行器错误和截断输出。
+`--max-tokens` 是完成 token 上限，在很多模型上包含隐藏推理 token。canonical 推理模型不要设置 `--reasoning-budget`；设置成 `8192` 会作为单独的受限赛道记录。运行包同时记录 provider pin、fallback 策略、seed 回显、system fingerprint、bootstrap 置信区间和逐题 flip rate。进度事件以 JSON 行输出到 stderr；中断后使用 `--resume` 继续，`--retry-failed` 只在同一协议下重试 provider 错误、运行器错误和截断输出。
 
 ## 计分规则
 
 $$\mathrm{score.weighted\_points} = \frac{\text{当前作用域内获得题分}}{\text{当前作用域内可能题分}}$$
 
-- **唯一主指标：** 值为 `0–1` ratio，并带明确作用域（`full_dataset`、`full_view` 或 `selected_subset`）。对外百分比只是 `100 × ratio`，不再同时维护另一套 full-test 分数。完整 `0.0.3` 数据包的作用域分母是 **353 分**。
+- **唯一主指标：** 值为 `0–1` ratio，并带明确作用域（`full_dataset`、`full_view` 或 `selected_subset`）。对外百分比只是 `100 × ratio`，不再同时维护另一套 full-test 分数。完整 `0.0.4` 数据包的作用域分母是 **353 分**。
 - **诊断切片：** `slice.text_answerable.weighted_points`、`slice.vision_required.weighted_points` 和 `diagnostic.exact_accuracy` 都是带独立 ID 和分母的次级指标，不替代主指标。
-- **单题全对得分：** `0.0.3` 版本暂不启用多选题与多空填空题的部分分，单题所有空位全部匹配才得分。
+- **单题全对得分：** `0.0.4` 版本暂不启用多选题与多空填空题的部分分，单题所有空位全部匹配才得分。
 - **失败样本不剔除：** 漏答、JSON 解析失败、请求超时、API 报错一律记录在案并记 `0` 分。
 - **文本与多模态统一分母：** 两种模式均以 353 分为基准分母。在 `text` 模式下，4 道必须看图的题目不会发送给模型，直接记 `0` 分（因此纯文本模式最高可得 334/353 分）；在 `vision` 模式下，这 4 道题会附带对应的题图裁片。
 - **失败分类：** provider 错误、运行器错误、解析错误、缺图和输出截断都保留在分母内并分别计数；推理输出被截断不会被悄悄当成普通答错。
-- **公开题库与污染区分：** 已公开年份的试卷在评测报告中会明确标注（如 `retrospective_public_2025`），与每年最新高考放榜前的零污染实时评测（Fresh Exam Evaluation）严格区分。
+- **公开题库与污染区分：** 已公开年份的试卷固定标注为 `retrospective_public_2025`，不得混入 held-out 或新鲜能力结论；新题评测必须使用独立的 `post_cutoff_live` 榜单。
 
 ## 路线图（Roadmap）
 
 Gaokao-Bench 的长期目标是构建**覆盖中国高考恢复以来（1977 年至今）全年份、全科目的高精度评测体系**，持续记录 AI 智力随时间演进的轨迹：
 
 ### 阶段一：评测基建与最新真题基线（已完成）
-- [x] **v0.0.1 — 2025 高考数学客观题基线：** 覆盖全国一卷、全国二卷、北京、上海、天津 5 套试卷（74 题 / 353 分），跑通纯文本与多模态评测、确定性数学解析及双人盲审数据流。
+- [x] **v0.0.1 — 2025 高考数学客观题基线：** 覆盖全国一卷、全国二卷、北京、上海、天津 5 套试卷（74 题 / 353 分），跑通纯文本与多模态评测及确定性数学解析。
+- [x] **v0.0.4 — 审计与报告协议闭环：** 唯一主指标、`audited_passed` owner attestation、canonical 复现元数据、历史题/实时题分榜，以及仅作诊断的视觉切片。
 
 ### 阶段二：近十年高考真题扩充与全科客观题覆盖（进行中）
 - [ ] **2015–2024 数学真题回溯：** 系统收录近十年新课标卷、全国卷及各自主命题省市数学真题，构建跨年份难度演进对比曲线。
@@ -252,7 +252,7 @@ Gaokao-Bench 的长期目标是构建**覆盖中国高考恢复以来（1977 年
   author       = {{Gaokao-Bench contributors}},
   title        = {Gaokao-Bench},
   year         = {2026},
-  version      = {0.0.3},
+  version      = {0.0.4},
   url          = {https://huggingface.co/datasets/Knove/Gaokao-Bench}
 }
 ```

@@ -16,11 +16,14 @@ sys.path.insert(0, str(ROOT))
 
 from gaokao_bench.harness import (  # noqa: E402
     DEFAULT_MAX_TOKENS,
+    DEFAULT_REPEATS,
+    DEFAULT_TIMEOUT_SECONDS,
     FixedResponseProvider,
     build_provider,
     run_benchmark,
 )
 from gaokao_bench.scoring import load_dataset  # noqa: E402
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def _default_output_dir(provider: str, modality: str) -> Path:
@@ -30,19 +33,23 @@ def _default_output_dir(provider: str, modality: str) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.3")
+    parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     parser.add_argument(
         "--provider",
         choices=("anthropic", "openai_compatible", "gemini_cli", "mock"),
         required=True,
     )
     parser.add_argument("--model", default="")
+    parser.add_argument(
+        "--model-snapshot",
+        help="exact dated/versioned model snapshot to record; required by --canonical",
+    )
     parser.add_argument("--modality", choices=("text", "vision"), default="text")
-    parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument("--repeats", type=int, default=DEFAULT_REPEATS)
     parser.add_argument("--view", default="full", help="declared benchmark view ID")
     parser.add_argument("--papers", help="comma-separated paper IDs, e.g. GB25-N1,GB25-BJ")
     parser.add_argument("--limit", type=int, help="first N selected questions, for a pilot only")
-    parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     parser.add_argument("--retries", type=int, default=2)
     parser.add_argument(
         "--max-tokens",
@@ -53,7 +60,7 @@ def main() -> int:
     parser.add_argument(
         "--reasoning-budget",
         type=int,
-        help="optional reasoning-token budget, recorded in the evaluation protocol",
+        help="optional reasoning-token cap for the constrained track; leave unset for the canonical reasoning profile",
     )
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--temperature", type=float, default=0.0)
@@ -65,10 +72,28 @@ def main() -> int:
     parser.add_argument(
         "--allow-fallbacks",
         action=argparse.BooleanOptionalAction,
-        default=None,
+        default=False,
         help="allow upstream provider fallback when --provider-pin is set",
     )
+    parser.add_argument(
+        "--canonical",
+        action="store_true",
+        help=(
+            "require 5 repeats, 32768 max tokens, an unconstrained reasoning profile, "
+            "a 900s timeout, seed, model snapshot, upstream provider pin, and disabled fallbacks"
+        ),
+    )
     parser.add_argument("--extra-body", help="JSON object with provider-specific request fields")
+    parser.add_argument(
+        "--input-price-per-million-tokens",
+        type=float,
+        help="optional input token price used only to estimate run cost",
+    )
+    parser.add_argument(
+        "--output-price-per-million-tokens",
+        type=float,
+        help="optional output token price used only to estimate run cost",
+    )
     parser.add_argument("--max-tokens-field", choices=("max_tokens", "max_completion_tokens"), default="max_tokens")
     parser.add_argument("--api-key-env")
     parser.add_argument("--base-url")
@@ -97,6 +122,26 @@ def main() -> int:
         return 2
     if args.retry_failed and not args.resume:
         parser.error("--retry-failed requires --resume")
+    if args.canonical:
+        missing = []
+        if args.repeats < dataset.spec.reporting.canonical_min_repeats:
+            missing.append("--repeats >= %d" % dataset.spec.reporting.canonical_min_repeats)
+        if args.timeout < dataset.spec.reporting.canonical_timeout_seconds:
+            missing.append("--timeout >= %g" % dataset.spec.reporting.canonical_timeout_seconds)
+        if args.seed is None:
+            missing.append("--seed")
+        if not args.model_snapshot:
+            missing.append("--model-snapshot")
+        if args.max_tokens < dataset.spec.reporting.canonical_max_tokens:
+            missing.append("--max-tokens >= %d" % dataset.spec.reporting.canonical_max_tokens)
+        if args.reasoning_budget is not None:
+            missing.append("unset --reasoning-budget for the canonical profile")
+        if not args.provider_pin:
+            missing.append("--provider-pin")
+        if args.allow_fallbacks:
+            missing.append("--no-allow-fallbacks")
+        if missing:
+            parser.error("--canonical requires: " + ", ".join(missing))
     provider_order = None
     if args.provider_pin:
         provider_order = [item.strip() for item in args.provider_pin.split(",") if item.strip()]
@@ -114,7 +159,9 @@ def main() -> int:
         provider_metadata = {
             "provider": args.provider,
             "prepare_only": True,
+            "canonical_run": args.canonical,
             "model": args.model,
+            "model_snapshot": args.model_snapshot,
             "is_mock": False,
             "reasoning_budget": args.reasoning_budget,
             "seed": args.seed,
@@ -125,6 +172,8 @@ def main() -> int:
                 json.dumps(extra_body, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
             ).hexdigest(),
             "max_tokens_field": args.max_tokens_field,
+            "input_price_per_million_tokens": args.input_price_per_million_tokens,
+            "output_price_per_million_tokens": args.output_price_per_million_tokens,
         }
     else:
         provider, provider_metadata = build_provider(
@@ -140,6 +189,10 @@ def main() -> int:
             allow_fallbacks=args.allow_fallbacks,
             extra_body=extra_body,
         )
+        provider_metadata["canonical_run"] = args.canonical
+        provider_metadata["model_snapshot"] = args.model_snapshot
+        provider_metadata["input_price_per_million_tokens"] = args.input_price_per_million_tokens
+        provider_metadata["output_price_per_million_tokens"] = args.output_price_per_million_tokens
 
     model = args.model
     if not model and args.provider == "anthropic":
@@ -148,6 +201,8 @@ def main() -> int:
         model = os.getenv("ANTHROPIC_DEFAULT_SONNET_MODEL", "")
     if not model and args.provider not in ("gemini_cli", "mock"):
         parser.error("--model is required for this provider")
+    if args.canonical and not (args.model or model):
+        parser.error("--canonical requires --model")
 
     progress_callback = None
     if not args.no_progress:
@@ -179,6 +234,7 @@ def main() -> int:
             seed=args.seed,
             provider_order=provider_order,
             allow_fallbacks=args.allow_fallbacks,
+            model_snapshot=args.model_snapshot,
             progress_callback=progress_callback,
         )
     except (OSError, ValueError) as exc:
@@ -198,8 +254,15 @@ def main() -> int:
         "repeats": summary.get("repeats"),
         "scope": summary.get("scope"),
         "primary_metric": summary.get("primary_metric"),
+        "result_status": summary.get("result_status"),
+        "versions": summary.get("versions"),
         "metrics": summary.get("metrics"),
+        "slices": summary.get("slices"),
+        "modality_summary": summary.get("modality_summary"),
         "aggregate": summary.get("aggregate"),
+        "reproducibility": summary.get("reproducibility"),
+        "leaderboard": summary.get("leaderboard"),
+        "usage": summary.get("usage"),
         "attempts": summary.get("attempts"),
         "warning": summary.get("warning"),
     }

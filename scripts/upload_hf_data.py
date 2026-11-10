@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from gaokao_bench.scoring import PUBLIC_PACKAGE_PROFILE, load_dataset, validate_dataset  # noqa: E402
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def _sha256(path: Path) -> str:
@@ -93,8 +94,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--version",
-        default="0.0.3",
-        help="dataset version under dist/public-data (default: 0.0.3)",
+        default=DEFAULT_DATASET_VERSION,
+        help="dataset version under dist/public-data (default: %s)" % DEFAULT_DATASET_VERSION,
     )
     parser.add_argument(
         "--data-dir",
@@ -106,7 +107,7 @@ def main() -> int:
     parser.add_argument("--replace", action="store_true", help="delete stale files on the main branch")
     parser.add_argument(
         "--commit-message",
-        default="Publish Gaokao-Bench 0.0.3 public data",
+        default="Publish Gaokao-Bench %s public data" % DEFAULT_DATASET_VERSION,
     )
     parser.add_argument(
         "--execute",

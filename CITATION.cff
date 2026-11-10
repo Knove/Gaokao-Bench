@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 title: Gaokao-Bench
-message: Please cite this repository by version when using its code, schema, or reports. Underlying exam material has separate rights and is not covered by the repository license.
+message: Please cite the engine or dataset version you used. The data package is distributed as a whole under CC BY 4.0; the code is Apache-2.0.
 type: software
-version: 0.1.2
+version: 0.1.4
 date-released: 2026-11-10
 license: Apache-2.0
 authors:
@@ -14,5 +14,5 @@ keywords:
   - mathematics
   - multi-subject
   - education
-abstract: A deterministic, point-weighted benchmark toolkit for Chinese Gaokao questions. Engine 0.1.2 separates a subject-neutral harness from versioned benchmark specifications and immutable data packages, with scoped metrics, reproducible provider protocols, resume support, and audited text/vision slices. The current 0.0.3 dataset is a licensing update to 0.0.2, keeping the same 74 choice and fill-in mathematics questions from five 2025 papers. The complete dataset package, including question text, answers, figures, selection, schema, and scoring metadata, is licensed under CC BY 4.0; the harness and code remain Apache-2.0.
+abstract: A deterministic, point-weighted benchmark toolkit for Chinese Gaokao questions. Engine 0.1.4 separates a subject-neutral harness from versioned benchmark specifications and immutable data packages, with a single scoped primary metric, provider-pinned reproducibility controls, resume support, and diagnostic text/vision slices. The current 0.0.4 dataset keeps the same 74 choice and fill-in mathematics questions from five 2025 papers while closing every item into an audited_passed owner attestation. The complete dataset package is licensed under CC BY 4.0; the harness and code remain Apache-2.0.
 

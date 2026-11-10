@@ -18,6 +18,7 @@ from gaokao_bench.materialize import (  # noqa: E402
     write_materialization_report,
     write_smoke_report,
 )
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def _new_file(path: Path, force: bool) -> None:
@@ -27,7 +28,7 @@ def _new_file(path: Path, force: bool) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.3")
+    parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     parser.add_argument("--output-dir", required=True, help="new directory, whose basename equals --version")
     parser.add_argument("--version", required=True, help="new immutable dataset version")
     parser.add_argument("--created-at", help="ISO-8601 timestamp with timezone")

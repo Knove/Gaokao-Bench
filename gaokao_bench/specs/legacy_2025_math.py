@@ -92,6 +92,22 @@ LEGACY_SPEC_RAW: dict[str, Any] = {
         "metric_version": "1.0",
         "primary_metric": "score.weighted_points",
         "partial_credit": False,
+        "diagnostic_metrics": [
+            "diagnostic.paper_equal_weighted_points",
+            "diagnostic.exact_accuracy",
+            "slice.text_answerable.weighted_points",
+            "slice.vision_required.weighted_points",
+            "slice.text_on_scope_denominator.weighted_points",
+        ],
+    },
+    "reporting": {
+        "leaderboard_class": "retrospective_public_2025",
+        "freshness_claim_allowed": False,
+        "held_out": False,
+        "canonical_min_repeats": 5,
+        "min_visual_questions_for_ranking": 30,
+        "visual_slice_role": "diagnostic",
+        "rounding_policy": "question_statement",
     },
 }
 

@@ -55,6 +55,11 @@ def test_public_readmes_and_theme_assets_are_complete():
                 continue
             assert (ROOT / target).is_file(), "%s has a missing local reference: %s" % (document.name, target)
 
+    for path in asset_dir.glob("pipeline-*.svg"):
+        text = path.read_text(encoding="utf-8")
+        assert "two independent reviewers" not in text
+        assert "两名独立审校" not in text
+
 
 def test_public_fetch_data_cli_contract():
     args = build_parser().parse_args(["fetch-data", "--version", "0.0.1"])
@@ -71,13 +76,13 @@ def test_public_package_contract_is_documented():
     for document in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
         text = document.read_text(encoding="utf-8")
         assert "https://huggingface.co/datasets/Knove/Gaokao-Bench" in text
-        assert "gaokao-bench fetch-data --version 0.0.3" in text
+        assert "gaokao-bench fetch-data --version 0.0.4" in text
 
 
 def test_huggingface_dataset_card_metadata_is_hub_compatible():
     card = _dataset_card(
         repo_id="Knove/Gaokao-Bench",
-        dataset_version="0.0.3",
+        dataset_version="0.0.4",
         audit={
             "questions": 74,
             "objective_points": 353,
@@ -89,6 +94,7 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
             "created_at": "2026-11-10T00:00:00+00:00",
         },
         public_ranking_allowed=True,
+        benchmark_spec={"path": "benchmark_spec.json"},
     )
     front_matter = card.split("---", 2)[1]
     assert re.search(r"^license: cc-by-4\.0$", front_matter, re.MULTILINE)
@@ -96,7 +102,7 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
     assert "brand/hero-hf-zh.png" in card
     configs = re.findall(r"^- config_name: (.+)$", front_matter, re.MULTILINE)
     assert configs == ["questions"]
-    assert "本包不包含 `benchmark_spec.json`" in card
+    assert "`benchmark_spec.json`" in card
     assert "`public_ranking_allowed=true`" in card
     assert "公开榜单" in card
     assert "整个数据包" in card

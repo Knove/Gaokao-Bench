@@ -9,6 +9,41 @@ Versioning
 
 2026-11-10
 ----------
+Engine 0.1.4 / Dataset 0.0.4
+
+- Close dataset 0.0.4 with `audited_passed` statuses for every answer, question,
+  point row, asset, review event, and owner signoff. The protocol is explicitly
+  `owner_attested_single_review`; independent review is marked not applicable,
+  not claimed and not left pending. The public manifest uses the same top-level
+  `status: audited_passed`; `package_profile: public-data` identifies the
+  sanitized distribution format.
+- Enforce one canonical metric for new datasets:
+  `scoring.primary_metric=score.weighted_points`, matching the Benchmark Spec.
+  The legacy `0.0.1`/`0.0.3` packages remain readable through their historical
+  adapter and immutable manifests.
+- Split `retrospective_public_2025` from the required `post_cutoff_live` track.
+  Public 2025 questions cannot be presented as held-out or fresh.
+- Canonical runs default to 5 repeats, 900-second timeout, 32768 output tokens,
+  provider pinning, disabled fallbacks, seed/fingerprint verification, bootstrap
+  confidence intervals, and per-question flip rates. `reasoning_budget=8192` is
+  a separate constrained track; the engine, not only the CLI, withholds canonical
+  status when timeout, output budget, or reasoning constraints do not match.
+- Treat the four-question visual slice as diagnostic-only; standalone visual
+  ranking requires at least 30 questions.
+- Record Shanghai Q11 rounding precision and mark `12.57`/`12.59` as borderline
+  candidates while keeping only the correctly rounded value correct.
+- Publish `RELEASE_CARD.json`, `COMPATIBILITY.md`, audit evidence, and the same
+  metric/version matrix in the source and Hugging Face packages.
+- Bind public owner attestations to the sanitized public projection hashes, make
+  release gates resolve both source-root and `audit/` evidence layouts, and
+  validate content-lineage hashes against the immutable package.
+- Correct release diagrams that still described a two-reviewer process for the
+  single-owner-attested 0.0.4 dataset.
+- Update engine defaults, CLI documentation, release tooling, and tests to the
+  0.1.4 / 0.0.4 pair.
+
+2026-11-10
+----------
 Engine 0.1.2 / Dataset 0.0.3
 
 - License dataset 0.0.3 as a whole under CC BY 4.0, including question text,

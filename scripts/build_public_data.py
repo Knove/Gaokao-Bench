@@ -14,12 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from gaokao_bench.public_data import build_public_data_package  # noqa: E402
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source-dir", default="data/0.0.3")
-    parser.add_argument("--output-dir", default="dist/public-data/0.0.3")
+    parser.add_argument("--source-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
+    parser.add_argument("--output-dir", default="dist/public-data/%s" % DEFAULT_DATASET_VERSION)
     parser.add_argument("--repo-id", default="Knove/Gaokao-Bench")
     parser.add_argument(
         "--created-at",

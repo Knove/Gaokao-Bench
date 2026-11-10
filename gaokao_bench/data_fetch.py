@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .scoring import PUBLIC_PACKAGE_PROFILE, load_dataset, validate_dataset
+from .version import DEFAULT_DATASET_VERSION
 
 
 DEFAULT_DATA_REPO_ID = "Knove/Gaokao-Bench"
-DEFAULT_DATA_VERSION = "0.0.3"
+DEFAULT_DATA_VERSION = DEFAULT_DATASET_VERSION
 
 
 class DataFetchError(RuntimeError):

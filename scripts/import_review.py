@@ -12,11 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from gaokao_bench.review import import_review_packet, write_review_report  # noqa: E402
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.3")
+    parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     parser.add_argument("--answers-1", required=True)
     parser.add_argument("--answers-2", required=True)
     parser.add_argument("--points-1", required=True)

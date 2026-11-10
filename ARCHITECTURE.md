@@ -362,7 +362,7 @@ Benchmark
 | L0 | 已编目，来源与题号已知 | 否 |
 | L1 | 题面、选项、分值和图形已结构化 | 否 |
 | L2 | 独立推导答案，且逐项校验来源一致性 | 仅内部研究 |
-| L3 | 双人复核、Owner 签字、gold/negative 回归通过 | 是 |
+| L3 | 按声明协议完成复核（当前为 Owner 逐题签字；独立复核轨另需双人复核）、gold/negative 回归通过 | 是 |
 
 ### 9.2 发布证据流水线
 
@@ -376,8 +376,10 @@ Benchmark
 6. 题分与卷面结构核对。
 7. 权利元数据登记：原创编排、第三方素材、可再分发状态。
 8. 污染状态标注：公开年份、检索风险、是否可声称 held-out。
-9. 两名独立 reviewer 复核。
-10. Owner 签字。
+9. 按 manifest 声明的 `review_protocol` 完成复核：`owner_attested_single_review`
+    要求 Owner 逐题确认；`two_independent_reviewers_plus_owner_signoff` 另需
+    两名独立 reviewer。
+10. 将复核协议、覆盖账本、签字身份和输入哈希写入不可变版本。
 11. Benchmark Spec 与数据 manifest 冻结。
 12. 全量 gold/empty/malformed/validator 回归。
 13. 发布门禁与版本标签。
@@ -673,8 +675,9 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 2. 题干、选项、公式、单位、图形逐项核对；
 3. 独立推导答案；
 4. 官方/权威来源交叉核对；
-5. 两名独立 reviewer；
-6. Owner 签字；
+5. 按 manifest 声明的复核协议完成复核；当前 `owner_attested_single_review`
+   使用 Owner 逐题签字，独立复核轨使用两名独立 reviewer；
+6. 将签字和输入哈希固化到不可变版本；
 7. 分值闭合；
 8. gold / empty / malformed / 单题 validator 回归。
 
@@ -698,7 +701,7 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 
 ## 16. 当前实现状态
 
-Engine `0.1.2` 已完成：
+Engine `0.1.4` 已完成：
 
 - Spec-driven validation and legacy adapter.
 - `score.weighted_points` primary metric with explicit scopes.
@@ -709,6 +712,16 @@ Engine `0.1.2` 已完成：
 - Provider routing, fingerprint, seed, protocol hash.
 - Progress events, resume, retry-failed.
 - Rights/ranking notice in README, HF card, fetch output, and run summary.
+- Single canonical metric contract (`scoring.contract=single_primary_metric_v1`);
+  legacy `0.0.1`/`0.0.3` remain readable through their historical adapter.
+- Canonical profile defaults: 5 repeats, 900-second timeout, 32768 output tokens,
+  provider pin, fallbacks disabled, seed/fingerprint verification, bootstrap CI,
+  and per-question flip rate.
+- Separate `retrospective_public_2025` and `post_cutoff_live` leaderboard tracks.
+- Visual slices below 30 questions are diagnostic-only; Shanghai Q11 records
+  explicit decimal-rounding and borderline semantics.
+- Owner-attested `audited_passed` release path; independent review is marked
+  not applicable rather than left pending or silently claimed.
 
 本轮同时清理了 Engine 中遗留的 2025 数学常量边界：
 
@@ -717,11 +730,11 @@ Engine `0.1.2` 已完成：
 - smoke/release/baseline 工具不再把 74/353 当作通用常量；
 - `task_type` 与 legacy `type` 统一由 `question_type()` 解析；
 - 运行摘要只保留一个主指标和带 scope 的切片。
-- 数据版本 `0.0.3` 保持题目不变，将整个数据包统一为 CC BY 4.0，并允许第三方在注明版本和协议的前提下发布公开榜单与模型对比。
+- 数据版本 `0.0.4` 保持题目不变，将 74 道计分题全部收口为
+  `audited_passed`，并把唯一主指标、兼容矩阵、双榜协议和审计证据随包发布。
 
 尚未实现、但结构已预留：
 
-- 新数据包的实际 `benchmark_spec.json`（`0.0.1` 使用 legacy adapter）。
 - 主观题 rubric engine 与人工裁定。
 - 单位感知、化学式和语言学科 validator。
 - 跨版本 longitudinal report。

@@ -15,6 +15,7 @@ from .data_fetch import (
     fetch_data,
 )
 from .scoring import evaluate_submission, load_dataset, validate_dataset
+from .version import DEFAULT_DATASET_VERSION
 
 
 def _print_json(value: Any) -> None:
@@ -44,10 +45,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     validate_parser = subparsers.add_parser("validate", help="validate the immutable data package")
-    validate_parser.add_argument("--data-dir", default="data/0.0.3")
+    validate_parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
 
     evaluate_parser = subparsers.add_parser("evaluate", help="score a submission JSON file")
-    evaluate_parser.add_argument("--data-dir", default="data/0.0.3")
+    evaluate_parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     evaluate_parser.add_argument("--answers", required=True, help="JSON file containing {'answers': {...}}")
     evaluate_parser.add_argument("--output", help="optional JSON report path")
     evaluate_parser.add_argument("--strict", action="store_true", help="fail on unknown question IDs")

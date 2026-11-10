@@ -12,11 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from gaokao_bench.release import evaluate_release_gate, write_release_report  # noqa: E402
+from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.3")
+    parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     parser.add_argument("--target", choices=("internal", "public-code", "public"), default="internal")
     parser.add_argument("--owner-report", help="defaults to reports/<dataset-version>-owner-signoff.json")
     parser.add_argument("--independent-report", help="defaults to reports/<dataset-version>-independent-review-import.json")

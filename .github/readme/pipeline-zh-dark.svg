@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" role="img" aria-labelledby="title desc">
   <title id="title">Gaokao-Bench 评测与发布流程</title>
-  <desc id="desc">五个评测阶段从版本化数据包走向确定性评分；四个发布完整性阶段覆盖审计、人工复核、不可变版本和发布门禁。</desc>
+  <desc id="desc">五个评测阶段从版本化数据包走向确定性评分；四个发布完整性阶段覆盖审计、Owner 签字复核、不可变版本和发布门禁。</desc>
   <defs>
     <filter id="shadow" x="-20%" y="-30%" width="150%" height="180%">
       <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
@@ -73,7 +73,7 @@
       <rect x="438" y="401" width="350" height="98" rx="18" fill="#152521" stroke="#2D4A43" stroke-width="1.5"/>
       <circle cx="468" cy="432" r="10" fill="#4DB39E"/>
       <text x="490" y="438" fill="#DDF5EF" font-size="17" font-weight="780">人工复核</text>
-      <text x="468" y="466" fill="#8EB8AE" font-size="14">Owner + 两名独立审校</text>
+      <text x="468" y="466" fill="#8EB8AE" font-size="14">Owner 逐题签字确认</text>
 
       <rect x="812" y="401" width="350" height="98" rx="18" fill="#152521" stroke="#2D4A43" stroke-width="1.5"/>
       <circle cx="842" cy="432" r="10" fill="#4DB39E"/>
