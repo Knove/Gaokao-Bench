@@ -942,7 +942,19 @@ def evaluate_release_gate(
     run = _read_json(Path(run_summary)) if run_summary else None
     run_check = _clean_run_check(run, manifest_sha) if run else {"status": "fail", "detail": "no clean model run supplied"}
     if public_full:
-        _add(checks, "clean_model_run", run_check["status"], run_check["detail"], public_blocking=True)
+        run_detail = run_check["detail"]
+        if run_check["status"] != "pass":
+            run_detail += (
+                "; the immutable dataset may still be published, but no model score or "
+                "public leaderboard entry may be released from this evidence"
+            )
+        _add(
+            checks,
+            "clean_model_run",
+            run_check["status"] if run_check["status"] == "pass" else "warning",
+            run_detail,
+            public_blocking=False,
+        )
     elif not public_code:
         _add(checks, "clean_model_run", "warning", run_check["detail"], public_blocking=False)
 

@@ -34,6 +34,9 @@ Engine 0.1.4 / Dataset 0.0.4
   candidates while keeping only the correctly rounded value correct.
 - Publish `RELEASE_CARD.json`, `COMPATIBILITY.md`, audit evidence, and the same
   metric/version matrix in the source and Hugging Face packages.
+- Separate dataset publication from score publication: a missing clean model run
+  blocks a public model score or leaderboard entry, but no longer blocks the
+  immutable, owner-attested question package itself.
 - Bind public owner attestations to the sanitized public projection hashes, make
   release gates resolve both source-root and `audit/` evidence layouts, and
   validate content-lineage hashes against the immutable package.
