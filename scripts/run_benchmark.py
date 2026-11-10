@@ -30,7 +30,7 @@ def _default_output_dir(provider: str, modality: str) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.2")
+    parser.add_argument("--data-dir", default="data/0.0.3")
     parser.add_argument(
         "--provider",
         choices=("anthropic", "openai_compatible", "gemini_cli", "mock"),

@@ -13,7 +13,7 @@ from .scoring import PUBLIC_PACKAGE_PROFILE, load_dataset, validate_dataset
 
 
 DEFAULT_DATA_REPO_ID = "Knove/Gaokao-Bench"
-DEFAULT_DATA_VERSION = "0.0.2"
+DEFAULT_DATA_VERSION = "0.0.3"
 
 
 class DataFetchError(RuntimeError):
@@ -48,7 +48,7 @@ def _load_public_package(target: Path, repo_id: str) -> Dict[str, Any]:
         "manifest_version": manifest.get("dataset_version"),
         "manifest_sha256": _manifest_sha256(target / "manifest.json"),
         "public_ranking_allowed": public_ranking_allowed,
-        "exam_material_license": rights.get("exam_material_license", "NOASSERTION"),
+        "exam_material_license": rights.get("exam_material_license", "CC-BY-4.0"),
         "rights_notice": (
             "public_ranking_allowed=false: do not use this dataset for a public leaderboard, "
             "vendor marketing, or comparative ranking without separate authorization"

@@ -27,7 +27,7 @@ def _new_file(path: Path, force: bool) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.2")
+    parser.add_argument("--data-dir", default="data/0.0.3")
     parser.add_argument("--output-dir", required=True, help="new directory, whose basename equals --version")
     parser.add_argument("--version", required=True, help="new immutable dataset version")
     parser.add_argument("--created-at", help="ISO-8601 timestamp with timezone")

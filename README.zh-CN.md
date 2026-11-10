@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine 版本 0.1.1" src="https://img.shields.io/badge/engine-0.1.1-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine 版本 0.1.2" src="https://img.shields.io/badge/engine-0.1.2-171513?style=flat-square"></a>
   <a href="#计分规则"><img alt="确定性评分" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Hugging Face 数据集" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -52,13 +52,13 @@
 > 本仓库提供评测框架（Harness）、确定性判分器与数据校验工具。真题数据包发布在 [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench)，通过版本标签固定（详见 [`SCOPE.md`](SCOPE.md)）。
 
 > [!IMPORTANT]
-> 从数据版本 `0.0.2` 起，公开 manifest 设置 `public_ranking_allowed=true`。第三方可以使用该精确版本发布公开榜单、模型对比和评测结果，但需要注明数据版本与评测协议，且不得暗示项目背书。`0.0.1` 在其不可变数据包内保留历史上的 `false` 策略。原始试卷素材仍记为 `NOASSERTION`；CC BY 4.0 只覆盖项目原创的题目编排、schema 和评分元数据。
+> 从数据版本 `0.0.3` 起，整个数据包采用 **CC BY 4.0**，包括题面、答案、题图、题目编排、schema 和评分元数据。第三方可以复制、改编和商业使用，但必须署名。公开 manifest 同时设置 `public_ranking_allowed=true`；发布公开榜单和模型对比时，需要注明数据版本与评测协议，且不得暗示项目背书。更早的不可变标签保留其发布时声明的条款。
 
 ## 数据集概览
 
-当前 `0.0.2` 是 `0.0.1` 的元数据更新，题目内容相同，收录 **2025 年高考数学** 5 套试卷的全部客观题，并允许公开榜单和模型对比：
+当前 `0.0.3` 是 `0.0.2` 的授权更新，题目内容相同，收录 **2025 年高考数学** 5 套试卷的全部客观题，整个数据包改为 CC BY 4.0，并允许公开榜单和模型对比：
 
-| 维度 | `0.0.2` 数据规格 |
+| 维度 | `0.0.3` 数据规格 |
 | --- | --- |
 | **年份与科目** | 2025 · 数学 |
 | **覆盖试卷** | 5 套（全国一卷、全国二卷、北京卷、上海卷、天津卷） |
@@ -67,7 +67,8 @@
 | **含图题目** | **4 题** |
 | **纯文本模式（Text）** | 实际作答 **70 题 / 满分上限 334 分**（仍以 353 分为总分母） |
 | **多模态模式（Vision）** | 完整作答 **74 题 / 353 分**（对 4 道含图题附带原题裁图） |
-| **分发地址** | [Hugging Face 数据集](https://huggingface.co/datasets/Knove/Gaokao-Bench)，版本 `v0.0.2` |
+| **数据许可** | **CC BY 4.0** |
+| **分发地址** | [Hugging Face 数据集](https://huggingface.co/datasets/Knove/Gaokao-Bench)，版本 `v0.0.3` |
 
 *注：353 分是 5 套试卷客观题真实分值的累加，不会按线性比例虚构折算成 750 分总分。*
 
@@ -110,13 +111,13 @@ python -m pytest -q
 
 ```bash
 python -m pip install -e ".[data]"
-gaokao-bench fetch-data --version 0.0.2
+gaokao-bench fetch-data --version 0.0.3
 
-export GB_DATA=data/0.0.2
+export GB_DATA=data/0.0.3
 gaokao-bench validate --data-dir "$GB_DATA"
 ```
 
-命令会下载 `v0.0.2` 到 `data/0.0.2`，清理 Hugging Face 缓存元数据，并拒绝使用未通过校验或不属于该仓库的目录。也可以手动下载：
+命令会下载 `v0.0.3` 到 `data/0.0.3`，清理 Hugging Face 缓存元数据，并拒绝使用未通过校验或不属于该仓库的目录。也可以手动下载：
 
 ```bash
 python - <<'PY'
@@ -124,11 +125,11 @@ from huggingface_hub import snapshot_download
 snapshot_download(
     repo_id="Knove/Gaokao-Bench",
     repo_type="dataset",
-    revision="v0.0.2",
-    local_dir="data/0.0.2",
+    revision="v0.0.3",
+    local_dir="data/0.0.3",
 )
 PY
-gaokao-bench validate --data-dir data/0.0.2
+gaokao-bench validate --data-dir data/0.0.3
 ```
 
 `GB_DATA` 指向具体的版本目录，而不是仓库根目录。不要混用不同版本的文件。
@@ -195,9 +196,9 @@ python3 scripts/run_benchmark.py \
 
 $$\mathrm{score.weighted\_points} = \frac{\text{当前作用域内获得题分}}{\text{当前作用域内可能题分}}$$
 
-- **唯一主指标：** 值为 `0–1` ratio，并带明确作用域（`full_dataset`、`full_view` 或 `selected_subset`）。对外百分比只是 `100 × ratio`，不再同时维护另一套 full-test 分数。完整 `0.0.2` 数据包的作用域分母是 **353 分**。
+- **唯一主指标：** 值为 `0–1` ratio，并带明确作用域（`full_dataset`、`full_view` 或 `selected_subset`）。对外百分比只是 `100 × ratio`，不再同时维护另一套 full-test 分数。完整 `0.0.3` 数据包的作用域分母是 **353 分**。
 - **诊断切片：** `slice.text_answerable.weighted_points`、`slice.vision_required.weighted_points` 和 `diagnostic.exact_accuracy` 都是带独立 ID 和分母的次级指标，不替代主指标。
-- **单题全对得分：** `0.0.2` 版本暂不启用多选题与多空填空题的部分分，单题所有空位全部匹配才得分。
+- **单题全对得分：** `0.0.3` 版本暂不启用多选题与多空填空题的部分分，单题所有空位全部匹配才得分。
 - **失败样本不剔除：** 漏答、JSON 解析失败、请求超时、API 报错一律记录在案并记 `0` 分。
 - **文本与多模态统一分母：** 两种模式均以 353 分为基准分母。在 `text` 模式下，4 道必须看图的题目不会发送给模型，直接记 `0` 分（因此纯文本模式最高可得 334/353 分）；在 `vision` 模式下，这 4 道题会附带对应的题图裁片。
 - **失败分类：** provider 错误、运行器错误、解析错误、缺图和输出截断都保留在分母内并分别计数；推理输出被截断不会被悄悄当成普通答错。
@@ -254,7 +255,7 @@ Gaokao-Bench 的长期目标是构建**覆盖中国高考恢复以来（1977 年
   author       = {{Gaokao-Bench contributors}},
   title        = {Gaokao-Bench},
   year         = {2026},
-  version      = {0.0.2},
+  version      = {0.0.3},
   url          = {https://huggingface.co/datasets/Knove/Gaokao-Bench}
 }
 ```

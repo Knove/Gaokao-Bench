@@ -540,7 +540,7 @@ def _answer_protocol_check(
 
 
 def evaluate_release_gate(
-    data_dir: Path | str = "data/0.0.2",
+    data_dir: Path | str = "data/0.0.3",
     *,
     target: str = "internal",
     owner_report: Optional[Path | str] = None,

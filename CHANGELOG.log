@@ -9,6 +9,18 @@ Versioning
 
 2026-11-10
 ----------
+Engine 0.1.2 / Dataset 0.0.3
+
+- License dataset 0.0.3 as a whole under CC BY 4.0, including question text,
+  answers, figures, selection, schema, and scoring metadata; the code and
+  harness remain Apache-2.0.
+- Publish Hugging Face dataset metadata with license cc-by-4.0 and retain source
+  attribution in THIRD_PARTY_NOTICES.md.
+- Keep public_ranking_allowed=true with attribution and exact revision pinning.
+- Treat public redistribution as cleared with attribution for 0.0.3 and later.
+
+2026-11-10
+----------
 Engine 0.1.1 / Dataset 0.0.2
 
 - Dataset 0.0.2 is a metadata-only update to 0.0.1. Questions, answers, points,

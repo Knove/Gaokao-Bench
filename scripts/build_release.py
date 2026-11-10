@@ -18,7 +18,7 @@ from gaokao_bench.release_bundle import ReleaseBundleError, build_release_bundle
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=("internal-candidate", "public-code", "public-candidate"), required=True)
-    parser.add_argument("--data-dir", default="data/0.0.2")
+    parser.add_argument("--data-dir", default="data/0.0.3")
     parser.add_argument("--output-dir", default="dist")
     parser.add_argument("--allow-blocked", action="store_true", help="build a clearly marked blocked diagnostic bundle")
     parser.add_argument("--owner-report", help="defaults from the dataset's review-materialisation lineage")

@@ -39,7 +39,7 @@ from .benchmark_spec import question_requires_vision
 from .specs.legacy_2025_math import LEGACY_SPEC
 from .scoring import SCORER_VERSION, Dataset, evaluate_submission, load_dataset, validate_dataset
 
-HARNESS_VERSION = "0.1.1"
+HARNESS_VERSION = "0.1.2"
 DEFAULT_MAX_TOKENS = 32768
 # Compatibility aliases for callers of the 0.0.1 harness.  A real run reads
 # these values from the dataset's benchmark specification.
@@ -1292,7 +1292,7 @@ def run_benchmark(
     public_ranking_allowed = bool(release_info.get("public_ranking_allowed", False))
     rights_notice = {
         "public_ranking_allowed": public_ranking_allowed,
-        "exam_material_license": rights_info.get("exam_material_license", "NOASSERTION"),
+        "exam_material_license": rights_info.get("exam_material_license", "CC-BY-4.0"),
         "notice": (
             "Public leaderboard placement, vendor marketing, or comparative ranking is not authorized "
             "unless the dataset manifest explicitly sets public_ranking_allowed=true."

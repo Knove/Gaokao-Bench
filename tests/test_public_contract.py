@@ -71,13 +71,13 @@ def test_public_package_contract_is_documented():
     for document in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
         text = document.read_text(encoding="utf-8")
         assert "https://huggingface.co/datasets/Knove/Gaokao-Bench" in text
-        assert "gaokao-bench fetch-data --version 0.0.2" in text
+        assert "gaokao-bench fetch-data --version 0.0.3" in text
 
 
 def test_huggingface_dataset_card_metadata_is_hub_compatible():
     card = _dataset_card(
         repo_id="Knove/Gaokao-Bench",
-        dataset_version="0.0.2",
+        dataset_version="0.0.3",
         audit={
             "questions": 74,
             "objective_points": 353,
@@ -91,15 +91,16 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
         public_ranking_allowed=True,
     )
     front_matter = card.split("---", 2)[1]
-    license_name = re.search(r"^license_name: (.+)$", front_matter, re.MULTILINE)
-    assert license_name is not None
-    assert re.fullmatch(r"[a-z0-9.-]+", license_name.group(1))
+    assert re.search(r"^license: cc-by-4\.0$", front_matter, re.MULTILINE)
+    assert "license_name:" not in front_matter
     assert "brand/hero-hf-zh.png" in card
     configs = re.findall(r"^- config_name: (.+)$", front_matter, re.MULTILINE)
     assert configs == ["questions"]
     assert "本包不包含 `benchmark_spec.json`" in card
     assert "`public_ranking_allowed=true`" in card
     assert "公开榜单" in card
+    assert "整个数据包" in card
+    assert "NOASSERTION" not in card
 
 
 def test_historical_dataset_card_keeps_ranking_restriction():
@@ -158,7 +159,7 @@ def test_huggingface_dataset_card_is_spec_driven_for_other_subjects():
     )
     card = _dataset_card(
         repo_id="Knove/Gaokao-Bench",
-        dataset_version="0.0.2",
+        dataset_version="0.0.3",
         audit={
             "papers": 1,
             "questions": 2,

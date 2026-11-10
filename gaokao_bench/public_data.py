@@ -261,20 +261,17 @@ def _dataset_card(
         ranking_policy = (
             "本数据包 manifest 记录 `public_ranking_allowed=true`。第三方可以使用本版本结果发布公开榜单、"
             "进行模型对比，或在模型介绍中展示评测结果；引用时应注明数据版本、Benchmark Spec 和评测协议，"
-            "不得暗示项目或原始素材权利人背书。题目素材的 `exam_material_license` 为 `NOASSERTION`，"
-            "原始试卷权利仍归相应权利人；项目只授权自己原创的编排、schema 和评分元数据。"
+            "不得暗示项目背书。整个数据包，包括题面、答案、题图、编排、schema 和评分元数据，"
+            "均按 CC BY 4.0 提供。"
         )
     else:
         ranking_policy = (
             "本数据包 manifest 记录 `public_ranking_allowed=false`。在书面授权或 manifest 另有明确声明之前，"
-            "不应把本数据包的结果用于第三方公开榜单、厂商营销或对其他模型作公开排名。题目素材的 "
-            "`exam_material_license` 为 `NOASSERTION`，原始试卷权利仍归相应权利人；项目只授权自己原创的"
-            "编排、schema 和评分元数据。"
+            "不应把本数据包的结果用于第三方公开榜单、厂商营销或对其他模型作公开排名。数据包内容仍按 "
+            "CC BY 4.0 提供。"
         )
     return """---
-license: other
-license_name: gaokao-bench-data-terms
-license_link: {dataset_url}/blob/main/LICENSE-DATA
+license: cc-by-4.0
 pretty_name: Gaokao-Bench
 language:
 - zh
@@ -407,9 +404,9 @@ $$
 
 ## 许可与来源
 
-项目原创的题目编排、答案键结构、评分元数据采用 **CC BY 4.0**。原始高考题干、答案原文、题图和其他第三方素材的权利仍归原权利人，本项目不通过这些文件重新许可第三方内容。公开分发采用项目 owner 的发布决定，并保留逐来源权利说明、署名和纠错/下架流程。详见 `LICENSE-DATA` 和 `THIRD_PARTY_NOTICES.md`。
+本数据包整体采用 **CC BY 4.0**，包括题面、答案、题图、题目编排、schema 和评分元数据。允许复制、分发、修改和商业使用，但必须保留署名，注明 Gaokao-Bench 与数据版本 `v{version}`，并保留 `THIRD_PARTY_NOTICES.md` 中的来源信息。详见 `LICENSE-DATA` 和 `THIRD_PARTY_NOTICES.md`。
 
-代码和 Harness 使用 **Apache License 2.0**。公开排名与营销授权边界见上节和 `manifest.json` 的 `release.public_ranking_allowed`。
+代码和 Harness 使用 **Apache License 2.0**。公开排名授权见上节和 `manifest.json` 的 `release.public_ranking_allowed`。
 
 ## 相关文件
 
@@ -486,18 +483,17 @@ def _third_party_notice(
     return """# Third-Party Notices
 
 Gaokao-Bench includes exam questions, answer text, and %s derived from public
-Gaokao papers and third-party source material. Those materials remain subject
-to their original rights and are not relicensed by the project's Apache-2.0
-code license or the project's CC BY 4.0 editorial license.
+Gaokao papers. This dataset package is licensed as a whole under CC BY 4.0.
+The code and harness remain licensed separately under Apache-2.0.
 
 The paper sources retained in this package are:
 
 %s
 
 Source identifiers and links are kept in `papers.jsonl`, `questions.jsonl`,
-`answer_keys.jsonl`, and `assets.jsonl` for attribution and auditability. If you
-believe material in this package should be corrected, attributed differently,
-or removed, open a discussion at https://huggingface.co/datasets/%s/discussions.
+`answer_keys.jsonl`, and `assets.jsonl` so CC BY 4.0 attribution remains
+complete and auditable. If you believe attribution should be corrected, open a
+discussion at https://huggingface.co/datasets/%s/discussions.
 """ % (material, source_lines, repo_id)
 
 
@@ -527,12 +523,12 @@ def _citation(
     )
     return """cff-version: 1.2.0
 title: "Gaokao-Bench {version}: {years_label} Gaokao {subject} Objective Benchmark"
-message: "Please cite this exact dataset version. Underlying exam material has separate rights and is not relicensed by the project."
+message: "Please cite this exact dataset version and retain the source attribution."
 type: dataset
 version: {version}
 date-released: {date}
-license: other
-license-url: {url}/blob/main/LICENSE-DATA
+license: CC-BY-4.0
+license-url: https://creativecommons.org/licenses/by/4.0/
 url: {url}
 authors:
   - name: Gaokao-Bench contributors
@@ -619,11 +615,12 @@ def _build_manifest(
         "benchmark_spec": benchmark_spec_ref,
         "quality": source_manifest.get("quality"),
         "rights": {
+            "dataset_license": "CC-BY-4.0",
             "code_license": "Apache-2.0",
             "original_metadata_license": "CC-BY-4.0",
-            "exam_material_license": "NOASSERTION",
-            "public_redistribution": "owner_decision_public_release_%s" % created_at[:10],
-            "rights_status": "public_with_third_party_notice",
+            "exam_material_license": "CC-BY-4.0",
+            "public_redistribution": "cleared_with_attribution",
+            "rights_status": "cc_by_4_0_public_release",
         },
         "release": {
             "channel": "huggingface",

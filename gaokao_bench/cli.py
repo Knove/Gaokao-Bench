@@ -44,10 +44,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     validate_parser = subparsers.add_parser("validate", help="validate the immutable data package")
-    validate_parser.add_argument("--data-dir", default="data/0.0.2")
+    validate_parser.add_argument("--data-dir", default="data/0.0.3")
 
     evaluate_parser = subparsers.add_parser("evaluate", help="score a submission JSON file")
-    evaluate_parser.add_argument("--data-dir", default="data/0.0.2")
+    evaluate_parser.add_argument("--data-dir", default="data/0.0.3")
     evaluate_parser.add_argument("--answers", required=True, help="JSON file containing {'answers': {...}}")
     evaluate_parser.add_argument("--output", help="optional JSON report path")
     evaluate_parser.add_argument("--strict", action="store_true", help="fail on unknown question IDs")

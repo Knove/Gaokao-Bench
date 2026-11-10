@@ -16,7 +16,7 @@ from gaokao_bench.owner_review import import_owner_signoff, write_owner_report  
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.2")
+    parser.add_argument("--data-dir", default="data/0.0.3")
     parser.add_argument("--review-csv", required=True)
     parser.add_argument("--signoff", required=True)
     parser.add_argument("--output", help="defaults to reports/<dataset-version>-owner-signoff.json")

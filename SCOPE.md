@@ -20,7 +20,7 @@ objective-question package is published at
 tag:
 
 ```bash
-gaokao-bench fetch-data --version 0.0.2
+gaokao-bench fetch-data --version 0.0.3
 ```
 
 The public data package carries its own manifest, file hashes, third-party
@@ -56,11 +56,9 @@ markers. This is intentionally stricter than a directory-level exclusion.
 ## Rights
 
 The software is Apache-2.0 and project-authored documentation is CC BY 4.0.
-Third-party exam material remains outside this artifact and is not relicensed by
-the project. The public data package uses layered data terms: project-authored
-selection and scoring metadata are CC BY 4.0, while exam material remains
-`NOASSERTION`. Its public distribution records the owner's release decision and
-retains source links, correction, and takedown paths.
+Dataset packages from version 0.0.3 onward are licensed as a whole under CC BY
+4.0, including question text, answers, figures, selection, schema, and scoring
+metadata. Source attribution and correction paths are retained in each package.
 
 ## Contamination
 

@@ -1,33 +1,27 @@
-Gaokao-Bench Data Terms
-=======================
+Gaokao-Bench Dataset License
+============================
 
-This file describes the rights layer for Gaokao-Bench dataset packages. It does
-not replace the separate rights that apply to third-party exam material.
+1. Dataset license. Each Gaokao-Bench dataset package, including its question
+   selection, paper structure, question text, answer text, figures, schemas,
+   scoring metadata, checksums, and other package contents, is licensed under
+   the Creative Commons Attribution 4.0 International License (CC BY 4.0),
+   reproduced below. The project owner makes this grant for the package as a
+   whole.
 
-1. Project contributions. The question selection, paper structure, answer-key
-   schema, scoring metadata, checksums, and other original editorial material
-   created by Gaokao-Bench contributors are licensed under the Creative Commons
-   Attribution 4.0 International License (CC BY 4.0), reproduced below.
+2. Attribution. Reuse must credit Gaokao-Bench, identify the exact dataset
+   version, link to the license, and indicate whether changes were made. Source
+   identifiers are retained in each package and in THIRD_PARTY_NOTICES.md to
+   keep attribution complete.
 
-2. Third-party exam material. Chinese Gaokao question text, answer text,
-   figures, page images, PDFs, and other source material remain subject to the
-   rights of their respective publishers or other rights holders. They are not
-   relicensed by the Gaokao-Bench code license or the CC BY 4.0 grant above.
-   The dataset records this as NOASSERTION and retains source identifiers and
-   links for attribution, correction, and takedown requests.
+3. Code. The harness, schemas expressed as software, tests, and release tools
+   are licensed separately under the Apache License 2.0. The code license does
+   not limit the CC BY 4.0 grant for dataset packages.
 
-3. Public distribution. Public distribution of a versioned package is a
-   project-owner release decision. It does not assert that the project owns
-   third-party exam material or that every source has an identified open
-   license. Corrections and removal requests should be submitted through the
-   discussions page of the published dataset. Each version manifest records
-   whether public leaderboard and ranking use is authorized. Starting with
-   dataset 0.0.2, public_ranking_allowed is true; dataset 0.0.1 retains its
-   historical false value. Permission to publish model results does not grant
-   any rights in the underlying third-party exam material.
+4. Version scope. This dataset license applies to version 0.0.3 and later
+   versions published with this file. Earlier tags remain governed by the
+   metadata published with those immutable versions.
 
-4. Full CC BY 4.0 text. The complete legal text follows and applies only to the
-   project contributions identified in paragraph 1.
+5. Full CC BY 4.0 text. The complete legal text follows.
 
 --------------------------------------------------------------------------------
 

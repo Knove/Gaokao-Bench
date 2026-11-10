@@ -16,7 +16,7 @@ from gaokao_bench.review import import_review_packet, write_review_report  # noq
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.0.2")
+    parser.add_argument("--data-dir", default="data/0.0.3")
     parser.add_argument("--answers-1", required=True)
     parser.add_argument("--answers-2", required=True)
     parser.add_argument("--points-1", required=True)

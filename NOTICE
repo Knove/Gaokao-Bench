@@ -4,17 +4,12 @@ Copyright 2026 Gaokao-Bench contributors
 The source code, schemas, harness, and tests authored by the Gaokao-Bench
 contributors are licensed under the Apache License, Version 2.0. See LICENSE.
 
-Original metadata, scoring explanations, data cards, and other editorial
-material authored by the Gaokao-Bench contributors are intended to be licensed
-under the Creative Commons Attribution 4.0 International License. See
-LICENSE-DATA for the layered data terms.
+Dataset packages published under this project, including question text, answer
+text, figures, selection, scoring metadata, data cards, and other package
+contents, are licensed under the Creative Commons Attribution 4.0 International
+License. See LICENSE-DATA.
 
 Public dataset packages are distributed separately at
-https://huggingface.co/datasets/Knove/Gaokao-Bench and remain subject to the
-third-party notices included in each versioned package.
-
-This notice does not grant any rights in the underlying Chinese Gaokao exam
-questions, answer keys, explanations, page images, PDFs, or other third-party
-material. Exam material is distributed separately, if at all, and its
-source-specific rights and review status are recorded in that data package.
+https://huggingface.co/datasets/Knove/Gaokao-Bench. Each package retains source
+and attribution information required by CC BY 4.0.
 

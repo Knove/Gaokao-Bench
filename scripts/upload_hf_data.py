@@ -93,8 +93,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--version",
-        default="0.0.2",
-        help="dataset version under dist/public-data (default: 0.0.2)",
+        default="0.0.3",
+        help="dataset version under dist/public-data (default: 0.0.3)",
     )
     parser.add_argument(
         "--data-dir",
@@ -106,7 +106,7 @@ def main() -> int:
     parser.add_argument("--replace", action="store_true", help="delete stale files on the main branch")
     parser.add_argument(
         "--commit-message",
-        default="Publish Gaokao-Bench 0.0.2 public data",
+        default="Publish Gaokao-Bench 0.0.3 public data",
     )
     parser.add_argument(
         "--execute",
@@ -163,6 +163,10 @@ def main() -> int:
         print("Hugging Face authentication failed; run `hf auth login` first: %s" % exc, file=sys.stderr)
         return 2
 
+    commit_oid = None
+    commit_url = None
+    remote_verification = None
+    upload_transport_error = None
     try:
         commit = api.upload_folder(
             repo_id=args.repo_id,
@@ -173,23 +177,51 @@ def main() -> int:
             delete_patterns=["*"] if args.replace else None,
         )
     except Exception as exc:
-        print("Hugging Face upload failed: %s" % exc, file=sys.stderr)
-        return 2
+        upload_transport_error = str(exc)
+        try:
+            info = api.dataset_info(args.repo_id)
+            recovered_revision = str(getattr(info, "sha", None) or "main")
+            remote_verification = _verify_remote_snapshot(
+                args.repo_id,
+                recovered_revision,
+                version,
+                str(summary["manifest_sha256"]),
+            )
+            commit_oid = recovered_revision
+            commit_url = "https://huggingface.co/datasets/%s/commit/%s" % (
+                args.repo_id,
+                recovered_revision,
+            )
+            print(
+                "Upload transport failed, but remote main already contains the verified package; "
+                "continuing with the recovered commit: %s" % recovered_revision,
+                file=sys.stderr,
+            )
+        except Exception as recovery_exc:
+            print(
+                "Hugging Face upload failed: %s; remote recovery verification also failed: %s"
+                % (exc, recovery_exc),
+                file=sys.stderr,
+            )
+            return 2
 
-    try:
-        remote_verification = _verify_remote_snapshot(
-            args.repo_id,
-            str(getattr(commit, "oid", None) or "main"),
-            version,
-            str(summary["manifest_sha256"]),
-        )
-    except Exception as exc:
-        print(
-            "Upload committed, but the remote package failed verification; tag was not created: %s"
-            % exc,
-            file=sys.stderr,
-        )
-        return 2
+    if remote_verification is None:
+        commit_oid = str(getattr(commit, "oid", None) or "main")
+        commit_url = getattr(commit, "commit_url", None)
+        try:
+            remote_verification = _verify_remote_snapshot(
+                args.repo_id,
+                commit_oid,
+                version,
+                str(summary["manifest_sha256"]),
+            )
+        except Exception as exc:
+            print(
+                "Upload committed, but the remote package failed verification; tag was not created: %s"
+                % exc,
+                file=sys.stderr,
+            )
+            return 2
 
     tag_status = "skipped"
     if not args.skip_tag:
@@ -204,7 +236,7 @@ def main() -> int:
                     repo_type="dataset",
                     tag=tag,
                     tag_message="Gaokao-Bench %s public data release" % version,
-                    revision=getattr(commit, "oid", None),
+                    revision=commit_oid,
                 )
                 tag_status = "created"
         except Exception as exc:
@@ -228,8 +260,10 @@ def main() -> int:
         "repo_url": "https://huggingface.co/datasets/%s" % args.repo_id,
         "dataset_version": version,
         "manifest_sha256": summary["manifest_sha256"],
-        "commit_oid": getattr(commit, "oid", None),
-        "commit_url": getattr(commit, "commit_url", None),
+        "commit_oid": commit_oid,
+        "commit_url": commit_url,
+        "upload_transport_error": upload_transport_error,
+        "recovered_after_transport_error": upload_transport_error is not None,
         "tag": None if args.skip_tag else tag,
         "tag_status": tag_status,
         "remote_verification": remote_verification,
