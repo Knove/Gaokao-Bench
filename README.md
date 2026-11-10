@@ -51,12 +51,9 @@
 > [!NOTE]
 > This repository contains the evaluation harness, deterministic scorer, and verification tools. Exam datasets are published separately on [Hugging Face](https://huggingface.co/datasets/Knove/Gaokao-Bench) and pinned by version tag (see [`SCOPE.md`](SCOPE.md)).
 
-> [!IMPORTANT]
-> Starting with dataset `0.0.3`, the entire package is licensed under **CC BY 4.0**, including question text, answers, figures, selection, schema, and scoring metadata. Third parties may share, adapt, and commercially use the package with attribution. The public manifest also sets `public_ranking_allowed=true`; leaderboards and model comparisons must cite the exact dataset version and evaluation protocol and must not imply endorsement. Earlier immutable tags retain the terms published with those versions.
-
 ## Dataset Overview
 
-The current `0.0.3` release is a licensing update to `0.0.2`. It contains the same objective sections of the **2025 Gaokao Mathematics** papers, moves the complete package to CC BY 4.0, and enables public leaderboard and comparative-ranking use:
+The current `0.0.3` release contains the objective sections of the **2025 Gaokao Mathematics** papers:
 
 | Metric | `0.0.3` Scope |
 | --- | --- |

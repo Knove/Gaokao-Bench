@@ -18,6 +18,8 @@ Engine 0.1.2 / Dataset 0.0.3
   attribution in THIRD_PARTY_NOTICES.md.
 - Keep public_ranking_allowed=true with attribution and exact revision pinning.
 - Treat public redistribution as cleared with attribution for 0.0.3 and later.
+- Remove redundant licensing prose from README; authoritative terms remain in
+  LICENSE-DATA and the dataset manifest.
 
 2026-11-10
 ----------
