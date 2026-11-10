@@ -31,7 +31,7 @@
 
   <g font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="15.5" font-weight="700">
     <rect x="96" y="526" width="144" height="43" rx="21.5" fill="#C8281C"/>
-    <text x="168" y="553" fill="#FFF9EF" text-anchor="middle">2025 · 数学</text>
+    <text x="168" y="553" fill="#FFF9EF" text-anchor="middle">1977–至今演进</text>
     <rect x="252" y="526" width="146" height="43" rx="21.5" fill="#171513"/>
     <text x="325" y="553" fill="#FFF9EF" text-anchor="middle">真实卷面分值</text>
     <rect x="410" y="526" width="146" height="43" rx="21.5" fill="#E9DFCD" stroke="#CDBFA8"/>
@@ -56,9 +56,9 @@
       <path d="M1443 485V510H1418" fill="none" stroke="#171513" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
       <rect x="1114" y="156" width="60" height="26" rx="6" fill="#C8281C"/>
       <text x="1144" y="174" fill="#FFFFFF" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.5">高考</text>
-      <text x="1186" y="174" fill="#746B5E" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="750" letter-spacing="1.8">2025 高考数学客观题</text>
-      <text x="1112" y="270" fill="#C8281C" font-family="Inter, 'SF Pro Display', 'Segoe UI', sans-serif" font-size="82" font-weight="800">353</text>
-      <text x="1272" y="264" fill="#746B5E" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="700">固定卷面分值</text>
+      <text x="1186" y="174" fill="#746B5E" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="750" letter-spacing="1.8">全国统考真题卷</text>
+      <text x="1112" y="270" fill="#C8281C" font-family="Inter, 'SF Pro Display', 'Segoe UI', sans-serif" font-size="82" font-weight="800">750</text>
+      <text x="1272" y="264" fill="#746B5E" font-family="'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="700">高考标尺体系</text>
       <line x1="1114" y1="294" x2="1438" y2="294" stroke="#D9CDBA" stroke-width="2"/>
 
       <g font-family="Inter, 'SF Pro Text', 'Segoe UI', sans-serif" font-size="18" font-weight="750">

@@ -205,6 +205,27 @@ task_categories:
 - question-answering
 size_categories:
 - n<1K
+configs:
+- config_name: questions
+  data_files:
+  - split: test
+    path: questions.jsonl
+- config_name: answers
+  data_files:
+  - split: test
+    path: answer_keys.jsonl
+- config_name: papers
+  data_files:
+  - split: test
+    path: papers.jsonl
+- config_name: assets
+  data_files:
+  - split: test
+    path: assets.jsonl
+- config_name: subjective_catalog
+  data_files:
+  - split: test
+    path: catalog/subjective_catalog.jsonl
 ---
 
 # Gaokao-Bench {version}
@@ -285,6 +306,8 @@ gaokao-bench validate --data-dir data/{version}
 | `papers.jsonl` | `id`、`title`、`year`、`region`、`objective_points`、`pdf_url` | 5 套试卷元数据与来源 |
 | `assets.jsonl` | `question_id`、`path`、`bytes`、`sha256`、`dependency` | 4 道图形必需题的裁图索引 |
 | `catalog/subjective_catalog.jsonl` | `id`、`type`、`content`、`points`、`included_in_scoring` | 主观题目录，仅作后续扩展记录 |
+
+Dataset Viewer 将每个 JSONL 注册为独立 config：`questions`、`answers`、`papers`、`assets`、`subjective_catalog`。不同字段结构的文件不会混成一张表。
 
 ## 评分规则
 

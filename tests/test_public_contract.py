@@ -45,6 +45,7 @@ def test_public_readmes_and_theme_assets_are_complete():
     }
     asset_dir = ROOT / ".github" / "readme"
     assert {path.name for path in asset_dir.glob("*.svg")} == expected_assets
+    assert (asset_dir / "hero-hf-zh.svg").read_bytes() == (asset_dir / "hero-zh-light.svg").read_bytes()
 
     for document in (readme, readme_zh):
         text = document.read_text(encoding="utf-8")
@@ -92,3 +93,5 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
     assert license_name is not None
     assert re.fullmatch(r"[a-z0-9.-]+", license_name.group(1))
     assert "brand/hero-hf-zh.png" in card
+    for config in ("questions", "answers", "papers", "assets", "subjective_catalog"):
+        assert "config_name: %s" % config in card
