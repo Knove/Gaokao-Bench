@@ -22,6 +22,7 @@ from gaokao_bench.harness import (  # noqa: E402
     build_provider,
     run_benchmark,
 )
+from gaokao_bench.reporting import compact_run_summary, render_run_summary  # noqa: E402
 from gaokao_bench.scoring import load_dataset  # noqa: E402
 from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
@@ -99,6 +100,15 @@ def main() -> int:
     parser.add_argument("--base-url")
     parser.add_argument("--output-dir")
     parser.add_argument("--report", help="optional path for a copy of summary.json")
+    output_mode = parser.add_mutually_exclusive_group()
+    output_mode.add_argument(
+        "--json",
+        "--summary-only",
+        dest="json",
+        action="store_true",
+        help="print a compact machine-readable summary instead of the table",
+    )
+    output_mode.add_argument("--quiet", action="store_true", help="suppress the final result summary")
     parser.add_argument("--created-at", help="deterministic ISO-8601 timestamp for tests/replays")
     parser.add_argument("--resume", action="store_true", help="resume an interrupted run with the same protocol")
     parser.add_argument(
@@ -117,6 +127,13 @@ def main() -> int:
     output_dir = Path(args.output_dir) if args.output_dir else _default_output_dir(args.provider, args.modality)
     try:
         dataset = load_dataset(args.data_dir)
+    except FileNotFoundError:
+        print(
+            "error: data package not found at %s; run `gaokao-bench fetch-data --version %s` first"
+            % (Path(args.data_dir).resolve(), DEFAULT_DATASET_VERSION),
+            file=sys.stderr,
+        )
+        return 2
     except (OSError, ValueError) as exc:
         print("error: %s" % exc, file=sys.stderr)
         return 2
@@ -134,6 +151,8 @@ def main() -> int:
             missing.append("--model-snapshot")
         if args.max_tokens < dataset.spec.reporting.canonical_max_tokens:
             missing.append("--max-tokens >= %d" % dataset.spec.reporting.canonical_max_tokens)
+        if args.temperature != 0:
+            missing.append("--temperature 0")
         if args.reasoning_budget is not None:
             missing.append("unset --reasoning-budget for the canonical profile")
         if not args.provider_pin:
@@ -244,29 +263,22 @@ def main() -> int:
         report_path = Path(args.report)
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    compact = {
-        "status": summary.get("status", "completed"),
-        "run_id": summary.get("run_id"),
-        "output_dir": str(output_dir.resolve()),
-        "provider": args.provider,
-        "model": model,
-        "modality": args.modality,
-        "repeats": summary.get("repeats"),
-        "scope": summary.get("scope"),
-        "primary_metric": summary.get("primary_metric"),
-        "result_status": summary.get("result_status"),
-        "versions": summary.get("versions"),
-        "metrics": summary.get("metrics"),
-        "slices": summary.get("slices"),
-        "modality_summary": summary.get("modality_summary"),
-        "aggregate": summary.get("aggregate"),
-        "reproducibility": summary.get("reproducibility"),
-        "leaderboard": summary.get("leaderboard"),
-        "usage": summary.get("usage"),
-        "attempts": summary.get("attempts"),
-        "warning": summary.get("warning"),
-    }
-    print(json.dumps(compact, ensure_ascii=False, indent=2, sort_keys=True))
+    report_path = Path(args.report) if args.report else None
+    if not args.quiet:
+        if args.json:
+            compact = compact_run_summary(summary)
+            compact["output_dir"] = str(output_dir.resolve())
+            if report_path is not None:
+                compact["report_path"] = str(report_path.resolve())
+            print(json.dumps(compact, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(
+                render_run_summary(
+                    summary,
+                    output_dir=output_dir,
+                    report_path=report_path,
+                )
+            )
     return 0
 
 

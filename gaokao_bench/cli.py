@@ -14,12 +14,24 @@ from .data_fetch import (
     DataFetchError,
     fetch_data,
 )
+from .reporting import compact_evaluation_summary, render_evaluation_summary
 from .scoring import evaluate_submission, load_dataset, validate_dataset
 from .version import DEFAULT_DATASET_VERSION
 
 
 def _print_json(value: Any) -> None:
     print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def _load_cli_dataset(data_dir: str) -> Any:
+    root = Path(data_dir)
+    manifest = root / "manifest.json"
+    if not manifest.is_file():
+        raise ValueError(
+            "data package not found at %s; run `gaokao-bench fetch-data --version %s` first"
+            % (root.resolve(), DEFAULT_DATASET_VERSION)
+        )
+    return load_dataset(root, validate=False)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -50,7 +62,21 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_parser = subparsers.add_parser("evaluate", help="score a submission JSON file")
     evaluate_parser.add_argument("--data-dir", default="data/%s" % DEFAULT_DATASET_VERSION)
     evaluate_parser.add_argument("--answers", required=True, help="JSON file containing {'answers': {...}}")
-    evaluate_parser.add_argument("--output", help="optional JSON report path")
+    evaluate_parser.add_argument(
+        "--report",
+        "--output",
+        dest="report",
+        help="write the complete JSON report to this path",
+    )
+    output_mode = evaluate_parser.add_mutually_exclusive_group()
+    output_mode.add_argument(
+        "--json",
+        "--summary-only",
+        dest="json",
+        action="store_true",
+        help="print a compact machine-readable summary instead of the table",
+    )
+    output_mode.add_argument("--quiet", action="store_true", help="suppress the result summary")
     evaluate_parser.add_argument("--strict", action="store_true", help="fail on unknown question IDs")
     return parser
 
@@ -73,26 +99,48 @@ def main(argv: Optional[List[str]] = None) -> int:
         _print_json(result)
         return 0
 
-    dataset = load_dataset(args.data_dir, validate=False)
-    audit = validate_dataset(dataset)
+    try:
+        dataset = _load_cli_dataset(args.data_dir)
+        audit = validate_dataset(dataset)
 
-    if args.command == "validate":
-        _print_json({"status": "ok", "audit": audit})
-        return 0
+        if args.command == "validate":
+            _print_json({"status": "ok", "audit": audit})
+            return 0
 
-    submission_path = Path(args.answers)
-    submission = json.loads(submission_path.read_text(encoding="utf-8"))
-    if not isinstance(submission, dict) or "answers" not in submission:
-        print("submission must be an object with an 'answers' field", file=sys.stderr)
+        submission_path = Path(args.answers)
+        try:
+            submission = json.loads(submission_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:
+            raise ValueError("answers file not found: %s" % submission_path) from exc
+        except json.JSONDecodeError as exc:
+            raise ValueError("answers file is not valid JSON: %s: %s" % (submission_path, exc)) from exc
+        except (OSError, UnicodeError) as exc:
+            raise ValueError("cannot read answers file %s: %s" % (submission_path, exc)) from exc
+        if not isinstance(submission, dict) or "answers" not in submission:
+            raise ValueError("submission must be an object with an 'answers' field")
+        if not isinstance(submission["answers"], dict):
+            raise ValueError("submission.answers must be an object keyed by question ID")
+
+        report = evaluate_submission(dataset, submission["answers"])
+        report["submission_path"] = str(submission_path)
+        report["data_dir"] = str(Path(args.data_dir).resolve())
+        if args.report:
+            output_path = Path(args.report)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(
+                json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+        if not args.quiet:
+            if args.json:
+                _print_json(compact_evaluation_summary(report))
+            else:
+                print(render_evaluation_summary(report))
+                if args.report:
+                    print("Report  %s" % Path(args.report).resolve())
+    except (OSError, ValueError) as exc:
+        print("error: %s" % exc, file=sys.stderr)
         return 2
-    report = evaluate_submission(dataset, submission["answers"])
-    report["submission_path"] = str(submission_path)
-    report["data_dir"] = str(Path(args.data_dir).resolve())
-    if args.output:
-        output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    _print_json({k: report[k] for k in ("dataset", "dataset_version", "scoring_profile", "summary", "unexpected_answer_ids")})
     if args.strict and report["unexpected_answer_ids"]:
         print("strict mode: unknown answer IDs were supplied", file=sys.stderr)
         return 2

@@ -10,6 +10,45 @@ Versioning
 2026-11-11
 ----------
 
+Engine 0.1.5 / Dataset 0.0.4
+
+- Split tests into unit, public-data, and source-release contracts. Public CI
+  now starts from a clean checkout, resolves the pinned dataset version, fetches
+  that immutable Hugging Face tag, and runs each layer explicitly. Source-only
+  lineage and audit tests no longer run against the public package layout.
+- Make CLI score and run reports human-readable by default. Full JSON is written
+  to `--report`; `--json`/`--summary-only` emits a compact machine summary
+  without question-ID arrays, and `--quiet` suppresses the final report.
+- Make `--prepare-only` report the selected question and point scope, rendered
+  prompt location, and version matrix instead of printing empty metric fields.
+- Make the quick start install the harness and data extras together, and verify
+  in the public-data contract that all four reviewed vision assets materialize
+  from the downloaded package.
+- Add prompt renderer `1.1` with explicit answer-format instructions for
+  single-choice, multi-choice, single-slot, multi-slot, and circled-sequence
+  answers. Concrete answer exemplars in the dataset system prompt are replaced
+  with neutral placeholders before any model call. `prompts.jsonl` now records
+  the format ID, instruction, and instruction hash for audit.
+- Accept `②③` and `["②", "③"]` as equivalent `set_tokens` wire forms and add a
+  deterministic parser-totality test.
+- Keep dataset `0.0.4` immutable. `partial_credit=false` remains an explicit
+  all-or-nothing primary-metric policy; official partial-credit rules are a
+  separate future diagnostic metric, not a silent behavior change.
+- Re-review all 74 questions against their question, answer, point, source, and
+  asset audits. The gold submission remains `353/353`; the non-unique
+  `GB25-BJ-Q13` validator accepts multiple valid trigonometric pairs. No dataset
+  content or hash changed in this release.
+- Require `temperature=0` for canonical eligibility in both the CLI and the
+  engine; a nonzero temperature now produces a pilot with an explicit caveat.
+- Make public-package builds atomic: write to a hidden sibling staging
+  directory, validate the complete projection, then rename it into place. A
+  failed build leaves no partial output directory.
+- Replace CLI tracebacks for missing data, missing/malformed submission files,
+  and invalid submission shapes with actionable `error:` messages and exit code
+  `2`.
+- Correct the public quick-start commands: use the real clone URL, the correct
+  test markers, `--no-allow-fallbacks`, and a canonical command that includes
+  all required reproducibility flags.
 - Add the editorial `GB25-SH-Q11` sample card to both READMEs and the Hugging
   Face data card, with matching light/dark assets, project branding, and a
   corrected score-stamp inset.

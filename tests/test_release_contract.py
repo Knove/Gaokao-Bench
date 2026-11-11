@@ -6,16 +6,42 @@ import pytest
 from gaokao_bench.harness import FixedResponseProvider, ProviderResponse, run_benchmark
 from gaokao_bench.public_data import build_public_data_package
 from gaokao_bench.release import evaluate_release_gate
-from gaokao_bench.scoring import evaluate_submission, file_sha256, load_dataset, score_question
+from gaokao_bench.scoring import (
+    PUBLIC_PACKAGE_PROFILE,
+    evaluate_submission,
+    file_sha256,
+    load_dataset,
+    score_question,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data" / "0.0.4"
 
-pytestmark = pytest.mark.skipif(
-    not DATA.is_dir(),
-    reason="release contract fixtures are distributed with the immutable data package",
-)
+def _source_release_ready() -> bool:
+    if not (DATA / "manifest.json").is_file():
+        return False
+    try:
+        manifest = json.loads((DATA / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return (
+        manifest.get("package_profile") != PUBLIC_PACKAGE_PROFILE
+        and (DATA / "answer_audit.jsonl").is_file()
+        and (DATA / "question_audit.jsonl").is_file()
+    )
+
+
+pytestmark = [
+    pytest.mark.source_release,
+    pytest.mark.skipif(
+        not _source_release_ready(),
+        reason=(
+            "internal source-release package is not present; public data packages do not "
+            "contain source-only lineage and root-level audit files"
+        ),
+    ),
+]
 
 
 class ReproducibleMockProvider:
@@ -175,6 +201,31 @@ def test_canonical_status_requires_unconstrained_reasoning_profile(tmp_path):
     assert "timeout is below" in caveats
     assert "max_tokens is below" in caveats
     assert "constrained reasoning track" in caveats
+
+    nonzero_temperature = run_benchmark(
+        dataset,
+        ReproducibleMockProvider(),
+        provider_name="mock",
+        model="mock-model",
+        modality="text",
+        repeats=5,
+        output_dir=tmp_path / "nonzero-temperature",
+        paper_ids=["GB25-N1"],
+        limit=2,
+        timeout=900,
+        max_tokens=32768,
+        temperature=0.7,
+        seed=7,
+        provider_order=["Mock"],
+        allow_fallbacks=False,
+        model_snapshot="mock-2026-11-10",
+        created_at="2026-11-10T18:00:00+08:00",
+    )
+    assert nonzero_temperature["reproducibility"]["canonical_eligible"] is False
+    assert nonzero_temperature["result_status"] == "pilot"
+    assert "temperature must be exactly 0" in " ".join(
+        nonzero_temperature["reproducibility"]["caveats"]
+    )
 
 
 def test_public_package_audit_layout_is_self_verifying(tmp_path):

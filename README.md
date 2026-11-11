@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine version 0.1.4" src="https://img.shields.io/badge/engine-0.1.4-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine version 0.1.5" src="https://img.shields.io/badge/engine-0.1.5-171513?style=flat-square"></a>
   <a href="#scoring-rules"><img alt="Deterministic scoring" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Dataset on Hugging Face" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -96,7 +96,7 @@ The current `0.0.4` release contains the objective sections of the **2025 Gaokao
 Requires Python 3.9+.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Knove/Gaokao-Bench.git
 cd gaokao-bench
 
 python3 -m venv .venv
@@ -104,7 +104,7 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 
-python -m pytest -q
+python -m pytest -m "not public_data and not source_release"
 ```
 
 If you only need the runtime harness and dataset downloader without test tools, install `.[harness,data]`.
@@ -114,11 +114,12 @@ If you only need the runtime harness and dataset downloader without test tools, 
 Download the immutable public release from Hugging Face and verify every file hash:
 
 ```bash
-python -m pip install -e ".[data]"
+python -m pip install -e ".[harness,data]"
 gaokao-bench fetch-data --version 0.0.4
 
 export GB_DATA=data/0.0.4
 gaokao-bench validate --data-dir "$GB_DATA"
+python -m pytest -m public_data
 ```
 
 The command downloads revision `v0.0.4` into `data/0.0.4`, removes Hugging Face cache metadata, and refuses to trust an unverified or unrelated directory. If you prefer to download manually:
@@ -155,12 +156,29 @@ If you already have model predictions, format them by question ID:
 Run the evaluator:
 
 ```bash
-gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json
+gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json --report report.json
 ```
+
+The default terminal output is a short score table; `--report` writes the complete JSON. Use `--json` for a compact machine-readable summary or `--quiet` to suppress stdout.
 
 ### 4. Run a Full Model Evaluation
 
-Set your API key and run the harness across the dataset. Canonical runs use `temperature=0`, at least 5 repeats, a 900-second timeout, and a 32768-token output ceiling:
+First inspect the generated prompts without calling a model:
+
+```bash
+python3 scripts/run_benchmark.py \
+  --data-dir "$GB_DATA" \
+  --provider openai_compatible \
+  --model "<model-name>" \
+  --modality vision \
+  --limit 1 \
+  --prepare-only \
+  --output-dir runs/prompt-check
+```
+
+The rendered prompts are written to `runs/prompt-check/prompts.jsonl`.
+
+A canonical run uses `temperature=0`, at least 5 repeats, a 900-second timeout, a 32768-token output ceiling, a fixed seed, an exact model snapshot, provider pinning, and disabled fallbacks:
 
 ```bash
 export OPENAI_API_KEY=...
@@ -168,32 +186,26 @@ export OPENAI_API_KEY=...
 python3 scripts/run_benchmark.py \
   --data-dir "$GB_DATA" \
   --provider openai_compatible \
-  --model "<model-snapshot>" \
+  --model "<model-name>" \
+  --model-snapshot "<dated-model-snapshot>" \
   --api-key-env OPENAI_API_KEY \
   --modality vision \
   --repeats 5 \
   --temperature 0 \
+  --timeout 900 \
+  --max-tokens 32768 \
+  --seed 7 \
+  --provider-pin "<upstream-provider>" \
+  --no-allow-fallbacks \
+  --canonical \
   --output-dir runs/<run-id>
 ```
 
 Built-in providers include `openai_compatible`, `anthropic`, `gemini_cli`, and `mock`. Pass `--prepare-only` to inspect the generated prompts without calling an API.
 
-Production runs record the exact evaluation protocol. Use a dated model snapshot, a fixed seed, and an upstream provider pin when the API supports it:
+Run summaries are human-readable by default. `--report` saves the full `summary.json` copy, `--json` emits a compact machine-readable summary without question-ID arrays, and `--quiet` suppresses the final summary.
 
-```bash
-python3 scripts/run_benchmark.py \
-  --data-dir "$GB_DATA" \
-  --provider openai_compatible \
-  --model "<dated-model-snapshot>" \
-  --seed 7 \
-  --provider-pin "<upstream-provider>" \
-  --allow-fallbacks false \
-  --max-tokens 32768 \
-  --resume \
-  --output-dir runs/<run-id>
-```
-
-`--max-tokens` is the completion ceiling and includes hidden reasoning on many providers. Leave `--reasoning-budget` unset for the canonical reasoning profile; a run capped at `8192` is recorded as a separate constrained track. The run also records provider pinning, fallback policy, seed echo, system fingerprints, bootstrap confidence intervals, and per-question flip rates. Progress events are emitted as JSON lines on stderr; interrupted runs can continue with `--resume`, and `--retry-failed` retries only provider, harness, and truncated attempts under the same protocol.
+`--canonical` rejects a run that does not meet the declared conditions. Even with all flags set, the result remains a pilot unless the provider echoes the seed or returns a system fingerprint that verifies routing. `--max-tokens` is the completion ceiling and includes hidden reasoning on many providers. Leave `--reasoning-budget` unset for the canonical reasoning profile; a run capped at `8192` is recorded as a separate constrained track. The run also records provider pinning, fallback policy, seed echo, system fingerprints, bootstrap confidence intervals, and per-question flip rates. Progress events are emitted as JSON lines on stderr; interrupted runs can continue with `--resume`, and `--retry-failed` retries only provider, harness, and truncated attempts under the same protocol.
 
 ## Scoring Rules
 
@@ -246,7 +258,8 @@ Our long-term goal is to build a **complete, high-precision archive covering eve
 
 Issues and PRs—whether contributing historical paper sources, fixing parser edge cases, or adding provider adapters—are very welcome!
 
-- Run `python -m pytest -q` and add unit tests for any parser or scorer changes.
+- Run `python -m pytest -m "not public_data and not source_release"` and add unit tests for any parser or scorer changes.
+- Test layers: `pytest -m "not public_data and not source_release"` needs no data; `gaokao-bench fetch-data --version 0.0.4 && pytest -m public_data` verifies the distributed package; `pytest -m source_release` runs only when the internal source package is present.
 - Keep `README.md` and `README.zh-CN.md` in sync when updating CLI usage or features.
 - Do not include unreviewed exam text, PDFs, or images in code pull requests.
 

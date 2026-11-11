@@ -702,7 +702,7 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 
 ## 16. 当前实现状态
 
-Engine `0.1.4` 已完成：
+Engine `0.1.5` 已完成：
 
 - Spec-driven validation and legacy adapter.
 - `score.weighted_points` primary metric with explicit scopes.
@@ -723,6 +723,31 @@ Engine `0.1.4` 已完成：
   explicit decimal-rounding and borderline semantics.
 - Owner-attested `audited_passed` release path; independent review is marked
   not applicable rather than left pending or silently claimed.
+- Contract tests are split into unit, public-data, and source-release layers.
+  Public CI performs a clean checkout, downloads the Hugging Face package, and
+  verifies the public layout; source-only lineage/audit tests never run against
+  a downloaded public package.
+- `manifest.package_profile` is the target artifact identity; the historical
+  source `0.0.4` predates the field and is identified by its source-only audit
+  files. New source packages must declare `source-data`, and public packages must
+  declare `public-data`. A directory path alone is never treated as evidence.
+- CLI score/run results default to a short human table. Complete JSON goes to
+  `--report`; `--json` prints a compact machine summary without question-ID
+  arrays, and `--quiet` suppresses the final summary.
+- Prompt renderer `1.1` adds per-question answer-format instructions for choice,
+  multi-choice, single-slot, multi-slot, and circled-number answers. The
+  renderer version is recorded in the run protocol, manifest, and prompt index;
+  concrete answer exemplars in the static system prompt are replaced with
+  neutral placeholders before any provider call.
+- `set_tokens` accepts equivalent string and array wire forms such as `②③` and
+  `["②", "③"]` without changing the expected token set.
+- Canonical eligibility now requires `temperature=0` as well as the declared
+  repeat, timeout, output-token, reasoning, snapshot, seed, provider-pin, and
+  fallback conditions. A provider that does not verify seed or routing still
+  leaves the run in `pilot` status.
+- Public package builds write to a hidden sibling staging directory and move the
+  verified package into place in one rename. Failed builds leave no partial
+  output.
 
 本轮同时清理了 Engine 中遗留的 2025 数学常量边界：
 
@@ -739,3 +764,29 @@ Engine `0.1.4` 已完成：
 - 主观题 rubric engine 与人工裁定。
 - 单位感知、化学式和语言学科 validator。
 - 跨版本 longitudinal report。
+
+### 测试契约分层
+
+| 层 | 数据前提 | 验证内容 |
+| --- | --- | --- |
+| unit | 无数据、无网络 | parser、prompt、reporter、scorer 的纯函数契约 |
+| public-data | clean clone 后 `fetch-data` | 公开包 profile、`audit/` 布局、gold/empty 判分、CLI 输出与远端 manifest |
+| source-release | 内部 source package | `content_lineage`、根级审计账本、公开包构建与发布门禁 |
+
+约束：
+
+- 测试必须先查 `manifest.package_profile`，不能只查目录是否存在；
+- 公开包不要求包含 source-only 字段，source-release 字段也不能强加到公开包；
+- `build_public_data_package` 只接受 source package，拒绝把 public package 再投影一次；
+- 公开包构建先写隐藏的临时同级目录，全部校验通过后再原子改名到目标目录；失败不会留下半成品；
+- CI 至少覆盖 unit 和 public-data 两层，source-release 在持有内部审计包的发布环境中运行。
+
+### 部分分（计划）
+
+当前 `0.0.4` 的 `partial_credit=false` 是明确的主指标协议，不是漏实现。若后续引入部分分，必须保持：
+
+- `score.weighted_points` 仍为唯一主指标；
+- 部分分只作为带独立 ID 和分母的 `diagnostic` 指标；
+- 计分单位来自逐题 audited credit rule，而不是按题型猜一个固定比例；
+- 多选、多空、主观题分别声明官方依据、单位分值和边界行为；
+- 任何规则变化都生成新的 dataset/spec 版本，不原地修改已发布包。

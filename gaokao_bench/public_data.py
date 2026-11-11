@@ -6,6 +6,7 @@ import datetime as dt
 import hashlib
 import json
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
@@ -890,7 +891,7 @@ def _build_manifest(
     return manifest
 
 
-def build_public_data_package(
+def _build_public_data_package_at(
     source_dir: Path | str,
     output_dir: Path | str,
     *,
@@ -901,9 +902,13 @@ def build_public_data_package(
     output = Path(output_dir)
     if output.exists():
         raise FileExistsError("public data output already exists: %s" % output)
-    output.mkdir(parents=True)
     project_root = _project_root(source)
     source_manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    if source_manifest.get("package_profile") == PUBLIC_PACKAGE_PROFILE:
+        raise ValueError(
+            "public-data packages cannot be rebuilt as public data; "
+            "run this command from the internal source package instead"
+        )
     spec = load_benchmark_spec(source, source_manifest)
     source_version = str(source_manifest.get("dataset_version", ""))
     if output.name != source_version:
@@ -911,6 +916,7 @@ def build_public_data_package(
             "public output directory must end with the dataset version: %s != %s"
             % (output.name, source_version)
         )
+    output.mkdir(parents=True)
 
     papers = _project_rows(_read_jsonl(source / "papers.jsonl"), PUBLIC_PAPER_FIELDS)
     questions = [_project_question(row) for row in _read_jsonl(source / "questions.jsonl")]
@@ -1131,3 +1137,41 @@ def build_public_data_package(
         "sha256": _sha256(output / "manifest.json"),
         "audit": audit,
     }
+
+
+def build_public_data_package(
+    source_dir: Path | str,
+    output_dir: Path | str,
+    *,
+    repo_id: str = "Knove/Gaokao-Bench",
+    created_at: str | None = None,
+) -> Dict[str, Any]:
+    """Build a complete public package, then publish it with one rename.
+
+    The builder writes into a hidden sibling directory and moves the verified
+    package into place only after every manifest and dataset check succeeds.
+    A failed build therefore never leaves a partial package at ``output_dir``.
+    """
+
+    target = Path(output_dir)
+    if target.exists():
+        raise FileExistsError("public data output already exists: %s" % target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staging_root = Path(
+        tempfile.mkdtemp(prefix=".%s-" % target.name, dir=str(target.parent))
+    )
+    staged_target = staging_root / target.name
+    try:
+        result = _build_public_data_package_at(
+            source_dir,
+            staged_target,
+            repo_id=repo_id,
+            created_at=created_at,
+        )
+        if target.exists():
+            raise FileExistsError("public data output appeared during build: %s" % target)
+        staged_target.replace(target)
+    finally:
+        shutil.rmtree(staging_root, ignore_errors=True)
+    result["output"] = str(target.resolve())
+    return result

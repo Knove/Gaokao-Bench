@@ -54,6 +54,8 @@ DEFAULT_CONSTRAINED_REASONING_BUDGET = 8192
 # Compatibility aliases for callers of the 0.0.1 harness.  A real run reads
 # these values from the dataset's benchmark specification.
 PROMPT_VERSION = "gbmath-objective-anonymous-v2"
+PROMPT_RENDERER_VERSION = "1.1"
+SYSTEM_EXAMPLE_SANITIZER_VERSION = "neutral_answer_examples_v1"
 SCORING_PROFILE = "strict-source-audited-points-all-or-nothing"
 SUPPORTED_MODALITIES = ("text", "vision")
 
@@ -206,6 +208,106 @@ def _response_routing(response: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
+_CIRCLED_REFERENCE_RE = re.compile(r"[①-⑨]")
+_SYSTEM_ANSWER_EXAMPLE_RE = re.compile(
+    r"(?P<head>(?:单选题|多选题|选择题|填空题|单空题|多空题|序号题|answer|答案)[^\n]*?例如\s*)"
+    r"(?P<quote>[\"“])"
+    r"(?P<value>[A-Za-z0-9①-⑨/.,，、+\- ]{1,40})"
+    r"(?P<close>[\"”])"
+)
+
+
+def render_system_prompt(system_prompt: str) -> str:
+    """Replace concrete answer exemplars with neutral wire-format placeholders.
+
+    The dataset's fixed system prompt may contain examples such as ``"C"`` or
+    ``"ACD"``.  Those strings can coincide with the answer to a specific item
+    and therefore must not be sent to a model.  The per-question instruction
+    below the system prompt supplies the concrete format without revealing a
+    value.
+    """
+
+    def replace(match: re.Match[str]) -> str:
+        head = match.group("head")
+        if "多选" in head:
+            placeholder = "<选项字母串>"
+        elif "单选" in head or "选择" in head:
+            placeholder = "<单个选项字母>"
+        elif "序号" in head:
+            placeholder = "<题面序号串>"
+        else:
+            placeholder = "<答案>"
+        return "%s%s%s%s" % (
+            head,
+            match.group("quote"),
+            placeholder,
+            match.group("close"),
+        )
+
+    return _SYSTEM_ANSWER_EXAMPLE_RE.sub(replace, system_prompt)
+
+
+def classify_answer_format(question: Mapping[str, Any]) -> str:
+    """Return the stable wire-format ID used to render and audit a prompt."""
+
+    question_type = str(question.get("type") or "")
+    slot_count = max(1, int(question.get("answer_slot_count") or 1))
+    if question_type == "single_choice":
+        return "single_choice"
+    if question_type == "multi_choice":
+        return "multi_choice"
+    if question_type == "fill_blank" and slot_count > 1:
+        return "multi_slot"
+    if question_type == "fill_blank" and _CIRCLED_REFERENCE_RE.search(
+        str(question.get("stem") or "")
+    ):
+        return "circled_set"
+    if question_type == "fill_blank":
+        return "single_slot"
+    return "generic"
+
+
+def build_answer_instruction(question: Mapping[str, Any]) -> str:
+    """Describe the answer wire format without exposing the answer key."""
+
+    answer_format = classify_answer_format(question)
+    slot_count = max(1, int(question.get("answer_slot_count") or 1))
+    if answer_format == "single_choice":
+        return (
+            '本题为单选题。answer 只返回一个选项字母，对象形如 '
+            '{"answer":"<单个选项字母>"}；尖括号内容必须替换为实际答案。'
+        )
+    if answer_format == "multi_choice":
+        return (
+            '本题为多选题。answer 返回全部正确选项的升序字母串，对象形如 '
+            '{"answer":"<选项字母串>"}；不要返回数组，尖括号内容必须替换为实际答案。'
+        )
+    if answer_format == "multi_slot":
+        example = json.dumps(
+            ["<第%d空>" % index for index in range(1, slot_count + 1)],
+            ensure_ascii=False,
+        )
+        return (
+            "本题有 %d 个空。answer 必须按题面空位顺序返回包含 %d 个字符串的 JSON 数组，"
+            '对象形如 {"answer":%s}；尖括号内容必须替换为实际答案。'
+            % (slot_count, slot_count, example)
+        )
+    if answer_format == "circled_set":
+        return (
+            '本题为序号填空题。answer 必须是字符串，保留题面序号字符并按原顺序填写，'
+            '对象形如 {"answer":"<题面序号串>"}；不要拆成数组，尖括号内容必须替换为实际答案。'
+        )
+    if answer_format == "single_slot":
+        return (
+            '本题为单空填空题。answer 必须是字符串，对象形如 '
+            '{"answer":"<答案>"}；尖括号内容必须替换为实际答案。'
+        )
+    return (
+        '只返回一个合法 JSON 对象，格式为 {"answer":"<实际答案>"}；'
+        "尖括号内容必须替换为实际答案。"
+    )
+
+
 def build_prompt(question: Mapping[str, Any]) -> str:
     """Build a prompt using only learner-visible question content.
 
@@ -224,7 +326,15 @@ def build_prompt(question: Mapping[str, Any]) -> str:
             label = str(option.get("label") or "").strip()
             text = str(option.get("text") or "").strip()
             lines.append("%s. %s" % (label, text))
-    lines.extend(["", "只输出规定的 JSON 对象。"])
+    lines.extend(
+        [
+            "",
+            "作答格式：",
+            build_answer_instruction(question),
+            "",
+            "只输出一个合法 JSON 对象，不要输出解释、Markdown 代码块或多余文字。",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -1053,6 +1163,7 @@ def _reproducibility_summary(
     model_snapshot: Optional[str],
     timeout_seconds: float,
     max_tokens: int,
+    temperature: Optional[float],
     reasoning_budget: Optional[int],
     canonical_timeout_seconds: float,
     canonical_max_tokens: int,
@@ -1099,6 +1210,7 @@ def _reproducibility_summary(
     )
     timeout_meets_canonical = timeout_seconds >= canonical_timeout_seconds
     max_tokens_meets_canonical = max_tokens >= canonical_max_tokens
+    temperature_is_zero = temperature == 0
     reasoning_unconstrained = reasoning_budget is None
     verified = all(
         (
@@ -1113,6 +1225,7 @@ def _reproducibility_summary(
             prompt_determinism["verdict"] == "observed_stable",
             timeout_meets_canonical,
             max_tokens_meets_canonical,
+            temperature_is_zero,
             reasoning_unconstrained,
         )
         if pinned_lower
@@ -1127,6 +1240,7 @@ def _reproducibility_summary(
             prompt_determinism["verdict"] == "observed_stable",
             timeout_meets_canonical,
             max_tokens_meets_canonical,
+            temperature_is_zero,
             reasoning_unconstrained,
         )
     )
@@ -1163,6 +1277,8 @@ def _reproducibility_summary(
         caveats.append(
             "max_tokens is below the canonical %d" % canonical_max_tokens
         )
+    if not temperature_is_zero:
+        caveats.append("temperature must be exactly 0 for a canonical run")
     if not reasoning_unconstrained:
         caveats.append(
             "reasoning_budget is set; this run belongs to the constrained reasoning track"
@@ -1182,6 +1298,8 @@ def _reproducibility_summary(
             "max_tokens": max_tokens,
             "canonical_max_tokens": canonical_max_tokens,
             "max_tokens_met": max_tokens_meets_canonical,
+            "temperature": temperature,
+            "temperature_zero": temperature_is_zero,
             "reasoning_budget": reasoning_budget,
             "reasoning_unconstrained": reasoning_unconstrained,
         },
@@ -1391,7 +1509,11 @@ def build_evaluation_protocol(
         },
         "prompt": {
             "version": dataset.spec.prompt.version,
-            "system_sha256": _sha256_bytes(dataset.spec.prompt.system.encode("utf-8")),
+            "renderer_version": PROMPT_RENDERER_VERSION,
+            "system_example_sanitizer": SYSTEM_EXAMPLE_SANITIZER_VERSION,
+            "system_sha256": _sha256_bytes(
+                render_system_prompt(dataset.spec.prompt.system).encode("utf-8")
+            ),
             "answer_schema": dataset.spec.prompt.answer_schema,
         },
         "reporting": {
@@ -1688,11 +1810,18 @@ def run_benchmark(
             modality,
             prompt_spec=dataset.spec.prompt,
         )
+        answer_instruction = build_answer_instruction(question)
         prompt_rows.append(
             {
                 "question_id": question["id"],
                 "paper_id": question["paper_id"],
                 "prompt_version": dataset.spec.prompt.version,
+                "prompt_renderer_version": PROMPT_RENDERER_VERSION,
+                "answer_format": classify_answer_format(question),
+                "answer_instruction": answer_instruction,
+                "answer_instruction_sha256": _sha256_bytes(
+                    answer_instruction.encode("utf-8")
+                ),
                 "prompt_sha256": _sha256_bytes(prompt.encode("utf-8")),
                 "prompt_chars": len(prompt),
                 "contains_question_id": question["id"] in prompt,
@@ -1739,12 +1868,20 @@ def run_benchmark(
         int(question["points"]) for question in selected if question["id"] in answerable_ids
     )
     missing_answers = sorted(set(dataset.answer_keys) - selected_ids)
+    versions = compatibility_matrix(
+        dataset_version=str(dataset.manifest.get("dataset_version", "")),
+        benchmark_spec_version=dataset.spec.version,
+        metric_version=dataset.spec.scoring.metric_version,
+    )
     manifest: Dict[str, Any] = {
         "harness": "Gaokao-Bench",
         "engine_version": ENGINE_VERSION,
         "harness_version": HARNESS_VERSION,
         "prompt_version": dataset.spec.prompt.version,
+        "prompt_renderer_version": PROMPT_RENDERER_VERSION,
         "scorer_version": SCORER_VERSION,
+        "versions": versions,
+        "compatibility": versions,
         "run_id": run_id,
         "created_at": created_at,
         "dataset_version": dataset.manifest["dataset_version"],
@@ -1801,6 +1938,7 @@ def run_benchmark(
         },
         "rights_notice": rights_notice,
         "status": "prepared" if prepare_only else "running",
+        "result_status": "prepared" if prepare_only else "running",
         "public_release": False,
         "resume": {"enabled": resume, "reused_attempts": len(existing_attempts)},
     }
@@ -1870,7 +2008,7 @@ def run_benchmark(
             return record, None
         try:
             response = provider.complete(
-                system_prompt=dataset.spec.prompt.system,
+                system_prompt=render_system_prompt(dataset.spec.prompt.system),
                 prompt=prompt,
                 images=images,
                 model=model,
@@ -2135,6 +2273,7 @@ def run_benchmark(
         model_snapshot=model_snapshot,
         timeout_seconds=timeout,
         max_tokens=max_tokens,
+        temperature=temperature,
         reasoning_budget=reasoning_budget,
         canonical_timeout_seconds=dataset.spec.reporting.canonical_timeout_seconds,
         canonical_max_tokens=dataset.spec.reporting.canonical_max_tokens,
@@ -2166,11 +2305,6 @@ def run_benchmark(
         coverage = vision_slice.get("coverage") if isinstance(vision_slice.get("coverage"), Mapping) else {}
         if coverage.get("small_sample_warning"):
             warnings.append("vision slice is too small for a standalone visual-capability claim")
-    versions = compatibility_matrix(
-        dataset_version=str(dataset.manifest.get("dataset_version", "")),
-        benchmark_spec_version=dataset.spec.version,
-        metric_version=dataset.spec.scoring.metric_version,
-    )
     slice_metrics = {
         metric_id.removeprefix("slice.").rsplit(".", 1)[0]: metric
         for metric_id, metric in metrics.items()
@@ -2202,6 +2336,7 @@ def run_benchmark(
         "harness_version": HARNESS_VERSION,
         "engine_version": ENGINE_VERSION,
         "prompt_version": dataset.spec.prompt.version,
+        "prompt_renderer_version": PROMPT_RENDERER_VERSION,
         "scorer_version": SCORER_VERSION,
         "versions": versions,
         "compatibility": versions,
@@ -2279,7 +2414,6 @@ def run_benchmark(
             ),
         },
         "reproducibility": reproducibility,
-        "compatibility": versions,
         "leaderboard": {
             "class": dataset.spec.reporting.leaderboard_class,
             "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,

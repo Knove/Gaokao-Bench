@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine 版本 0.1.4" src="https://img.shields.io/badge/engine-0.1.4-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine 版本 0.1.5" src="https://img.shields.io/badge/engine-0.1.5-171513?style=flat-square"></a>
   <a href="#计分规则"><img alt="确定性评分" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Hugging Face 数据集" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -96,7 +96,7 @@
 需要 Python 3.9 及以上版本：
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Knove/Gaokao-Bench.git
 cd gaokao-bench
 
 python3 -m venv .venv
@@ -104,7 +104,7 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 
-python -m pytest -q
+python -m pytest -m "not public_data and not source_release"
 ```
 
 如果只需要运行评测和下载数据，不需要开发测试工具，安装 `.[harness,data]` 即可。
@@ -114,11 +114,12 @@ python -m pytest -q
 从 Hugging Face 下载不可变版本，并逐文件校验哈希：
 
 ```bash
-python -m pip install -e ".[data]"
+python -m pip install -e ".[harness,data]"
 gaokao-bench fetch-data --version 0.0.4
 
 export GB_DATA=data/0.0.4
 gaokao-bench validate --data-dir "$GB_DATA"
+python -m pytest -m public_data
 ```
 
 命令会下载 `v0.0.4` 到 `data/0.0.4`，清理 Hugging Face 缓存元数据，并拒绝使用未通过校验或不属于该仓库的目录。也可以手动下载：
@@ -155,12 +156,29 @@ gaokao-bench validate --data-dir data/0.0.4
 直接运行本地判分：
 
 ```bash
-gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json
+gaokao-bench evaluate --data-dir "$GB_DATA" --answers submission.json --report report.json
 ```
+
+默认终端输出是简短成绩表；`--report` 写入完整 JSON。需要机器可读摘要时用 `--json`，需要静默运行时用 `--quiet`。
 
 ### 4. 运行完整模型评测
 
-配置好模型的 API Key 后，即可启动端到端评测。canonical 运行使用 `temperature=0`、至少 5 次重复、900 秒超时和 32768 输出 token 上限：
+先不调用模型，检查实际发送的 Prompt：
+
+```bash
+python3 scripts/run_benchmark.py \
+  --data-dir "$GB_DATA" \
+  --provider openai_compatible \
+  --model "<model-name>" \
+  --modality vision \
+  --limit 1 \
+  --prepare-only \
+  --output-dir runs/prompt-check
+```
+
+实际渲染的 Prompt 保存在 `runs/prompt-check/prompts.jsonl`。
+
+canonical 运行使用 `temperature=0`、至少 5 次重复、900 秒超时、32768 输出 token 上限、固定 seed、精确模型快照、上游 provider pin，并禁用 fallback：
 
 ```bash
 export OPENAI_API_KEY=...
@@ -168,32 +186,26 @@ export OPENAI_API_KEY=...
 python3 scripts/run_benchmark.py \
   --data-dir "$GB_DATA" \
   --provider openai_compatible \
-  --model "<model-snapshot>" \
+  --model "<model-name>" \
+  --model-snapshot "<带日期模型快照>" \
   --api-key-env OPENAI_API_KEY \
   --modality vision \
   --repeats 5 \
   --temperature 0 \
+  --timeout 900 \
+  --max-tokens 32768 \
+  --seed 7 \
+  --provider-pin "<上游-provider>" \
+  --no-allow-fallbacks \
+  --canonical \
   --output-dir runs/<run-id>
 ```
 
 内置支持 `openai_compatible`、`anthropic`、`gemini_cli` 和 `mock` 四种调用方式。如果只想预览生成的 Prompt 而不实际调用接口，可以加上 `--prepare-only` 参数。
 
-正式运行会记录完整评测协议。建议使用带日期的模型快照、固定 seed，并在接口支持时固定上游 provider：
+完整运行默认输出人读摘要。`--report` 保存完整 `summary.json`，`--json` 输出不含题号数组的紧凑机器摘要，`--quiet` 关闭最终摘要。
 
-```bash
-python3 scripts/run_benchmark.py \
-  --data-dir "$GB_DATA" \
-  --provider openai_compatible \
-  --model "<带日期模型快照>" \
-  --seed 7 \
-  --provider-pin "<上游-provider>" \
-  --allow-fallbacks false \
-  --max-tokens 32768 \
-  --resume \
-  --output-dir runs/<run-id>
-```
-
-`--max-tokens` 是完成 token 上限，在很多模型上包含隐藏推理 token。canonical 推理模型不要设置 `--reasoning-budget`；设置成 `8192` 会作为单独的受限赛道记录。运行包同时记录 provider pin、fallback 策略、seed 回显、system fingerprint、bootstrap 置信区间和逐题 flip rate。进度事件以 JSON 行输出到 stderr；中断后使用 `--resume` 继续，`--retry-failed` 只在同一协议下重试 provider 错误、运行器错误和截断输出。
+`--canonical` 会拒绝不满足条件的运行。即使参数齐全，只要 provider 没有回显 seed 或返回可验证路由的 system fingerprint，结果仍会标记为 pilot。`--max-tokens` 是完成 token 上限，在很多模型上包含隐藏推理 token。canonical 推理模型不要设置 `--reasoning-budget`；设置成 `8192` 会作为单独的受限赛道记录。运行包同时记录 provider pin、fallback 策略、seed 回显、system fingerprint、bootstrap 置信区间和逐题 flip rate。进度事件以 JSON 行输出到 stderr；中断后使用 `--resume` 继续，`--retry-failed` 只在同一协议下重试 provider 错误、运行器错误和截断输出。
 
 ## 计分规则
 
@@ -246,7 +258,8 @@ Gaokao-Bench 的长期目标是构建**覆盖中国高考恢复以来（1977 年
 
 非常欢迎提交 Issue 或 PR，无论是补充历年高考真题线索、完善数学表达式解析的边界情况，还是新增模型适配器：
 
-- 修改解析器或计分逻辑时，请补充对应的单元测试并确保 `python -m pytest -q` 全部通过。
+- 修改解析器或计分逻辑时，请补充对应的单元测试并确保 `python -m pytest -m "not public_data and not source_release"` 全部通过。
+- 测试分三层：`pytest -m "not public_data and not source_release"` 不依赖数据；`gaokao-bench fetch-data --version 0.0.4 && pytest -m public_data` 验证公开分发包；`pytest -m source_release` 仅在内部源包存在时执行。
 - 涉及命令行参数或功能变更时，请同步更新 `README.md` 和 `README.zh-CN.md`。
 - 请勿在代码的 Pull Request 中直接提交未审校的真题文本、PDF 或试卷图片。
 

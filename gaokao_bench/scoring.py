@@ -1438,7 +1438,12 @@ _CIRCLED_DIGITS = {"①": "1", "②": "2", "③": "3", "④": "4", "⑤": "5", "
 
 
 def parse_set_tokens(value: Any) -> Tuple[str, ...]:
-    text = str(value)
+    if isinstance(value, (list, tuple, set)):
+        if not value:
+            raise ValueError("set answer is empty")
+        text = ",".join(str(item) for item in value)
+    else:
+        text = str(value)
     for symbol, digit in _CIRCLED_DIGITS.items():
         text = text.replace(symbol, digit + ",")
     text = _clean_text(text)
