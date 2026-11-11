@@ -438,15 +438,9 @@ def materialize_release_tag(
             "content_changed": False,
             "content_files": before,
         }
-        source_release = (
-            source_dataset.manifest.get("release")
-            if isinstance(source_dataset.manifest.get("release"), Mapping)
-            else {}
-        )
         manifest["release"] = {
             "candidate": True,
             "channel": "internal_release_candidate",
-            "public_ranking_allowed": bool(source_release.get("public_ranking_allowed", False)),
             "owner_signoff_required": True,
             "independent_review_required": True,
             "clean_model_run_required": True,

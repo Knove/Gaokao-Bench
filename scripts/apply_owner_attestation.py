@@ -695,7 +695,6 @@ def main() -> int:
             "versions": compatibility,
             "leaderboard": {
                 "class": "retrospective_public_2025",
-                "public_ranking_scope": "retrospective_public_2025",
                 "freshness_claim_allowed": False,
                 "held_out": False,
                 "post_cutoff_live_track_required": True,
@@ -729,8 +728,6 @@ def main() -> int:
                 "independent_review": "not_required_single_owner_attestation",
                 "owner_signoff_required": False,
                 "owner_signoff": "audited_passed",
-                "public_ranking_allowed": True,
-                "public_ranking_scope": "retrospective_public_2025",
                 "freshness_claim_allowed": False,
                 "held_out": False,
                 "separate_live_leaderboard_required": True,
@@ -739,6 +736,18 @@ def main() -> int:
             },
         }
     )
+    rights = dict(manifest.get("rights") or {})
+    rights.update(
+        {
+            "code_license": "Apache-2.0",
+            "dataset_license": "CC-BY-4.0",
+            "original_metadata_license": "CC-BY-4.0",
+            "exam_material_license": "CC-BY-4.0",
+            "public_redistribution": "cleared_with_attribution",
+            "rights_status": "cc_by_4_0_public_release",
+        }
+    )
+    manifest["rights"] = rights
     if "main_metric" in manifest.get("scoring", {}):
         manifest["scoring"].pop("main_metric", None)
     if "supplementary_metrics" in manifest.get("scoring", {}):

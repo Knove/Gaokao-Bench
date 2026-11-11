@@ -7,6 +7,15 @@ Versioning
 - Dataset versions track questions, answers, points, assets, and manifest policy.
 - A published result must record both versions plus the dataset and protocol hashes.
 
+2026-11-11
+----------
+
+- Remove `public_ranking_allowed`, `public_ranking_scope`, and the associated
+  ranking policy fields. The data package is licensed as a whole under CC BY
+  4.0; public leaderboards, model comparisons, vendor marketing, and commercial
+  use require no separate authorization. Attribution and version citation remain
+  the only license conditions.
+
 2026-11-10
 ----------
 Engine 0.1.4 / Dataset 0.0.4

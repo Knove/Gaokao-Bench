@@ -430,9 +430,9 @@ Benchmark
 - 已发布 `v0.0.1` 数据不可变，不覆盖 Hugging Face tag。
 - Engine 结构升级使用新的代码版本；数据 schema 变化使用新的数据版本。
 - Git tag 标识代码版本；Hugging Face `v<version>` 标识数据版本；二者不必相同。
-- 新数据包必须携带 `benchmark_spec.json`，manifest 引用其相对路径，`public_ranking_allowed` 必须明确。
+- 新数据包必须携带 `benchmark_spec.json`，并在 manifest 中声明数据许可和污染标签。
 - 文件名和内容哈希由 manifest 固定；上传后再次校验。
-- `public_ranking_allowed=true` 时，第三方可以发布公开榜单和模型比较；引用时必须注明数据版本、评测协议和 CC BY 4.0 署名，且不得暗示项目背书。
+- 数据集整体采用 CC BY 4.0。公开榜单、模型对比、厂商宣传和商业使用均无需额外授权；使用时按 CC BY 4.0 署名并注明数据版本。
 - 数据集发布与模型成绩发布是两个独立动作。没有 canonical 模型运行时仍可发布不可变题目包，但不得发布该模型在本题集上的公开分数或榜单名次。
 
 ## 12. 长期数据构造模型
@@ -689,8 +689,8 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 - 每题至少一个错误答案回归；
 - 题图存在、可解码、哈希正确、裁切不截断内容；
 - 题目总数、卷数、题型数、答案槽、各卷分值全部与 Spec 一致；
-- 公开 manifest 的 `public_ranking_allowed`、素材权利和污染标签明确；
-- 公开榜单必须遵守 manifest 的 `public_ranking_allowed`、榜单分类和署名规则；历史题成绩不得包装成新鲜能力。
+- 公开 manifest 的素材许可和污染标签明确；
+- 排名不设单独授权开关或 scope；历史题成绩不得包装成新鲜能力。
 
 污染策略：
 

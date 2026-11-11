@@ -93,7 +93,6 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
             "catalog_subjective_points": 397,
             "created_at": "2026-11-10T00:00:00+00:00",
         },
-        public_ranking_allowed=True,
         benchmark_spec={"path": "benchmark_spec.json"},
     )
     front_matter = card.split("---", 2)[1]
@@ -103,33 +102,15 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
     configs = re.findall(r"^- config_name: (.+)$", front_matter, re.MULTILINE)
     assert configs == ["questions"]
     assert "`benchmark_spec.json`" in card
-    assert "`public_ranking_allowed=true`" in card
     assert "公开榜单" in card
+    assert "厂商宣传" in card
+    assert "无需额外授权" in card
+    assert "public_ranking_allowed" not in card
     assert "整个数据包" in card
     assert "NOASSERTION" not in card
 
 
-def test_historical_dataset_card_keeps_ranking_restriction():
-    card = _dataset_card(
-        repo_id="Knove/Gaokao-Bench",
-        dataset_version="0.0.1",
-        audit={
-            "questions": 74,
-            "objective_points": 353,
-            "text_points": 334,
-            "answer_slots": 78,
-            "image_required_questions": 4,
-            "catalog_subjective_questions": 26,
-            "catalog_subjective_points": 397,
-            "created_at": "2026-11-09T00:00:00+00:00",
-        },
-        public_ranking_allowed=False,
-    )
-    assert "`public_ranking_allowed=false`" in card
-    assert "不应把本数据包的结果用于第三方公开榜单" in card
-
-
-def test_dataset_card_defaults_to_no_public_ranking():
+def test_dataset_card_has_no_ranking_authorization_gate():
     card = _dataset_card(
         repo_id="Knove/Gaokao-Bench",
         dataset_version="0.0.0-test",
@@ -141,11 +122,13 @@ def test_dataset_card_defaults_to_no_public_ranking():
             "image_required_questions": 0,
             "catalog_subjective_questions": 0,
             "catalog_subjective_points": 0,
-            "created_at": "2026-11-10T00:00:00+00:00",
+            "created_at": "2026-11-11T00:00:00+00:00",
         },
     )
-    assert "`public_ranking_allowed=false`" in card
-    assert "不应把本数据包的结果用于第三方公开榜单" in card
+    assert "公开榜单" in card
+    assert "无需额外授权" in card
+    assert "public_ranking_allowed" not in card
+    assert "不应把本数据包的结果用于第三方公开榜单" not in card
 
 
 def test_huggingface_dataset_card_is_spec_driven_for_other_subjects():

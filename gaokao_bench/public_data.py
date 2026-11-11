@@ -363,7 +363,6 @@ def _dataset_card(
     repo_id: str,
     dataset_version: str,
     audit: Mapping[str, Any],
-    public_ranking_allowed: bool = False,
     benchmark_spec: Mapping[str, Any] | None = None,
     spec: Optional[BenchmarkSpec] = None,
     papers: Sequence[Mapping[str, Any]] = (),
@@ -403,19 +402,11 @@ def _dataset_card(
         if catalog_questions
         else "`catalog/`：本数据包没有编目主观题；"
     )
-    if public_ranking_allowed:
-        ranking_policy = (
-            "本数据包 manifest 记录 `public_ranking_allowed=true`。第三方可以使用本版本结果发布公开榜单、"
-            "进行模型对比，或在模型介绍中展示评测结果；引用时应注明数据版本、Benchmark Spec 和评测协议，"
-            "不得暗示项目背书。整个数据包，包括题面、答案、题图、编排、schema 和评分元数据，"
-            "均按 CC BY 4.0 提供。"
-        )
-    else:
-        ranking_policy = (
-            "本数据包 manifest 记录 `public_ranking_allowed=false`。在书面授权或 manifest 另有明确声明之前，"
-            "不应把本数据包的结果用于第三方公开榜单、厂商营销或对其他模型作公开排名。数据包内容仍按 "
-            "CC BY 4.0 提供。"
-        )
+    ranking_policy = (
+        "整个数据包，包括题面、答案、题图、编排、schema 和评分元数据，均按 CC BY 4.0 提供。"
+        "公开榜单、模型对比、厂商宣传和商业使用均无需额外授权；使用时按 CC BY 4.0 署名，"
+        "并注明数据版本。"
+    )
     return """---
 license: cc-by-4.0
 pretty_name: Gaokao-Bench
@@ -565,7 +556,7 @@ $$
 
 本数据包整体采用 **CC BY 4.0**，包括题面、答案、题图、题目编排、schema 和评分元数据。允许复制、分发、修改和商业使用，但必须保留署名，注明 Gaokao-Bench 与数据版本 `v{version}`，并保留 `THIRD_PARTY_NOTICES.md` 中的来源信息。详见 `LICENSE-DATA` 和 `THIRD_PARTY_NOTICES.md`。
 
-代码和 Harness 使用 **Apache License 2.0**。公开排名授权见上节和 `manifest.json` 的 `release.public_ranking_allowed`。
+代码和 Harness 使用 **Apache License 2.0**。数据使用不需要额外的公开排名授权。
 
 ## 相关文件
 
@@ -618,7 +609,6 @@ $$
         catalog_questions=catalog_questions,
         catalog_points=int(audit.get("catalog_subjective_points", 0)),
         created_at=audit.get("created_at", ""),
-        public_ranking_allowed=str(public_ranking_allowed).lower(),
         ranking_policy=ranking_policy,
         score_label=score_label,
         leaderboard_class=leaderboard_class,
@@ -842,17 +832,10 @@ def _build_manifest(
             "channel": "huggingface",
             "repo_id": repo_id,
             "revision": "v%s" % output.name,
-            "public_ranking_allowed": bool(source_release.get("public_ranking_allowed", False)),
-            "public_ranking_policy": (
-                "allowed_with_attribution_and_version_pin"
-                if source_release.get("public_ranking_allowed", False)
-                else "not_allowed_without_written_authorization"
-            ),
             "score_label": score_label,
             "release_card": "RELEASE_CARD.json",
             "compatibility": "COMPATIBILITY.md",
             "leaderboard_class": leaderboard_class,
-            "public_ranking_scope": leaderboard_class,
             "freshness_claim_allowed": spec.reporting.freshness_claim_allowed,
             "held_out": spec.reporting.held_out,
             "separate_live_leaderboard_required": spec.reporting.live_track_required,
@@ -867,7 +850,6 @@ def _build_manifest(
         },
         "leaderboard": {
             "class": leaderboard_class,
-            "public_ranking_scope": leaderboard_class,
             "freshness_claim_allowed": spec.reporting.freshness_claim_allowed,
             "held_out": spec.reporting.held_out,
             "post_cutoff_live_track_required": spec.reporting.live_track_required,
@@ -1020,9 +1002,6 @@ def build_public_data_package(
             repo_id=repo_id,
             dataset_version=output.name,
             audit=audit,
-            public_ranking_allowed=bool(
-                (source_manifest.get("release") or {}).get("public_ranking_allowed", False)
-            ),
             benchmark_spec=benchmark_spec_ref,
             spec=spec,
             papers=papers,
@@ -1077,7 +1056,6 @@ def build_public_data_package(
             "min_visual_questions_for_ranking": spec.reporting.min_visual_questions_for_ranking,
             "visual_slice_role": spec.reporting.visual_slice_role,
             "rounding_policy": spec.reporting.rounding_policy,
-            "public_ranking_allowed": bool(release_info.get("public_ranking_allowed", False)),
             "live_track_required": spec.reporting.live_track_required,
             "tracks": [
                 {

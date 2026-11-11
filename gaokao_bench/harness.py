@@ -1727,17 +1727,11 @@ def run_benchmark(
 
     release_info = dataset.manifest.get("release") if isinstance(dataset.manifest.get("release"), dict) else {}
     rights_info = dataset.manifest.get("rights") if isinstance(dataset.manifest.get("rights"), dict) else {}
-    public_ranking_allowed = bool(release_info.get("public_ranking_allowed", False))
     rights_notice = {
-        "public_ranking_allowed": public_ranking_allowed,
+        "dataset_license": rights_info.get("dataset_license", "CC-BY-4.0"),
         "exam_material_license": rights_info.get("exam_material_license", "CC-BY-4.0"),
-        "notice": (
-            "Public leaderboard placement, vendor marketing, or comparative ranking is not authorized "
-            "unless the dataset manifest explicitly sets public_ranking_allowed=true."
-            if not public_ranking_allowed
-            else "The dataset manifest permits public leaderboards and comparative ranking with version "
-            "attribution; this does not imply endorsement and underlying exam-material rights still apply."
-        ),
+        "notice": "CC BY 4.0: public leaderboards, model comparisons, vendor marketing, and commercial "
+        "use are permitted without separate authorization; attribution and version citation are required.",
     }
     selected_possible_points = sum(int(question["points"]) for question in selected)
     dataset_possible_points = sum(int(question["points"]) for question in dataset.questions)
@@ -2291,8 +2285,6 @@ def run_benchmark(
             "freshness_claim_allowed": dataset.spec.reporting.freshness_claim_allowed,
             "held_out": dataset.spec.reporting.held_out,
             "separate_live_leaderboard_required": dataset.spec.reporting.live_track_required,
-            "public_ranking_allowed": bool(release_info.get("public_ranking_allowed", False)),
-            "public_ranking_scope": release_info.get("public_ranking_scope"),
             "tracks": [
                 {
                     "id": dataset.spec.reporting.leaderboard_class,
