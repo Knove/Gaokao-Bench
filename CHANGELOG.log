@@ -34,7 +34,9 @@ Engine 0.1.6 / Dataset 0.1.0-alpha.2026-n1 candidate
   package.
 - Separate source-repository scope from the code-only release artifact, and make
   the acceptance candidate's public-reproduction state explicit so a local
-  commit is never presented as an already reachable public revision.
+  commit is never presented as an already reachable public revision. Build
+  metadata is clone-independent, so the same source revision produces the same
+  manifest from a clean checkout.
 
 Engine 0.1.5 / Dataset 0.0.4
 

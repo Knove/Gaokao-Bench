@@ -69,20 +69,6 @@ def source_revision() -> str:
         return "unknown"
 
 
-def revision_is_in_public_remote_tracking() -> bool:
-    """Report whether local remote-tracking refs already contain HEAD."""
-
-    try:
-        output = subprocess.check_output(
-            ["git", "-C", str(ROOT), "branch", "-r", "--contains", "HEAD"],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return False
-    return bool(output.strip())
-
-
 def resolve_pdf(pdf: Path | None, cache_dir: Path, source: Mapping[str, Any]) -> Path:
     if pdf is None:
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -330,7 +316,6 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     version = str(spec["dataset_version"])
     out_dir = Path(args.out).resolve()
     revision = source_revision()
-    public_remote_contains_revision = revision_is_in_public_remote_tracking()
     spec_path = Path(args.spec).resolve()
     if out_dir == ROOT or out_dir == Path.home():
         raise ValueError("refusing unsafe output directory")
@@ -707,12 +692,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         encoding="utf-8",
     )
     public_reproduction_note = (
-        "The recorded source revision is present in the public remote-tracking refs. "
-        "The clone and checkout commands below can be used directly."
-        if public_remote_contains_revision
-        else "This is an owner-acceptance candidate built from the candidate source tree. "
-        "The recorded revision is not yet present in the public remote-tracking refs. "
-        "Run the commands below from that accepted source tree. A public clone/checkout "
+        "This is an owner-acceptance candidate built from the candidate source tree. "
+        "Run the commands below from that accepted source tree. Public clone/checkout "
         "is a release gate after owner approval, push, and a public rebuild; do not "
         "describe this candidate as publicly reproducible before then."
     )
@@ -864,7 +845,6 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "spec_path": "specs/2026-math-n1.json",
             "spec_sha256": sha256(spec_path),
             "reproduction": "REPRODUCE.md",
-            "public_remote_tracking_contains_revision": public_remote_contains_revision,
             "publication_gate": "owner_acceptance_then_push_and_public_rebuild",
         },
         "audit": {
