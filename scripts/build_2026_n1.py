@@ -642,6 +642,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     )
 
     shutil.copyfile(ROOT / "THIRD_PARTY_NOTICES.md", temporary / "THIRD_PARTY_NOTICES.md")
+    shutil.copyfile(ROOT / "LICENSE-DATA", temporary / "LICENSE-DATA")
 
     audit_summary = "三方独立审计已通过，等待 owner 最终逐题验收。" if audited else "三方独立审计尚未完成。"
     (temporary / "DATA_CARD.md").write_text(
@@ -662,7 +663,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "schema and scoring metadata, is licensed under **CC BY 4.0**. Attribution to "
         "Gaokao-Bench and the exact dataset version is required. The harness and code "
         "are licensed separately under Apache-2.0. License text: "
-        "https://creativecommons.org/licenses/by/4.0/.\n\n"
+        "https://creativecommons.org/licenses/by/4.0/. The complete CC BY 4.0 text "
+        "is included in `LICENSE-DATA`.\n\n"
         "Source attribution and retrieval URLs are recorded in "
         "`THIRD_PARTY_NOTICES.md`, `SOURCE_REGISTER.md`, `sources.jsonl` and "
         "`answer_sources.jsonl`.\n",
@@ -879,6 +881,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "examples/README.md",
         "DATA_CARD.md",
         "LICENSE_AND_RIGHTS.md",
+        "LICENSE-DATA",
         "SOURCE_REGISTER.md",
         "THIRD_PARTY_NOTICES.md",
         "RELEASE_NOTES.md",

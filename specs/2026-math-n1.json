@@ -849,7 +849,7 @@
       "answer_locator": "完整解析图；第18题",
       "secondary_answer_source_id": "src-sohu-2026-n1-answers",
       "secondary_answer_locator": "教师研判参考答案；第18题",
-      "secondary_reference_answer": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) tan∠PQR 的最小值为4√3。",
+      "secondary_reference_answer": "第二来源页仅展示至第(2)(i)问：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)。第(2)(ii)问由主来源与独立推导确认。",
       "solution_outline": "c=1，e=c/a=1/2给a=2，b^2=3。设l:y=t(x+1), t>0，与椭圆联立。由面积比和共线关系得PF=2FQ，代入横坐标可化为2√(t^2+1)=3，故t=√5/2。对(ii)，直线QR斜率-3/(4t)，直线QP斜率t，夹角正切为4t+3/t，由基本不等式最小4√3（t=√3/2时取等）。",
       "asset_dependency": "none",
       "page_number": 3,

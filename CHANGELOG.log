@@ -37,6 +37,9 @@ Engine 0.1.6 / Dataset 0.1.0-alpha.2026-n1 candidate
   commit is never presented as an already reachable public revision. Build
   metadata is clone-independent, so the same source revision produces the same
   manifest from a clean checkout.
+- Bind D18 secondary evidence only to the portion actually visible on the
+  linked Sohu page, and include the complete `LICENSE-DATA` text in the package
+  so the third-party notice has no dangling license reference.
 
 Engine 0.1.5 / Dataset 0.0.4
 
