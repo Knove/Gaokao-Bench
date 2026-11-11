@@ -22,7 +22,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .scoring import Dataset, load_dataset, validate_dataset
 
-OWNER_REVIEW_VERSION = "1.2"
+OWNER_REVIEW_VERSION = "1.3"
 REVIEW_WORKSHEET_NAME = "owner_review.csv"
 SIGNOFF_NAME = "owner_signoff.json"
 OWNER_REVIEW_FIELDS = (
@@ -31,6 +31,8 @@ OWNER_REVIEW_FIELDS = (
     "display_number",
     "question_type",
     "points",
+    "included_in_scoring",
+    "review_scope",
     "stem",
     "options",
     "canonical_answer",
@@ -151,16 +153,41 @@ def _read_csv(path: Path) -> Tuple[List[str], List[Dict[str, str]]]:
 
 
 def _review_instructions(dataset: Dataset, packet_id: str) -> str:
+    review_items = _review_items(dataset)
+    scored_count = len(dataset.questions)
+    catalog_count = len(dataset.catalog_subjective)
+    scored_points = sum(int(question["points"]) for question in dataset.questions)
+    catalog_points = sum(int(question["points"]) for question in dataset.catalog_subjective)
+    total_points = scored_points + catalog_points
+    rights = dataset.manifest.get("rights") if isinstance(dataset.manifest.get("rights"), dict) else {}
+    if _uses_full_paper_review(dataset):
+        scope_text = (
+            "全卷 {total} 道题 / {points} 分（自动评分 {scored} 题 / {scored_points} 分；"
+            "解答题目录 {catalog} 题 / {catalog_points} 分）"
+        ).format(
+            total=len(review_items),
+            points=total_points,
+            scored=scored_count,
+            scored_points=scored_points,
+            catalog=catalog_count,
+            catalog_points=catalog_points,
+        )
+    else:
+        scope_text = "{questions} 道计分题，{points} 分".format(
+            questions=scored_count,
+            points=scored_points,
+        )
     return """# Gaokao-Bench owner 复核包
 
 > Packet: `{packet_id}`  
 > Dataset: `{version}`  
 > 数据 manifest SHA-256: `{manifest_sha}`  
-> 范围：{questions} 道选择题/填空题，{points} 分
+> 复核范围：{scope_text}
+> 数据许可：`{data_license}` · 公开再分发：`{redistribution}`
 
 ## 怎么复核
 
-1. 打开 `owner_review.csv`，逐行核对题干、选项、答案、分值和两条来源定位；
+1. 打开 `owner_review.csv`，逐行核对题干、选项、答案、分值和来源定位；
 2. 每行 `decision` 只填 `agree`、`correct` 或 `dispute`；
 3. `correct` 时填写 `reviewed_answer` 和/或 `reviewed_points`，并在 `notes` 写明依据；
 4. `dispute` 时必须在 `notes` 写明争议点；
@@ -169,24 +196,25 @@ def _review_instructions(dataset: Dataset, packet_id: str) -> str:
    `owner_attested=true`；
 7. 签名必须与姓名完全一致，时间格式示例：`2026-11-05T14:30:00+08:00`。
 
+`included_in_scoring=true` 的行进入确定性主指标；`false` 的行是解答题目录，
+本次复核题面、参考答案、解答要点和分值，但不进入自动评分。
+
 多空答案写 JSON 数组，例如 `["1", "15"]`；单选题写 `C`。
 主来源列以 `answer_*` 开头，独立第二来源列以 `secondary_*` 开头。
 来源可能是分页答案图片、题库页面或文档预览；网页正文可能搜不到题号。请优先打开
 `answer_image_url` / `secondary_page_url` 指向的证据页，再用
-`answer_locator` / `secondary_locator` 核对。`GB25-N1-Q13` 另在验收台中逐条
-展示 `source_assessments`：题干不匹配或题干不可见的来源必须显示为 rejected。
+`answer_locator` / `secondary_locator` 核对。若来源展示 `source_assessments`，
+题干不匹配或题干不可见的来源必须显示为 rejected。
 如使用浏览器验收台，打开 `reports/acceptance/{version}/index.html`，逐题点击
 “同意 / 纠错 / 争议”，最后下载 CSV 与签字 JSON；页面不会代填身份。
 
 ## 边界
 
 - 这是 **项目 owner 单人验收签字**，不是两名独立审校者的双人复核；
-- `0.1.0-alpha.3-owner` 包含一个已确认错误答案，**不得签字**；
-- `0.1.0-alpha.4-owner` 的题目裁图普遍错位或缺失，**不得签字**；本包为 `{version}`；
-- `0.1.0-alpha.5-owner` 的 Q13 引用了缺少正项条件的变体题面，**不得签字**；本包为 `{version}`；
 - 导入器只生成报告和变更建议，不会自动改写数据；
 - 如果签字时有 `correct`，必须发布新的不可变数据版本；
-- 本包仅供内部验收，不解决第三方试题素材的再分发授权。
+- 复核包不另行改变数据许可；许可以数据包 `manifest.json` 和
+  `LICENSE_AND_RIGHTS.md` 为准。
 
 ## 提交
 
@@ -203,8 +231,9 @@ python3 scripts/import_owner_signoff.py \\
         packet_id=packet_id,
         version=dataset.manifest["dataset_version"],
         manifest_sha=_file_sha256(dataset.data_dir / "manifest.json"),
-        questions=len(dataset.questions),
-        points=sum(int(question["points"]) for question in dataset.questions),
+        scope_text=scope_text,
+        data_license=rights.get("data_license", "see dataset manifest"),
+        redistribution=rights.get("public_redistribution", "see dataset manifest"),
         worksheet=REVIEW_WORKSHEET_NAME,
         signoff=SIGNOFF_NAME,
     )
@@ -213,13 +242,19 @@ python3 scripts/import_owner_signoff.py \\
 def _review_notes(dataset: Dataset) -> str:
     version = dataset.manifest["dataset_version"]
     asset_count = len(_read_jsonl(dataset.data_dir / "asset_audit.jsonl"))
+    answer_count = len(_read_jsonl(dataset.data_dir / "answer_audit.jsonl"))
+    point_count = len(_read_jsonl(dataset.data_dir / "point_audit.jsonl"))
+    catalog_count = len(dataset.catalog_subjective)
+    catalog_points = sum(int(question["points"]) for question in dataset.catalog_subjective)
     return """# {version} owner 复核说明
 
-本包包含 {asset_count} 条素材审计、74 条答案证据和 74 条分值证据。
+本包包含 {asset_count} 条素材审计、{answer_count} 条计分题答案证据、
+{point_count} 条计分题分值证据；另有 {catalog_count} 道解答题目录、{catalog_points} 分，
+其题面、参考答案、解答要点和分值在 owner 工作表中逐题复核，但不进入自动评分。
 
 ## 复核要求
 
-1. 逐题对照题干、选项、canonical answer、主来源和第二来源；
+1. 逐题对照题干、选项、canonical answer 或参考答案、来源定位和分值；
 2. 对 `external_answer_error`、`external_source_self_conflict` 和
    `ocr_match_pending_visual` 状态重点复核；
 3. 对 `source_assessments` 中的 `stem_match` 逐条复核：缺条件或题干不可见的来源不得支持答案；
@@ -229,7 +264,26 @@ def _review_notes(dataset: Dataset) -> str:
 
 具体的逐题争议说明由数据负责人作为受控复核附件提供，不硬编码在
 公开软件代码中。证据来源为非官方交叉核验，不代表考试院官方答案。
-""".format(version=version, asset_count=asset_count)
+""".format(
+        version=version,
+        asset_count=asset_count,
+        answer_count=answer_count,
+        point_count=point_count,
+        catalog_count=catalog_count,
+        catalog_points=catalog_points,
+    )
+
+
+def _uses_full_paper_review(dataset: Dataset) -> bool:
+    quality = dataset.manifest.get("quality") if isinstance(dataset.manifest.get("quality"), dict) else {}
+    return quality.get("owner_review_scope") == "full_paper"
+
+
+def _review_items(dataset: Dataset) -> List[Dict[str, Any]]:
+    items: List[Dict[str, Any]] = [dict(question) for question in dataset.questions]
+    if _uses_full_paper_review(dataset):
+        items.extend(dict(question) for question in dataset.catalog_subjective)
+    return items
 
 
 def _release_review_notes_path(dataset: Dataset) -> Path:
@@ -269,19 +323,45 @@ def export_owner_review(
     answer_sources = {row["id"]: row for row in _read_jsonl(dataset.data_dir / "answer_sources.jsonl")}
 
     rows: List[Dict[str, Any]] = []
-    for question in dataset.questions:
+    for question in _review_items(dataset):
         qid = question["id"]
-        key = dataset.answer_keys[qid]
-        answer_evidence = answer_audit[qid]
-        point_evidence = point_audit[qid]
-        source = answer_sources[answer_evidence["external_source_id"]]
-        page_url = _source_page_url(source, answer_evidence.get("external_locator"))
-        image_url = _source_image_url(source, answer_evidence.get("external_locator"))
-        secondary_source_id = answer_evidence.get("secondary_source_id") or ""
+        key = dataset.answer_keys.get(qid)
+        included_in_scoring = key is not None
+        if included_in_scoring:
+            answer_evidence = answer_audit[qid]
+            point_evidence = point_audit[qid]
+            canonical_answer = key.get("canonical")
+            external_source_id = answer_evidence.get("external_source_id", "")
+            external_locator = answer_evidence.get("external_locator", "")
+            external_excerpt = answer_evidence.get("external_excerpt")
+            secondary_source_id = answer_evidence.get("secondary_source_id") or ""
+            secondary_external_canonical = answer_evidence.get("secondary_external_canonical")
+            secondary_source_locator = answer_evidence.get("secondary_source_locator", "")
+            evidence_status = answer_evidence.get("status", "")
+            point_status = point_evidence.get("status", "")
+            point_locator = point_evidence.get("locator", "")
+            review_scope = "deterministic_objective"
+        else:
+            canonical_answer = question.get("reference_answer", "")
+            external_source_id = question.get("answer_source_id", "")
+            external_locator = question.get("answer_locator", "") or "第%d题参考答案" % int(question.get("number", 0))
+            external_excerpt = question.get("reference_answer", "")
+            secondary_source_id = question.get("secondary_answer_source_id") or ""
+            secondary_external_canonical = question.get("secondary_reference_answer")
+            secondary_source_locator = question.get("secondary_answer_locator", "")
+            evidence_status = (
+                question.get("reference_answer_status")
+                or question.get("answer_status", "")
+            )
+            point_status = question.get("point_evidence_status") or "included_in_full_paper_catalog"
+            point_locator = question.get("point_locator", "") or "试卷结构；第%d题" % int(question.get("number", 0))
+            review_scope = "catalog_reference_only"
+        source = answer_sources.get(external_source_id, {}) if external_source_id else {}
+        page_url = _source_page_url(source, external_locator)
+        image_url = _source_image_url(source, external_locator)
         secondary_source = answer_sources.get(secondary_source_id, {}) if secondary_source_id else {}
-        secondary_page_url = _source_page_url(secondary_source, answer_evidence.get("secondary_source_locator"))
-        secondary_image_url = _source_image_url(secondary_source, answer_evidence.get("secondary_source_locator"))
-        secondary_answer = answer_evidence.get("secondary_external_canonical")
+        secondary_page_url = _source_page_url(secondary_source, secondary_source_locator)
+        secondary_image_url = _source_image_url(secondary_source, secondary_source_locator)
         rows.append(
             {
                 "item_id": qid,
@@ -289,28 +369,30 @@ def export_owner_review(
                 "display_number": question.get("display_number", ""),
                 "question_type": question["type"],
                 "points": int(question["points"]),
+                "included_in_scoring": "true" if included_in_scoring else "false",
+                "review_scope": review_scope,
                 "stem": _one_line(question.get("stem") or question.get("content")),
                 "options": _json_text(question.get("options", [])),
-                "canonical_answer": _json_text(key.get("canonical")),
-                "answer_evidence": answer_evidence.get("status", ""),
-                "answer_source_id": answer_evidence.get("external_source_id", ""),
+                "canonical_answer": _json_text(canonical_answer),
+                "answer_evidence": evidence_status,
+                "answer_source_id": external_source_id,
                 "answer_source_url": source.get("url", ""),
                 "answer_page_url": page_url,
                 "answer_image_url": image_url,
-                "answer_locator": answer_evidence.get("external_locator", ""),
-                "answer_excerpt": _one_line(answer_evidence.get("external_excerpt")),
+                "answer_locator": external_locator,
+                "answer_excerpt": _one_line(external_excerpt),
                 "secondary_source_id": secondary_source_id,
                 "secondary_source_url": secondary_source.get("url", ""),
                 "secondary_page_url": secondary_page_url,
                 "secondary_image_url": secondary_image_url,
-                "secondary_locator": answer_evidence.get("secondary_source_locator", ""),
+                "secondary_locator": secondary_source_locator,
                 "secondary_answer_excerpt": _one_line(
-                    secondary_answer
-                    if secondary_answer is not None
+                    secondary_external_canonical
+                    if secondary_external_canonical is not None
                     else "该题未配置独立第二来源，请以主来源和独立推导复核"
                 ),
-                "point_evidence": point_evidence.get("status", ""),
-                "point_locator": point_evidence.get("locator", ""),
+                "point_evidence": point_status,
+                "point_locator": point_locator,
                 "image_dependency": question.get("asset_dependency", ""),
                 "decision": "",
                 "reviewed_answer": "",
@@ -321,6 +403,10 @@ def export_owner_review(
 
     worksheet_path = destination / REVIEW_WORKSHEET_NAME
     _write_csv(worksheet_path, OWNER_REVIEW_FIELDS, rows)
+    scored_points = sum(int(question["points"]) for question in dataset.questions)
+    full_paper_review = _uses_full_paper_review(dataset)
+    reviewed_catalog = dataset.catalog_subjective if full_paper_review else ()
+    catalog_points = sum(int(question["points"]) for question in reviewed_catalog)
     signoff = {
         "schema_version": OWNER_REVIEW_VERSION,
         "dataset": dataset.manifest.get("dataset"),
@@ -330,12 +416,18 @@ def export_owner_review(
         "review_worksheet": REVIEW_WORKSHEET_NAME,
         "review_worksheet_sha256": "",
         "worksheet_items": len(rows),
+        "scored_items": len(dataset.questions),
+        "catalog_items": len(reviewed_catalog),
+        "scored_points": scored_points,
+        "catalog_points": catalog_points,
+        "total_points": scored_points + catalog_points,
+        "review_scope": "full_paper" if full_paper_review else "scored_questions",
         "reviewer_id": "",
         "reviewer_name": "",
         "signature": "",
         "reviewed_at": "",
         "owner_attested": False,
-        "attestation": "本人已逐题复核本数据包的答案、分值和来源定位，并对其中的变更与保留项负责。",
+        "attestation": "本人已逐题复核工作表内全部题目的题面、答案或参考答案、分值和来源定位，并对其中的变更与保留项负责。",
         "notes": "",
     }
     signoff_path = destination / SIGNOFF_NAME
@@ -347,6 +439,22 @@ def export_owner_review(
     else:
         (destination / "REVIEW_NOTES.md").write_text(_review_notes(dataset), encoding="utf-8")
 
+    rights = dataset.manifest.get("rights") if isinstance(dataset.manifest.get("rights"), dict) else {}
+    packet_counts = {
+        "answer_items": len(rows),
+        "point_items": len(rows),
+        "questions": len(rows),
+        "points": scored_points + catalog_points,
+    }
+    if full_paper_review:
+        packet_counts.update(
+            {
+                "scored_questions": len(dataset.questions),
+                "catalog_questions": len(reviewed_catalog),
+                "scored_points": scored_points,
+                "catalog_points": catalog_points,
+            }
+        )
     packet_manifest = {
         "packet_id": packet_id,
         "packet_version": OWNER_REVIEW_VERSION,
@@ -354,14 +462,14 @@ def export_owner_review(
         "dataset_version": dataset.manifest.get("dataset_version"),
         "dataset_manifest_sha256": manifest_sha,
         "review_scope": "owner_single_signoff_not_independent_double_review",
-        "counts": {
-            "answer_items": len(rows),
-            "point_items": len(rows),
-            "questions": len(rows),
-            "points": sum(int(question["points"]) for question in dataset.questions),
-        },
-        "public_release": False,
-        "rights": "internal_review_only_not_for_redistribution",
+        "review_coverage": "full_paper" if full_paper_review else "scored_questions",
+        "counts": packet_counts,
+        "release_status": (
+            "published"
+            if bool(dataset.manifest.get("public_release"))
+            else "candidate_not_published"
+        ),
+        "rights": rights,
         "files": {
             name: {"sha256": _file_sha256(destination / name), "bytes": (destination / name).stat().st_size}
             for name in (REVIEW_WORKSHEET_NAME, SIGNOFF_NAME, "README.md", "REVIEW_NOTES.md")
@@ -433,7 +541,8 @@ def import_owner_signoff(
         errors.append("dataset_manifest_sha256 does not match the frozen package")
     if payload.get("review_worksheet") not in ("", None, REVIEW_WORKSHEET_NAME):
         errors.append("review_worksheet must be %s" % REVIEW_WORKSHEET_NAME)
-    if int(payload.get("worksheet_items") or -1) != len(dataset.questions):
+    review_items = _review_items(dataset)
+    if int(payload.get("worksheet_items") or -1) != len(review_items):
         errors.append("worksheet_items does not match the data package")
     if payload.get("owner_attested") is not True:
         errors.append("owner_attested must be true")
@@ -462,7 +571,7 @@ def import_owner_signoff(
     if missing_columns:
         errors.append("owner review worksheet is missing columns: %s" % ", ".join(missing_columns))
 
-    expected = {question["id"]: question for question in dataset.questions}
+    expected = {question["id"]: question for question in review_items}
     seen: set = set()
     decisions: List[Dict[str, Any]] = []
     proposals: List[Dict[str, Any]] = []
@@ -479,12 +588,22 @@ def import_owner_signoff(
         if question is None:
             errors.append("row %d: unknown item_id %s" % (index, item_id))
             continue
+        included_in_scoring = item_id in dataset.answer_keys
+        reviewed_scope = str(row.get("included_in_scoring", "")).strip().lower()
+        if reviewed_scope and reviewed_scope not in {"true", "false"}:
+            errors.append("row %d: included_in_scoring must be true or false" % index)
+        elif reviewed_scope and (reviewed_scope == "true") != included_in_scoring:
+            errors.append("row %d: included_in_scoring does not match the data package" % index)
         decision = str(row.get("decision", "")).strip().lower()
         if decision not in ALLOWED_DECISIONS:
             errors.append("row %d: decision must be agree/correct/dispute" % index)
             continue
         notes = str(row.get("notes", "")).strip()
-        canonical_answer = dataset.answer_keys[item_id].get("canonical")
+        canonical_answer = (
+            dataset.answer_keys[item_id].get("canonical")
+            if included_in_scoring
+            else question.get("reference_answer")
+        )
         canonical_points = int(question["points"])
         reviewed_answer = _normalise_answer(str(row.get("reviewed_answer", "")))
         raw_points = str(row.get("reviewed_points", "")).strip()
@@ -535,6 +654,8 @@ def import_owner_signoff(
                 "reviewed_points": reviewed_points,
                 "final_answer": final_answer,
                 "final_points": final_points,
+                "included_in_scoring": included_in_scoring,
+                "review_scope": "deterministic_objective" if included_in_scoring else "catalog_reference_only",
                 "notes": notes,
             }
         )
@@ -547,6 +668,7 @@ def import_owner_signoff(
                     "after_answer": final_answer,
                     "before_points": canonical_points,
                     "after_points": final_points,
+                    "included_in_scoring": included_in_scoring,
                     "reason": notes,
                 }
             )
@@ -591,6 +713,8 @@ def import_owner_signoff(
         "counts": {
             "expected_items": len(expected),
             "reviewed_items": len(decisions),
+            "scored_items": sum(1 for row in decisions if row["included_in_scoring"]),
+            "catalog_items": sum(1 for row in decisions if not row["included_in_scoring"]),
             "agree": sum(1 for row in decisions if row["decision"] == "agree"),
             "correct": sum(1 for row in decisions if row["decision"] == "correct"),
             "dispute": len(disputes),

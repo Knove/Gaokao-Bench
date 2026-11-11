@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 from gaokao_bench.cli import build_parser
 from gaokao_bench.benchmark_spec import parse_benchmark_spec
@@ -12,6 +13,7 @@ from gaokao_bench.harness import (
     render_system_prompt,
 )
 from gaokao_bench.public_data import _dataset_card
+from gaokao_bench.owner_review import _review_items, _uses_full_paper_review
 from gaokao_bench.reporting import (
     compact_evaluation_summary,
     compact_run_summary,
@@ -25,10 +27,33 @@ from gaokao_bench.scoring import PUBLIC_REQUIRED_FILES
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_owner_review_expands_to_the_catalogued_full_paper():
+    dataset = SimpleNamespace(
+        questions=[{"id": "Q01"}, {"id": "Q02"}],
+        catalog_subjective=[{"id": "D03"}],
+        manifest={"quality": {"owner_review_scope": "full_paper"}},
+    )
+    assert _uses_full_paper_review(dataset) is True
+    assert [item["id"] for item in _review_items(dataset)] == ["Q01", "Q02", "D03"]
+
+
+def test_owner_review_keeps_scored_only_scope_for_legacy_packages():
+    dataset = SimpleNamespace(
+        questions=[{"id": "Q01"}],
+        catalog_subjective=[{"id": "D02"}],
+        manifest={"quality": {}},
+    )
+    assert _uses_full_paper_review(dataset) is False
+    assert [item["id"] for item in _review_items(dataset)] == ["Q01"]
+
+
 def test_public_numeric_parser_contract():
     assert parse_numeric_expression("7/4") == 1.75
     assert parse_numeric_expression(r"\frac{7}{4}") == 1.75
     assert abs(parse_numeric_expression("3√2") - 4.242640687119286) < 1e-12
+    assert abs(parse_numeric_expression("∛(3/2)") - (3 / 2) ** (1 / 3)) < 1e-12
+    assert abs(parse_numeric_expression(r"\sqrt[3]{3/2}") - (3 / 2) ** (1 / 3)) < 1e-12
+    assert abs(parse_numeric_expression("cbrt(3/2)") - (3 / 2) ** (1 / 3)) < 1e-12
 
 
 def test_public_interval_parser_contract():
@@ -211,19 +236,19 @@ def test_run_reporting_keeps_scope_ids_out_of_the_summary():
         "reproducibility": {"status": "pilot_only", "caveats": ["fewer than 5 repeats"]},
         "versions": {
             "dataset": "0.0.4",
-            "engine": "0.1.5",
-            "harness": "0.1.5",
-            "scorer": "0.1.3",
+            "engine": "0.1.6",
+            "harness": "0.1.6",
+            "scorer": "0.1.4",
             "benchmark_spec": "1.2",
         },
-        "compatibility": {"dataset": "0.0.4", "engine": "0.1.5"},
+        "compatibility": {"dataset": "0.0.4", "engine": "0.1.6"},
     }
     human = render_run_summary(summary)
     compact = compact_run_summary(summary)
     assert "GB25-BJ-Q01" not in human
-    assert "Versions  dataset 0.0.4 · engine 0.1.5" in human
+    assert "Versions  dataset 0.0.4 · engine 0.1.6" in human
     assert "selected_question_ids" not in json.dumps(compact)
-    assert compact["versions"]["scorer"] == "0.1.3"
+    assert compact["versions"]["scorer"] == "0.1.4"
 
 
 def test_prepare_only_reporting_is_clear_and_versioned():
@@ -242,12 +267,12 @@ def test_prepare_only_reporting_is_clear_and_versioned():
         "selected_possible_points": 5,
         "versions": {
             "dataset": "0.0.4",
-            "engine": "0.1.5",
-            "harness": "0.1.5",
-            "scorer": "0.1.3",
+            "engine": "0.1.6",
+            "harness": "0.1.6",
+            "scorer": "0.1.4",
             "benchmark_spec": "1.2",
         },
-        "compatibility": {"dataset": "0.0.4", "engine": "0.1.5"},
+        "compatibility": {"dataset": "0.0.4", "engine": "0.1.6"},
         "prompt_manifest": "prompts.jsonl",
         "prompt_version": "gbmath-objective-anonymous-v2",
         "prompt_renderer_version": "1.1",
@@ -260,7 +285,7 @@ def test_prepare_only_reporting_is_clear_and_versioned():
     assert compact["status"] == "prepared"
     assert compact["result_status"] == "prepared"
     assert compact["scope"]["selected_questions"] == 1
-    assert compact["versions"]["engine"] == "0.1.5"
+    assert compact["versions"]["engine"] == "0.1.6"
     assert "aggregate" not in compact
 
 

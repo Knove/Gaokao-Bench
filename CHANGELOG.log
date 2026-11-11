@@ -10,6 +10,25 @@ Versioning
 2026-11-11
 ----------
 
+Engine 0.1.6 / Dataset 0.1.0-alpha.2026-n1 candidate
+
+- Add deterministic cube-root parsing for Unicode `∛`, LaTeX `\sqrt[3]`, and
+  `cbrt(...)` answers. The 2026 National I fill-in answer `∛(3/2)` now scores
+  without fuzzy or model-assisted matching.
+- Add the reproducible 2026 National I mathematics builder: one frozen PDF,
+  explicit per-question page/bbox crops, 19-question catalogue, 73-point
+  objective scoring scope, and 77-point subjective catalogue.
+- Keep canonical answers out of `questions.jsonl`; answers live only in
+  `answer_keys.jsonl` and audit evidence files.
+- Record four independent answer sources, including the teacher-reviewed Sohu
+  republication, and pending three-way audit and owner acceptance state.
+- Make validation independent of the package directory name and expose the
+  benchmark-spec file SHA separately from its semantic fingerprint.
+- Expand owner review to the full 19-question / 150-point paper while keeping
+  the 14-question / 73-point deterministic scoring denominator explicit.
+- Record reproducible build provenance and make the CC BY 4.0 rights metadata
+  consistent across the data package and owner review packet.
+
 Engine 0.1.5 / Dataset 0.0.4
 
 - Split tests into unit, public-data, and source-release contracts. Public CI

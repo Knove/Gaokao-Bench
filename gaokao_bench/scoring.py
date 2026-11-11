@@ -606,11 +606,6 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
                     errors.append("content lineage hash is stale: %s" % relative)
     if not isinstance(dataset_version, str) or not dataset_version.strip():
         errors.append("manifest dataset_version must be a non-empty string")
-    elif dataset_version != dataset.data_dir.name:
-        errors.append(
-            "manifest dataset_version must match the data directory name: %s != %s"
-            % (dataset_version, dataset.data_dir.name)
-        )
     if dataset.manifest.get("schema_version") != SCHEMA_VERSION:
         errors.append(
             "manifest schema_version: expected %s, got %s"
@@ -849,7 +844,8 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
             "benchmark_spec_id": spec.id,
             "benchmark_spec_version": spec.version,
-            "benchmark_spec_sha256": spec.fingerprint(),
+            "benchmark_spec_sha256": _benchmark_spec_file_sha256(dataset),
+            "benchmark_spec_fingerprint": spec.fingerprint(),
             "papers": len(dataset.papers),
             "questions": len(dataset.questions),
             "choice_questions": len(choices),
@@ -1150,7 +1146,8 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
         "benchmark_spec_id": spec.id,
         "benchmark_spec_version": spec.version,
-        "benchmark_spec_sha256": spec.fingerprint(),
+        "benchmark_spec_sha256": _benchmark_spec_file_sha256(dataset),
+        "benchmark_spec_fingerprint": spec.fingerprint(),
         "papers": len(dataset.papers),
         "questions": len(dataset.questions),
         "choice_questions": len(choices),
@@ -1179,6 +1176,11 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _benchmark_spec_file_sha256(dataset: Dataset) -> Optional[str]:
+    path = dataset.data_dir / "benchmark_spec.json"
+    return file_sha256(path) if path.is_file() else None
+
+
 def _is_sha256(value: Any) -> bool:
     return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
@@ -1203,9 +1205,11 @@ def _normalise_math(text: str) -> str:
     text = text.replace("\\left", "").replace("\\right", "")
     text = text.replace("\\dfrac", "\\frac").replace("\\tfrac", "\\frac")
     text = re.sub(r"\\(?:times|cdot)", "*", text)
+    text = re.sub(r"\\sqrt\[3\]\s*\{([^{}]+)\}", r"cbrt(\1)", text)
     text = text.replace("\\pi", "pi").replace("π", "pi")
     text = text.replace("\\sqrt", "sqrt")
     text = text.replace("√", "sqrt")
+    text = text.replace("∛", "cbrt")
     text = text.replace("×", "*").replace("·", "*").replace("⋅", "*")
     text = text.replace("−", "-").replace("–", "-")
     text = text.replace("°", "").replace("度", "")
@@ -1225,7 +1229,7 @@ def _normalise_math(text: str) -> str:
     return text
 
 
-_NUM_TOKEN_RE = re.compile(r"(?:\d+(?:\.\d*)?|\.\d+|pi|sqrt|[()+\-*/^])")
+_NUM_TOKEN_RE = re.compile(r"(?:\d+(?:\.\d*)?|\.\d+|pi|sqrt|cbrt|[()+\-*/^])")
 
 
 def _numeric_tokens(text: str) -> List[str]:
@@ -1325,6 +1329,14 @@ class _NumberParser:
             if value < -1e-15:
                 raise ValueError("negative square root")
             return math.sqrt(max(0.0, value))
+        if token == "cbrt":
+            if self.peek() == "(":
+                self.take("(")
+                value = self.parse_expr()
+                self.take(")")
+            else:
+                value = self.parse_primary()
+            return math.copysign(abs(value) ** (1.0 / 3.0), value)
         if re.fullmatch(r"(?:\d+(?:\.\d*)?|\.\d+)", token):
             return float(token)
         raise ValueError("unsupported numeric token %r" % token)

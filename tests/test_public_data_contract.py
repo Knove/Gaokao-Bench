@@ -16,6 +16,7 @@ from gaokao_bench.public_data import build_public_data_package
 from gaokao_bench.scoring import (
     PUBLIC_PACKAGE_PROFILE,
     evaluate_submission,
+    file_sha256,
     load_dataset,
     score_question,
     validate_dataset,
@@ -58,6 +59,8 @@ def test_public_package_has_public_layout_and_valid_audit():
     audit = validate_dataset(dataset)
     assert audit["questions"] == 74
     assert audit["objective_points"] == 353
+    assert audit["benchmark_spec_sha256"] == file_sha256(DATA / "benchmark_spec.json")
+    assert audit["benchmark_spec_fingerprint"] == dataset.spec.fingerprint()
 
 
 def test_public_gold_submission_scores_the_full_denominator():
@@ -109,7 +112,7 @@ def test_prompt_manifest_records_the_answer_format_contract(tmp_path):
     assert manifest["status"] == "prepared"
     assert manifest["result_status"] == "prepared"
     assert manifest["versions"]["dataset"] == "0.0.4"
-    assert manifest["versions"]["engine"] == "0.1.5"
+    assert manifest["versions"]["engine"] == "0.1.6"
     rows = [
         json.loads(line)
         for line in (tmp_path / "prepare" / "prompts.jsonl").read_text(encoding="utf-8").splitlines()

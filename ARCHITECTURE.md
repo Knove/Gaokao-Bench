@@ -702,7 +702,7 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 
 ## 16. 当前实现状态
 
-Engine `0.1.5` 已完成：
+Engine `0.1.6` 已完成：
 
 - Spec-driven validation and legacy adapter.
 - `score.weighted_points` primary metric with explicit scopes.
