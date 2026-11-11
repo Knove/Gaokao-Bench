@@ -442,6 +442,13 @@ Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包
 
 **English:** Gaokao-Bench is a deterministic, point-weighted benchmark built from real Chinese Gaokao papers. Version `{version}` covers the scored sections of {paper_count} {subject} paper(s) from {years_label}, uses a fixed {points}-point denominator, and ships only the figure crops required by the vision profile.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/q11-editorial-dark.png">
+    <img src="brand/q11-editorial-light.png" width="100%" alt="Gaokao-Bench 题卡示例：2025 上海卷数学第 11 题">
+  </picture>
+</p>
+
 ## 为什么用高考
 
 - **国家级选拔尺度：** 高考是中国最具代表性的高区分度选拔考试，题目经过命题专家反复打磨，天然区分多步推理与表层模仿。
@@ -982,6 +989,11 @@ def build_public_data_package(
         project_root / ".github" / "readme" / "hero-hf-zh.png",
         output / "brand" / "hero-hf-zh.png",
     )
+    for name in ("q11-editorial-light.png", "q11-editorial-dark.png"):
+        shutil.copy2(
+            project_root / ".github" / "readme" / name,
+            output / "brand" / name,
+        )
     (output / "THIRD_PARTY_NOTICES.md").write_text(
         _third_party_notice(repo_id, papers, audit), encoding="utf-8"
     )

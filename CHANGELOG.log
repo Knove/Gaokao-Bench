@@ -10,6 +10,11 @@ Versioning
 2026-11-11
 ----------
 
+- Add the editorial `GB25-SH-Q11` sample card to both READMEs and the Hugging
+  Face data card, with matching light/dark assets, project branding, and a
+  corrected score-stamp inset.
+- Resolve public-release contamination documents against the repository root,
+  so release gates work when pointed at `dist/public-data/<version>`.
 - Remove `public_ranking_allowed`, `public_ranking_scope`, and the associated
   ranking policy fields. The data package is licensed as a whole under CC BY
   4.0; public leaderboards, model comparisons, vendor marketing, and commercial

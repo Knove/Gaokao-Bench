@@ -485,6 +485,7 @@ def _contamination_check(
     manifest_sha: str,
     dataset_version: str,
     source_root: Path,
+    repo_root: Optional[Path] = None,
     dataset_years: Sequence[int],
 ) -> Dict[str, Any]:
     if policy is None:
@@ -509,7 +510,10 @@ def _contamination_check(
     if not isinstance(vectors, list) or not vectors:
         return {"status": "fail", "detail": "contamination disclosure has no known leakage vectors"}
     document = str(disclosure.get("disclosure_document", "")).strip()
-    if not document or not (source_root / document).is_file():
+    document_roots = [source_root]
+    if repo_root is not None:
+        document_roots.append(repo_root)
+    if not document or not any((root / document).is_file() for root in document_roots):
         return {"status": "fail", "detail": "contamination disclosure document is missing"}
     return {
         "status": "pass",
@@ -1011,6 +1015,7 @@ def evaluate_release_gate(
             manifest_sha=manifest_sha,
             dataset_version=dataset_version,
             source_root=source_root,
+            repo_root=Path(repo_root).resolve(),
             dataset_years=dataset.spec.years,
         )
         _add(checks, "contamination", contamination_check["status"], contamination_check["detail"], public_blocking=True)

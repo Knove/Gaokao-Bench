@@ -55,6 +55,13 @@
 
 The current `0.0.4` release contains the objective sections of the **2025 Gaokao Mathematics** papers:
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme/q11-editorial-dark.svg">
+    <img src=".github/readme/q11-editorial-light.svg" width="100%" alt="Gaokao-Bench sample card: 2025 Shanghai Mathematics, question 11">
+  </picture>
+</p>
+
 | Metric | `0.0.4` Scope |
 | --- | --- |
 | **Subject & Year** | 2025 · Mathematics |

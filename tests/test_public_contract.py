@@ -39,6 +39,8 @@ def test_public_readmes_and_theme_assets_are_complete():
         "hero-zh-light.svg",
         "hero-zh-dark.svg",
         "hero-hf-zh.svg",
+        "q11-editorial-light.svg",
+        "q11-editorial-dark.svg",
         "pipeline-light.svg",
         "pipeline-dark.svg",
         "pipeline-zh-light.svg",
@@ -99,6 +101,8 @@ def test_huggingface_dataset_card_metadata_is_hub_compatible():
     assert re.search(r"^license: cc-by-4\.0$", front_matter, re.MULTILINE)
     assert "license_name:" not in front_matter
     assert "brand/hero-hf-zh.png" in card
+    assert "brand/q11-editorial-light.png" in card
+    assert "brand/q11-editorial-dark.png" in card
     configs = re.findall(r"^- config_name: (.+)$", front_matter, re.MULTILINE)
     assert configs == ["questions"]
     assert "`benchmark_spec.json`" in card

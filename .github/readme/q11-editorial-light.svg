@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720" role="img" aria-labelledby="title desc">
+  <title id="title">极简期刊：GB25-SH-Q11 上海卷数学第 11 题</title>
+  <desc id="desc">高留白编辑设计风格的横版题卡，以低对比纸面网格、巨大题号、衬线标题和横向题图构成主视觉。</desc>
+  <defs>
+    <pattern id="editorialGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#E8DFD2" stroke-width="1"/>
+    </pattern>
+    <pattern id="editorialGridMajor" width="200" height="200" patternUnits="userSpaceOnUse">
+      <path d="M200 0H0V200" fill="none" stroke="#DDD1C1" stroke-width="1.2"/>
+    </pattern>
+    <filter id="imageShadow" x="-25%" y="-25%" width="150%" height="170%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#392D1F" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="720" fill="#FBF8F2"/>
+  <rect width="1600" height="720" fill="url(#editorialGrid)" opacity=".78"/>
+  <rect width="1600" height="720" fill="url(#editorialGridMajor)" opacity=".62"/>
+  <g>
+    <line x1="166" y1="150" x2="166" y2="620" stroke="#D8CEC0" stroke-width="1"/>
+    <line x1="92" y1="158" x2="92" y2="226" stroke="#C62D21" stroke-width="2"/>
+    <circle cx="92" cy="158" r="4" fill="#C62D21"/>
+    <text x="106" y="174" fill="#C62D21" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-size="11" font-weight="800" letter-spacing="2">Nº</text>
+    <text x="104" y="216" fill="#161512" font-family="'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif" font-size="46" font-weight="700" letter-spacing="-2">011</text>
+    <line x1="64" y1="242" x2="166" y2="242" stroke="#D8CEC0" stroke-width="1"/>
+    <text x="104" y="269" fill="#7A7369" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-size="9.5" font-weight="700" letter-spacing="1.4">2025 / SH</text>
+    <text x="84" y="606" fill="#7A7369" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-size="10.5" font-weight="700" letter-spacing="1.7" transform="rotate(-90 84 606)">SHANGHAI · MATHEMATICS · 2025</text>
+  </g>
+  <rect x="64" y="48" width="42" height="42" rx="10" fill="#C62D21"/>
+  <rect x="68" y="52" width="34" height="34" rx="7" fill="none" stroke="#FFF8F0" stroke-opacity=".44" stroke-width="1"/>
+  <text x="85" y="68" fill="#FFFFFF" font-family="'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif" font-size="15" font-weight="900" text-anchor="middle" letter-spacing=".8">高考</text>
+  <text x="85" y="81" fill="#FFF8F0" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-size="5.6" font-weight="800" text-anchor="middle" letter-spacing="1.2">BENCH</text>
+  <text x="119" y="68" fill="#161512" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="15" font-weight="800" letter-spacing=".2">Gaokao-Bench</text>
+  <text x="120" y="84" fill="#7A7369" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="9.5" font-weight="650" letter-spacing=".8">中国高考真题 · AI 智力评测</text>
+  <text x="1536" y="76" fill="#7A7369" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="650" text-anchor="end" letter-spacing="0.8">GB25-SH-Q11｜上海卷 第 11 题｜5 分</text>
+  <line x1="64" y1="114" x2="1536" y2="114" stroke="#D8CEC0" stroke-width="1.2"/>
+  <line x1="64" y1="654" x2="1536" y2="654" stroke="#D8CEC0" stroke-width="1.2"/>
+
+  <text x="220" y="171" fill="#C62D21" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-size="14" font-weight="800" letter-spacing="2.6">SHANGHAI / 2025 / Q11</text>
+  <text x="218" y="238" fill="#161512" font-family="'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif" font-size="57" font-weight="800" letter-spacing="-1.3">斜面上的影子</text>
+  <text x="220" y="277" fill="#7A7369" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="650" letter-spacing="0.9">数学 · 填空题 · 5 分</text>
+  <rect x="220" y="306" width="50" height="3" rx="1.5" fill="#C62D21"/>
+
+  <g>
+<text x="220" y="366" fill="#49443D" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="20.5" font-weight="450" letter-spacing="0.15">小申同学观察发现，生活中有时候影子可以完全投射在斜面上。</text>
+<text x="220" y="403" fill="#49443D" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="20.5" font-weight="450" letter-spacing="0.15">某斜面上有两根长为 1 m 且垂直于水平面放置的杆子，</text>
+<text x="220" y="440" fill="#49443D" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="20.5" font-weight="450" letter-spacing="0.15">与斜面的接触点分别为 A、B，它们在阳光的照射下呈现出影子，</text>
+<text x="220" y="477" fill="#49443D" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="20.5" font-weight="450" letter-spacing="0.15">阳光可视为平行光。其中 A 处杆子的影子在水平面上，长度为 0.4 米，</text>
+<text x="220" y="514" fill="#49443D" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="20.5" font-weight="450" letter-spacing="0.15">B 处杆子的影子完全在斜面上，长度为 0.45 米。</text>
+<text x="220" y="551" fill="#49443D" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="20.5" font-weight="750" letter-spacing="0.15">则斜面的坡角 θ = ______。（结果精确到 0.01°）</text>
+  </g>
+
+  <g filter="url(#imageShadow)">
+    <rect x="1050" y="166" width="486" height="410" rx="5" fill="#FFFDF8" stroke="#D8CEC0" stroke-width="1.2"/>
+  </g>
+  <g font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-size="11.5" font-weight="800" letter-spacing="1.6">
+    <text x="1076" y="201" fill="#C62D21">FIG. 11</text>
+    <text x="1510" y="201" fill="#7A7369" text-anchor="end">GEOMETRY</text>
+  </g>
+  <line x1="1076" y1="218" x2="1510" y2="218" stroke="#D8CEC0" stroke-width="1"/>
+<g transform="translate(1079 232) scale(0.70645 0.70667)" aria-label="斜面、杆与平行阳光示意图">
+  <g stroke="#161512" stroke-width="2.05" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 247H594"/>
+    <path d="M150 247L570 143"/>
+    <path d="M150 247V143"/>
+    <path d="M470 167.8V63.8"/>
+    <path d="M191 247A41 41 0 0 0 189.2 236.8" stroke="#C62D21" stroke-width="1.8"/>
+  </g>
+  <path d="M58 247L46 262 M79 247L67 262 M100 247L88 262 M121 247L109 262 M142 247L130 262 M163 247L151 262 M184 247L172 262 M205 247L193 262 M226 247L214 262 M247 247L235 262 M268 247L256 262 M289 247L277 262 M310 247L298 262 M331 247L319 262 M352 247L340 262 M373 247L361 262 M394 247L382 262 M415 247L403 262 M436 247L424 262 M457 247L445 262 M478 247L466 262 M499 247L487 262 M520 247L508 262 M541 247L529 262 M562 247L550 262 M583 247L571 262" stroke="#161512" stroke-width="1.05" opacity=".72"/>
+  <path d="M176.0 97.0L106.6 241.6" fill="none" stroke="#161512" stroke-width="1.55" stroke-dasharray="7.5 7.5" stroke-linecap="round"/><path d="M104.0 247.0L103.6 236.8L112.2 241.0Z" fill="#161512"/><path d="M304.0 77.0L234.6 221.6" fill="none" stroke="#161512" stroke-width="1.55" stroke-dasharray="7.5 7.5" stroke-linecap="round"/><path d="M232.0 227.0L231.6 216.8L240.2 221.0Z" fill="#161512"/><path d="M390.0 56.0L320.6 200.6" fill="none" stroke="#161512" stroke-width="1.55" stroke-dasharray="7.5 7.5" stroke-linecap="round"/><path d="M318.0 206.0L317.6 195.8L326.2 200.0Z" fill="#161512"/><path d="M476.0 35.0L406.6 179.6" fill="none" stroke="#161512" stroke-width="1.55" stroke-dasharray="7.5 7.5" stroke-linecap="round"/><path d="M404.0 185.0L403.6 174.8L412.2 179.0Z" fill="#161512"/><path d="M542.0 17.8L472.6 162.4" fill="none" stroke="#161512" stroke-width="1.55" stroke-dasharray="7.5 7.5" stroke-linecap="round"/><path d="M470.0 167.8L469.6 157.6L478.2 161.7Z" fill="#161512"/>
+  <g fill="#161512" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="18.5" font-weight="650">
+    <text x="303" y="32">平行阳光</text>
+    <text x="162" y="196">杆</text>
+    <text x="482" y="128">杆</text>
+  </g>
+  <g fill="#C62D21" font-family="'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif" font-size="23" font-weight="700" font-style="italic">
+    <text x="142" y="287">A</text>
+    <text x="477" y="205">B</text>
+    <text x="207" y="241">θ</text>
+  </g>
+  <path d="M101 247L150 247" stroke="#C62D21" stroke-width="3.3" stroke-linecap="round"/>
+  <circle cx="101" cy="247" r="2.7" fill="#C62D21"/>
+</g>
+  <line x1="1076" y1="465" x2="1510" y2="465" stroke="#D8CEC0" stroke-width="1"/>
+  <g font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif" font-size="13.5" font-weight="680" fill="#7A7369">
+    <text x="1076" y="497">杆高</text>
+    <text x="1128" y="497" fill="#161512" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-weight="800">1 m</text>
+    <text x="1219" y="497">A 影</text>
+    <text x="1271" y="497" fill="#C62D21" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-weight="800">0.4 m</text>
+    <text x="1360" y="497">B 影</text>
+    <text x="1412" y="497" fill="#1B6B5D" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-weight="800">0.45 m</text>
+  </g>
+  <circle cx="1490" cy="532" r="24" fill="#F2DDD7" stroke="#C62D21" stroke-width="1.2"/>
+  <text x="1490" y="539" fill="#C62D21" font-family="'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif" font-size="18" font-weight="800" text-anchor="middle">11</text>
+
+  <g font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif">
+    <text x="64" y="691" fill="#7A7369" font-family="'SFMono-Regular', 'Menlo', 'Consolas', monospace" font-size="11.5" font-weight="700" letter-spacing="1.3">03 / VISUAL ARCHIVE · 2025</text>
+    <text x="1536" y="691" fill="#161512" font-size="19" font-weight="750" text-anchor="end" letter-spacing="0.35">GB25-SH-Q11｜上海卷 第 11 题｜5 分</text>
+    <rect x="1536" y="700" width="0" height="0" fill="none"/>
+  </g>
+</svg>

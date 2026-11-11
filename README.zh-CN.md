@@ -55,6 +55,13 @@
 
 当前 `0.0.4` 收录 **2025 年高考数学** 5 套试卷的全部客观题：
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme/q11-editorial-dark.svg">
+    <img src=".github/readme/q11-editorial-light.svg" width="100%" alt="Gaokao-Bench 题卡示例：2025 上海卷数学第 11 题">
+  </picture>
+</p>
+
 | 维度 | `0.0.4` 数据规格 |
 | --- | --- |
 | **年份与科目** | 2025 · 数学 |
