@@ -13,6 +13,11 @@ Versioning
 - Add the editorial `GB25-SH-Q11` sample card to both READMEs and the Hugging
   Face data card, with matching light/dark assets, project branding, and a
   corrected score-stamp inset.
+- Fix Hugging Face card rendering by resolving hero and light/dark sample-card
+  images through the immutable `v0.0.4` dataset tag. Hugging Face rewrites image
+  `src` attributes but not `<source srcset>` attributes, so relative dark-mode
+  URLs were left broken. Question, answer, point, and figure-asset hashes are
+  unchanged.
 - Resolve public-release contamination documents against the repository root,
   so release gates work when pointed at `dist/public-data/<version>`.
 - Remove `public_ranking_allowed`, `public_ranking_scope`, and the associated

@@ -369,6 +369,7 @@ def _dataset_card(
     score_label: str = "public_retrospective",
 ) -> str:
     dataset_url = "https://huggingface.co/datasets/%s" % repo_id
+    brand_url = "%s/resolve/v%s/brand" % (dataset_url, dataset_version)
     if spec is not None:
         subject = spec.subject
         years = list(spec.years)
@@ -432,7 +433,7 @@ configs:
 
 # Gaokao-Bench {version}
 
-![Gaokao-Bench：全国选拔标尺、历年动态演进、真实卷面评测](brand/hero-hf-zh.png)
+![Gaokao-Bench：全国选拔标尺、历年动态演进、真实卷面评测]({brand_url}/hero-hf-zh.png)
 
 **全国选拔标尺 · 历年动态演进 · 真实卷面评测**
 
@@ -444,8 +445,8 @@ Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="brand/q11-editorial-dark.png">
-    <img src="brand/q11-editorial-light.png" width="100%" alt="Gaokao-Bench 题卡示例：2025 上海卷数学第 11 题">
+    <source media="(prefers-color-scheme: dark)" srcset="{brand_url}/q11-editorial-dark.png">
+    <img src="{brand_url}/q11-editorial-light.png" width="100%" alt="Gaokao-Bench 题卡示例：2025 上海卷数学第 11 题">
   </picture>
 </p>
 
@@ -595,6 +596,7 @@ $$
 如果这个数据集对你的研究或评测有帮助，请引用 Gaokao-Bench 的对应代码和精确数据版本。
 """.format(
         dataset_url=dataset_url,
+        brand_url=brand_url,
         repo_id=repo_id,
         version=dataset_version,
         subject=subject,
