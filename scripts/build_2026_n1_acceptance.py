@@ -176,6 +176,10 @@ def build_page(data_dir: Path) -> str:
             }
         )
     for item in subjective:
+        item_sources = {
+            "external_source_id": item.get("answer_source_id"),
+            "secondary_source_id": item.get("secondary_answer_source_id"),
+        }
         rows.append(
             {
                 "id": item["id"],
@@ -188,7 +192,7 @@ def build_page(data_dir: Path) -> str:
                 "derivation": item.get("solution_outline", ""),
                 "image": data_uri(data_dir / item["image_path"]),
                 "auto_scored": False,
-                "sources": source_links(None, answer_sources),
+                "sources": source_links(item_sources, answer_sources),
             }
         )
     rows.sort(key=lambda row: int(row["number"]))
@@ -273,7 +277,7 @@ def build_page(data_dir: Path) -> str:
   <footer class="foot"><p>数据版本 <code>__VERSION__</code> · manifest SHA-256 <code>__MANIFEST_SHA__</code></p><p>生成时间 __GENERATED__ · 自动评分 <code>score.weighted_points</code> · 数据许可 __DATA_LICENSE__ · 代码许可 __CODE_LICENSE__</p><p>本页面不调用模型 API，不读取 API Key，不替代 owner 签收。</p></footer>
 </main>
 <script>
-const cards=[...document.querySelectorAll('.question-card')];const buttons=[...document.querySelectorAll('.filter')];const search=document.querySelector('#search');let active='all';function apply(){const q=(search.value||'').trim().toLowerCase();cards.forEach(c=>{const okType=active==='all'||c.dataset.type===active;const okText=!q||c.dataset.search.includes(q);c.classList.toggle('hidden',!(okType&&okText));});}buttons.forEach(b=>b.addEventListener('click',()=>{active=b.dataset.filter;buttons.forEach(x=>x.classList.toggle('active',x===b));apply();}));search.addEventListener('input',apply);function updateProgress(){const boxes=[...document.querySelectorAll('.check input')];const n=boxes.filter(x=>x.checked).length;document.querySelector('#progress').textContent=`已核对 ${n} / ${boxes.length}`;}document.querySelectorAll('.check input').forEach(box=>{const key='gb-2026-n1-check-'+box.dataset.qid;box.checked=localStorage.getItem(key)==='1';box.addEventListener('change',()=>{localStorage.setItem(key,box.checked?'1':'0');updateProgress();});});updateProgress();function jump(){let h=location.hash.slice(1);if(h.startsWith('q='))h='q-'+h.slice(2);const el=h?document.getElementById(h):null;if(el){el.scrollIntoView({block:'start'});el.animate([{outline:'2px solid transparent'},{outline:'2px solid #1f7767'},{outline:'2px solid transparent'}],{duration:1500});}}window.addEventListener('hashchange',jump);jump();
+const cards=[...document.querySelectorAll('.question-card')];const buttons=[...document.querySelectorAll('.filter')];const search=document.querySelector('#search');let active='all';function apply(){const q=(search.value||'').trim().toLowerCase();cards.forEach(c=>{const okType=active==='all'||c.dataset.type===active;const okText=!q||c.dataset.search.includes(q);c.classList.toggle('hidden',!(okType&&okText));});}buttons.forEach(b=>b.addEventListener('click',()=>{active=b.dataset.filter;buttons.forEach(x=>x.classList.toggle('active',x===b));apply();}));search.addEventListener('input',apply);function updateProgress(){const boxes=[...document.querySelectorAll('.check input')];const n=boxes.filter(x=>x.checked).length;document.querySelector('#progress').textContent=`已核对 ${n} / ${boxes.length}`;}document.querySelectorAll('.check input').forEach(box=>{const key='gb-2026-n1-check-'+box.dataset.qid;box.checked=localStorage.getItem(key)==='1';box.addEventListener('change',()=>{localStorage.setItem(key,box.checked?'1':'0');updateProgress();});});updateProgress();function jump(){let h=location.hash.slice(1);if(h.startsWith('q='))h='q-'+h.slice(2);const el=h?document.getElementById(h):null;if(el){const root=document.documentElement;const prior=root.style.scrollBehavior;root.style.scrollBehavior='auto';el.scrollIntoView({block:'start',behavior:'instant'});root.style.scrollBehavior=prior;el.animate([{outline:'2px solid transparent'},{outline:'2px solid #1f7767'},{outline:'2px solid transparent'}],{duration:1500});}}window.addEventListener('hashchange',jump);window.addEventListener('load',()=>requestAnimationFrame(jump));requestAnimationFrame(jump);
 </script>
 </body>
 </html>

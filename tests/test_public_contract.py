@@ -13,7 +13,11 @@ from gaokao_bench.harness import (
     render_system_prompt,
 )
 from gaokao_bench.public_data import _dataset_card
-from gaokao_bench.owner_review import _review_items, _uses_full_paper_review
+from gaokao_bench.owner_review import (
+    _review_items,
+    _source_image_url,
+    _uses_full_paper_review,
+)
 from gaokao_bench.reporting import (
     compact_evaluation_summary,
     compact_run_summary,
@@ -45,6 +49,15 @@ def test_owner_review_keeps_scored_only_scope_for_legacy_packages():
     )
     assert _uses_full_paper_review(dataset) is False
     assert [item["id"] for item in _review_items(dataset)] == ["Q01"]
+
+
+def test_owner_review_maps_question_numbers_to_answer_images():
+    source = {
+        "answer_image_urls": ["https://example.test/page-1.png", "https://example.test/page-2.png"],
+        "answer_image_pages": {"13": 2},
+    }
+    assert _source_image_url(source, "完整解析图；第13题") == "https://example.test/page-2.png"
+    assert _source_image_url(source, "第14题") == ""
 
 
 def test_public_numeric_parser_contract():

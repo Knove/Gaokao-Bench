@@ -69,6 +69,20 @@ def source_revision() -> str:
         return "unknown"
 
 
+def revision_is_in_public_remote_tracking() -> bool:
+    """Report whether local remote-tracking refs already contain HEAD."""
+
+    try:
+        output = subprocess.check_output(
+            ["git", "-C", str(ROOT), "branch", "-r", "--contains", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return bool(output.strip())
+
+
 def resolve_pdf(pdf: Path | None, cache_dir: Path, source: Mapping[str, Any]) -> Path:
     if pdf is None:
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -222,15 +236,12 @@ def subjective_row(
         "answer_source_id": item.get(
             "answer_source_id", "src-gk100-2026-n1-answers"
         ),
-        "secondary_answer_source_id": item.get(
-            "secondary_answer_source_id", "src-sohu-2026-n1-answers"
-        ),
+        "secondary_answer_source_id": item.get("secondary_answer_source_id"),
         "answer_locator": item.get(
             "answer_locator", "完整解析；第%d题" % int(item["number"])
         ),
-        "secondary_answer_locator": item.get(
-            "secondary_answer_locator", "教师研判参考答案；第%d题" % int(item["number"])
-        ),
+        "secondary_answer_locator": item.get("secondary_answer_locator", ""),
+        "secondary_reference_answer": item.get("secondary_reference_answer"),
         "point_evidence_status": item.get(
             "point_evidence_status", "full_paper_section_and_points_crosschecked"
         ),
@@ -319,6 +330,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     version = str(spec["dataset_version"])
     out_dir = Path(args.out).resolve()
     revision = source_revision()
+    public_remote_contains_revision = revision_is_in_public_remote_tracking()
     spec_path = Path(args.spec).resolve()
     if out_dir == ROOT or out_dir == Path.home():
         raise ValueError("refusing unsafe output directory")
@@ -431,7 +443,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     asset_audit: List[Dict[str, Any]] = []
     for item, key in zip(spec["objective"], answer_keys):
         qid = item["id"]
-        supporting = ["src-sohu-2026-n1-answers"]
+        supporting = ["src-bendibao-2026-n1-answers"]
         if int(item["number"]) <= 5:
             supporting.insert(0, "src-zizzs-2026-n1-answers")
         answer_audit.append(
@@ -448,9 +460,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                 "external_source_id": "src-gk100-2026-n1-answers",
                 "external_locator": "完整解析图；第%d题" % int(item["number"]),
                 "external_excerpt": "【答案】%s" % json.dumps(item["canonical"], ensure_ascii=False),
-                "secondary_source_id": "src-bendibao-2026-n1-answers",
+                "secondary_source_id": "src-sohu-2026-n1-answers",
                 "secondary_external_canonical": item["canonical"],
-                "secondary_source_locator": "文字答案版；第%d题" % int(item["number"]),
+                "secondary_source_locator": "教师研判参考答案；第%d题" % int(item["number"]),
                 "supporting_source_ids": supporting,
                 "rejected_source_ids": [],
                 "match_method": "explicit_answer_and_independent_derivation",
@@ -644,6 +656,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         encoding="utf-8",
     )
 
+    shutil.copyfile(ROOT / "THIRD_PARTY_NOTICES.md", temporary / "THIRD_PARTY_NOTICES.md")
+
     audit_summary = "三方独立审计已通过，等待 owner 最终逐题验收。" if audited else "三方独立审计尚未完成。"
     (temporary / "DATA_CARD.md").write_text(
         "# Gaokao-Bench 2026 全国卷 I 数学（验收候选）\n\n"
@@ -652,6 +666,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "- 解答题：5 题，77 分，已收录题面、参考答案和解答要点，暂不进入自动评分分母。\n"
         "- 图形依赖：客观题 0 题；解答题第 15 题需要随附立体几何图。\n"
         "- 来源：deekur/gaokaomath 冻结 PDF；答案交叉核验使用高考100、深圳本地宝、自主选拔在线和搜狐转载的教师研判版。\n"
+        "- 署名：完整来源清单与第三方声明见 `THIRD_PARTY_NOTICES.md`、`SOURCE_REGISTER.md` 和来源 JSONL。\n"
         "- 许可：整个数据包采用 CC BY 4.0，署名 Gaokao-Bench 与准确数据版本即可再分发和改编。\n"
         f"- 状态：`acceptance_candidate`，{audit_summary}未发布。\n",
         encoding="utf-8",
@@ -663,8 +678,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "Gaokao-Bench and the exact dataset version is required. The harness and code "
         "are licensed separately under Apache-2.0. License text: "
         "https://creativecommons.org/licenses/by/4.0/.\n\n"
-        "Source attribution and retrieval URLs are recorded in `SOURCE_REGISTER.md`, "
-        "`sources.jsonl` and `answer_sources.jsonl`.\n",
+        "Source attribution and retrieval URLs are recorded in "
+        "`THIRD_PARTY_NOTICES.md`, `SOURCE_REGISTER.md`, `sources.jsonl` and "
+        "`answer_sources.jsonl`.\n",
         encoding="utf-8",
     )
     (temporary / "SOURCE_REGISTER.md").write_text(
@@ -677,7 +693,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             % (row["id"], row["publisher"], row["source_type"], row["url"])
             for row in answer_sources
         )
-        + "\n\nSource PDF SHA-256: `%s`.\n\nAll package material is released under CC BY 4.0 "
+        + "\n\nSource PDF SHA-256: `%s`.\n\nAttribution is consolidated in "
+        "`THIRD_PARTY_NOTICES.md`. All package material is released under CC BY 4.0 "
         "with attribution to Gaokao-Bench and this exact dataset version.\n" % source["sha256"],
         encoding="utf-8",
     )
@@ -689,14 +706,36 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "owner acceptance remains pending.\n",
         encoding="utf-8",
     )
+    public_reproduction_note = (
+        "The recorded source revision is present in the public remote-tracking refs. "
+        "The clone and checkout commands below can be used directly."
+        if public_remote_contains_revision
+        else "This is an owner-acceptance candidate built from the candidate source tree. "
+        "The recorded revision is not yet present in the public remote-tracking refs. "
+        "Run the commands below from that accepted source tree. A public clone/checkout "
+        "is a release gate after owner approval, push, and a public rebuild; do not "
+        "describe this candidate as publicly reproducible before then."
+    )
     (temporary / "REPRODUCE.md").write_text(
         "# Reproduce\n\n"
-        "The candidate is generated from a clean source checkout. The frozen source "
-        "PDF is downloaded and hash-checked by the builder when `--pdf` is omitted.\n\n"
+        f"{public_reproduction_note}\n\n"
+        "The frozen source PDF is downloaded and hash-checked by the builder when "
+        "`--pdf` is omitted.\n\n"
+        "Acceptance-candidate reproduction from the source tree:\n\n"
+        "```bash\n"
+        "cd /path/to/accepted/gaokao-bench\n"
+        "git rev-parse HEAD  # must equal the revision recorded in manifest.json\n"
+        "python3 -m pip install -e '.[dev]'\n"
+        "python3 scripts/build_2026_n1.py --spec specs/2026-math-n1.json --out data/%s\n"
+        "python3 scripts/validate.py --data-dir data/%s\n"
+        "python3 -m gaokao_bench.cli evaluate --data-dir data/%s --answers data/%s/examples/gold.json\n"
+        "python3 -m pytest -q\n"
+        "```\n\n"
+        "After owner approval and publication, the public reproduction form is:\n\n"
         "```bash\n"
         "git clone %s gaokao-bench\n"
         "cd gaokao-bench\n"
-        "git checkout %s\n"
+        "git checkout <the revision recorded in manifest.json>\n"
         "python3 -m pip install -e '.[dev]'\n"
         "python3 scripts/build_2026_n1.py --spec specs/2026-math-n1.json --out data/%s\n"
         "python3 scripts/validate.py --data-dir data/%s\n"
@@ -707,8 +746,11 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "explicit page bounding boxes, and writes a 73/73 objective gold result. "
         "Builder SHA-256: `%s`; spec SHA-256: `%s`.\n"
         % (
+            version,
+            version,
+            version,
+            version,
             SOURCE_REPOSITORY,
-            revision,
             version,
             version,
             version,
@@ -822,6 +864,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "spec_path": "specs/2026-math-n1.json",
             "spec_sha256": sha256(spec_path),
             "reproduction": "REPRODUCE.md",
+            "public_remote_tracking_contains_revision": public_remote_contains_revision,
+            "publication_gate": "owner_acceptance_then_push_and_public_rebuild",
         },
         "audit": {
             "answer_sources": "answer_sources.jsonl",
@@ -856,6 +900,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "DATA_CARD.md",
         "LICENSE_AND_RIGHTS.md",
         "SOURCE_REGISTER.md",
+        "THIRD_PARTY_NOTICES.md",
         "RELEASE_NOTES.md",
         "REPRODUCE.md",
     ] + [row["path"] for row in assets]

@@ -28,6 +28,13 @@ Engine 0.1.6 / Dataset 0.1.0-alpha.2026-n1 candidate
   the 14-question / 73-point deterministic scoring denominator explicit.
 - Record reproducible build provenance and make the CC BY 4.0 rights metadata
   consistent across the data package and owner review packet.
+- Close the 2026 owner evidence chain: map answer images to question numbers,
+  show real second-source excerpts for D15-D18, clear the unsupported D19 second
+  source, and add `THIRD_PARTY_NOTICES.md` to both the repository and data
+  package.
+- Separate source-repository scope from the code-only release artifact, and make
+  the acceptance candidate's public-reproduction state explicit so a local
+  commit is never presented as an already reachable public revision.
 
 Engine 0.1.5 / Dataset 0.0.4
 

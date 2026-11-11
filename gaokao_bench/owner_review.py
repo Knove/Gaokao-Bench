@@ -132,7 +132,27 @@ def _source_image_url(source: Mapping[str, Any], locator: Any) -> str:
     pages = source.get("pages", [])
     if page is None and len(pages) == 1:
         page = pages[0]
-    return str(page.get("image_url", "")) if page else ""
+    if page:
+        return str(page.get("image_url", ""))
+
+    images = source.get("answer_image_urls", [])
+    if not isinstance(images, list):
+        return ""
+    match = re.search(r"第\s*(\d+)\s*题", str(locator or ""))
+    page_map = source.get("answer_image_pages", {})
+    if match and isinstance(page_map, Mapping):
+        page_index = page_map.get(match.group(1))
+        try:
+            position = int(page_index) - 1
+        except (TypeError, ValueError):
+            position = -1
+        if 0 <= position < len(images):
+            value = images[position]
+            return str(value.get("image_url", "")) if isinstance(value, Mapping) else str(value)
+    if len(images) == 1:
+        value = images[0]
+        return str(value.get("image_url", "")) if isinstance(value, Mapping) else str(value)
+    return ""
 
 
 def _write_csv(path: Path, fieldnames: Sequence[str], rows: Iterable[Mapping[str, Any]]) -> None:
@@ -362,6 +382,13 @@ def export_owner_review(
         secondary_source = answer_sources.get(secondary_source_id, {}) if secondary_source_id else {}
         secondary_page_url = _source_page_url(secondary_source, secondary_source_locator)
         secondary_image_url = _source_image_url(secondary_source, secondary_source_locator)
+        secondary_answer_excerpt = ""
+        if secondary_source_id:
+            secondary_answer_excerpt = _one_line(
+                secondary_external_canonical
+                if secondary_external_canonical is not None
+                else "第二来源已登记；请打开图片证据核对"
+            )
         rows.append(
             {
                 "item_id": qid,
@@ -386,11 +413,7 @@ def export_owner_review(
                 "secondary_page_url": secondary_page_url,
                 "secondary_image_url": secondary_image_url,
                 "secondary_locator": secondary_source_locator,
-                "secondary_answer_excerpt": _one_line(
-                    secondary_external_canonical
-                    if secondary_external_canonical is not None
-                    else "该题未配置独立第二来源，请以主来源和独立推导复核"
-                ),
+                "secondary_answer_excerpt": secondary_answer_excerpt,
                 "point_evidence": point_status,
                 "point_locator": point_locator,
                 "image_dependency": question.get("asset_dependency", ""),
