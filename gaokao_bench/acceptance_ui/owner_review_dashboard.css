@@ -343,7 +343,10 @@ kbd { display: inline-grid; min-width: 16px; height: 16px; place-items: center; 
 .answer-band { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; padding: 13px 15px; border: 1px solid #cce9df; border-radius: 11px; background: linear-gradient(135deg, #f0fbf7, #e8f8f2); }
 .answer-label { display: flex; align-items: center; gap: 6px; color: var(--green); font-size: 10px; font-weight: 750; letter-spacing: 0.03em; }
 .answer-label::before { content: "✓"; display: grid; width: 17px; height: 17px; place-items: center; border-radius: 50%; color: #fff; background: #119a6b; font-size: 10px; }
+.answer-label.proof { color: #315f9a; }
+.answer-label.proof::before { content: "证"; background: #4b7fbd; font-size: 9px; }
 .answer-value { margin-top: 5px; color: #075c43; font-family: var(--mono); font-size: 22px; font-weight: 800; line-height: 1.35; word-break: break-word; }
+.answer-note { margin-top: 7px; color: #57746b; font-size: 11px; line-height: 1.55; }
 .answer-meta { flex: 0 0 auto; text-align: right; color: #5a7c70; font-size: 10px; line-height: 1.6; }
 .answer-meta b { display: block; color: #2f6252; font-family: var(--mono); font-size: 12px; }
 

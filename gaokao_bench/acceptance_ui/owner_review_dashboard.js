@@ -406,7 +406,17 @@
           <p class="source-excerpt">${escapeHtml(secondary.excerpt || "该题未配置独立第二来源，请以主来源、题干和独立推导复核。")}</p>
           <div class="source-meta"><span>仅主来源 + 推导</span><span>签字时请重点确认</span></div>
         </article>`;
-    const answerSlotText = row.answer_slot_count > 1 ? `${row.answer_slot_count} 个答案槽` : "单一答案";
+    const isProofQuestion = row.question_type === "catalog_subjective" && /见解析/.test(String(row.canonical_display || ""));
+    const answerLabel = isProofQuestion ? "答案结论" : "当前规范答案";
+    const answerLabelClass = isProofQuestion ? "answer-label proof" : "answer-label";
+    const answerSlotText = isProofQuestion
+      ? "证明题 · 不计入当前自动评分"
+      : row.answer_slot_count > 1
+        ? `${row.answer_slot_count} 个答案槽`
+        : "单一答案";
+    const answerNote = isProofQuestion
+      ? '<div class="answer-note">“见解析”是来源对证明题的省略写法；完整证明见下方“独立推导核验”，原始解析可从来源文章入口查看。</div>'
+      : "";
     const imageNote = row.image_dependency === "required" ? "视觉必需 · 离开裁图会缺失信息" : "文字可答；裁图用于核对结构化题面";
     const asset = row.asset || {};
     const pageLabel = asset.page_number ? `PDF 第 ${asset.page_number} 页` : "PDF 页码未记录";
@@ -454,8 +464,9 @@
               ${optionsHtml}
               <div class="answer-band">
                 <div>
-                  <div class="answer-label">当前规范答案</div>
+                  <div class="${answerLabelClass}">${answerLabel}</div>
                   <div class="answer-value">${escapeHtml(row.canonical_display)}</div>
+                  ${answerNote}
                 </div>
                 <div class="answer-meta"><b>${row.points} 分</b><span>${escapeHtml(answerSlotText)}</span><span>${escapeHtml(row.answer_status_label)}</span></div>
               </div>
