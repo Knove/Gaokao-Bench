@@ -21,6 +21,7 @@ from .scoring import (
     PUBLIC_HUB_MANAGED_FILES,
     PUBLIC_PACKAGE_PROFILE,
     load_dataset,
+    public_scoring_contract,
     validate_dataset,
 )
 from .version import compatibility_matrix
@@ -759,19 +760,9 @@ def _build_manifest(
         metric_version=spec.scoring.metric_version,
     )
     scoring = {
-        "contract": "single_primary_metric_v1",
-        "primary_metric": spec.scoring.primary_metric,
-        "metric_version": spec.scoring.metric_version,
-        "definition": "earned reviewed exam points divided by possible points in the declared scope",
-        "unit": "ratio",
+        **public_scoring_contract(spec),
         "percentage_display": "100 * ratio; display only, never a second score",
-        "partial_credit": spec.scoring.partial_credit,
-        "primary_task_types": list(spec.scoring.primary_task_types),
-        "catalog_task_types": list(spec.scoring.catalog_task_types),
-        "credit_policy": spec.scoring.credit_policy,
-        "process_policy": spec.scoring.process_policy,
         "missing_or_invalid_is_zero": True,
-        "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
     }
     audit_block = dict(audit_evidence or {})
     audit_counts = dict(audit_block.get("counts") or {})
@@ -1059,19 +1050,7 @@ def _build_public_data_package_at(
             "answer_slots": int(audit["answer_slots"]),
             "vision_required_questions": int(audit["image_required_questions"]),
         },
-        "scoring": {
-            "contract": "single_primary_metric_v1",
-            "primary_metric": spec.scoring.primary_metric,
-            "unit": "ratio",
-            "metric_version": spec.scoring.metric_version,
-            "definition": "earned reviewed exam points divided by possible points in the declared scope",
-            "partial_credit": spec.scoring.partial_credit,
-            "primary_task_types": list(spec.scoring.primary_task_types),
-            "catalog_task_types": list(spec.scoring.catalog_task_types),
-            "credit_policy": spec.scoring.credit_policy,
-            "process_policy": spec.scoring.process_policy,
-            "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
-        },
+        "scoring": public_scoring_contract(spec),
         "reporting": {
             "leaderboard_class": spec.reporting.leaderboard_class,
             "score_label": str(release_info.get("score_label") or "retrospective_public_%s" % "-".join(str(year) for year in spec.years)),

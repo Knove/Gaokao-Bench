@@ -22,8 +22,16 @@ from typing import Any, Dict, Iterable, List, Mapping, Sequence
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from gaokao_bench.benchmark_spec import BENCHMARK_SPEC_FILENAME  # noqa: E402
-from gaokao_bench.scoring import file_sha256, load_dataset, validate_dataset  # noqa: E402
+from gaokao_bench.benchmark_spec import (  # noqa: E402
+    BENCHMARK_SPEC_FILENAME,
+    parse_benchmark_spec,
+)
+from gaokao_bench.scoring import (  # noqa: E402
+    file_sha256,
+    load_dataset,
+    public_scoring_contract,
+    validate_dataset,
+)
 from gaokao_bench.version import (  # noqa: E402
     DEFAULT_BENCHMARK_SPEC_VERSION,
     DEFAULT_METRIC_VERSION,
@@ -661,14 +669,9 @@ def main() -> int:
             "counts": counts,
             "points": points,
             "scoring": {
+                **public_scoring_contract(parse_benchmark_spec(spec_raw)),
                 "profile": spec_raw["scoring"]["profile"],
-                "contract": "single_primary_metric_v1",
-                "metric_version": DEFAULT_METRIC_VERSION,
-                "primary_metric": "score.weighted_points",
-                "partial_credit": False,
                 "missing_or_invalid_is_zero": True,
-                "unit": "ratio",
-                "diagnostic_metrics": list(spec_raw["scoring"]["diagnostic_metrics"]),
             },
             "quality": quality,
             "audit": {

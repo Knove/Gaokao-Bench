@@ -10,6 +10,31 @@ Versioning
 2026-11-12
 ----------
 
+Engine 0.1.8 / Scorer 0.1.6 / Summary schema 2.4
+
+- Centralize release-facing scoring metadata in one builder used by both the
+  public manifest and `RELEASE_CARD.json`; the two files can no longer drift
+  independently from the benchmark spec.
+- Require every explicit scoring-policy field for `0.1+` datasets built with
+  Engine 0.1.8 or newer. Immutable `0.0.x` and pre-contract
+  `0.1.0-alpha.*` packages retain their historical manifest shape; the legacy
+  path is never selected for a `0.1+` dataset when a modern engine version is
+  recorded.
+- Reject a new package that catalogues subjective items without declaring
+  `scoring.catalog_task_types`. Historical `0.0.x` packages are exempt because
+  their immutable specs predate the task-eligibility contract.
+- Sanitize run-level coverage in compact JSON, including nested coverage copied
+  into `scope`. Human reports now separate the selected run scope from full
+  dataset coverage instead of presenting them as one ratio.
+- Record `scoring_policy` in compact evaluation and run summaries, and add
+  question-count coverage fractions to the shared coverage view.
+- Replace the 2026 builder's hard-coded engine version with the package version
+  source of truth.
+- Make the 2026 builder refuse to overwrite a non-empty data package directory;
+  rebuilt candidates must use a new immutable dataset version and output path.
+- No dataset was republished and no owner-attestation state was changed by this
+  engine release.
+
 Engine 0.1.7 / Scorer 0.1.5 / Summary schema 2.3
 
 - Make task eligibility part of the versioned scoring contract. A spec now

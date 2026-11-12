@@ -24,8 +24,18 @@ from gaokao_bench.reporting import (
     render_evaluation_summary,
     render_run_summary,
 )
-from gaokao_bench.scoring import parse_interval, parse_numeric_expression, parse_set_tokens
+from gaokao_bench.scoring import (
+    EXPLICIT_SCORING_POLICY_FIELDS,
+    _catalog_task_type_errors,
+    _requires_explicit_scoring_policy,
+    _scoring_contract_errors,
+    parse_interval,
+    parse_numeric_expression,
+    parse_set_tokens,
+    public_scoring_contract,
+)
 from gaokao_bench.scoring import PUBLIC_REQUIRED_FILES
+from gaokao_bench.version import ENGINE_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,6 +90,99 @@ def test_set_answer_accepts_equivalent_wire_shapes():
     assert parse_set_tokens("③、②") == ("2", "3")
     assert parse_set_tokens(["②", "③"]) == ("2", "3")
     assert parse_set_tokens(("3", "2")) == ("2", "3")
+
+
+def _strict_math_spec():
+    raw = json.loads((ROOT / "specs" / "2026-math-n1.json").read_text(encoding="utf-8"))
+    return parse_benchmark_spec(raw["benchmark_spec"])
+
+
+def test_release_scoring_metadata_is_generated_from_the_benchmark_spec():
+    spec = _strict_math_spec()
+    scoring = public_scoring_contract(spec)
+    assert scoring["contract"] == "single_primary_metric_v1"
+    assert scoring["primary_metric"] == "score.weighted_points"
+    assert scoring["primary_task_types"] == list(spec.scoring.primary_task_types)
+    assert scoring["catalog_task_types"] == list(spec.scoring.catalog_task_types)
+    assert scoring["partial_credit"] is False
+    assert (
+        _scoring_contract_errors(
+            spec,
+            scoring,
+            label="public manifest",
+            require_policy_fields=True,
+        )
+        == []
+    )
+
+    for field in EXPLICIT_SCORING_POLICY_FIELDS:
+        incomplete = dict(scoring)
+        incomplete.pop(field)
+        errors = _scoring_contract_errors(
+            spec,
+            incomplete,
+            label="public manifest",
+            require_policy_fields=True,
+        )
+        assert "public manifest scoring.%s is required" % field in errors
+
+    mismatched = dict(scoring)
+    mismatched["partial_credit"] = True
+    errors = _scoring_contract_errors(
+        spec,
+        mismatched,
+        label="RELEASE_CARD",
+        require_policy_fields=True,
+    )
+    assert "RELEASE_CARD scoring.partial_credit differs from benchmark spec: True != False" in errors
+
+
+def test_strict_scoring_metadata_applies_only_to_new_dataset_versions():
+    legacy = {
+        "dataset_version": "0.0.4",
+        "compatibility": {"dataset": "0.0.4", "engine": "0.1.8"},
+    }
+    current = {
+        "dataset_version": "0.1.0-alpha.2026-n1",
+        "compatibility": {"dataset": "0.1.0-alpha.2026-n1", "engine": "0.1.8"},
+    }
+    old_engine = {
+        "dataset_version": "0.1.0-alpha.2026-n1",
+        "compatibility": {"dataset": "0.1.0-alpha.2026-n1", "engine": "0.1.7"},
+    }
+    missing_engine = {
+        "dataset_version": "0.1.0-alpha.2026-n1",
+        "compatibility": {"dataset": "0.1.0-alpha.2026-n1"},
+    }
+    versions_only = {
+        "dataset_version": "0.1.0-alpha.2026-n1",
+        "versions": {"dataset": "0.1.0-alpha.2026-n1", "engine": "0.1.7"},
+    }
+    historical_alpha = {
+        "dataset_version": "0.1.0-alpha.6.1",
+        "scoring": {"main_metric": "mean of five paper point accuracies"},
+    }
+    modern_engine_with_legacy_scoring = {
+        "dataset_version": "0.1.0-alpha.6.1",
+        "compatibility": {"engine": "0.1.8"},
+        "scoring": {"main_metric": "mean of five paper point accuracies"},
+    }
+    assert _requires_explicit_scoring_policy(legacy) is False
+    assert _requires_explicit_scoring_policy(current) is True
+    assert _requires_explicit_scoring_policy(old_engine) is False
+    assert _requires_explicit_scoring_policy(missing_engine) is True
+    assert _requires_explicit_scoring_policy(versions_only) is False
+    assert _requires_explicit_scoring_policy(historical_alpha) is False
+    assert _requires_explicit_scoring_policy(modern_engine_with_legacy_scoring) is True
+
+    error = "catalogued subjective items require explicit scoring.catalog_task_types"
+    assert (
+        _catalog_task_type_errors(
+            [{"id": "D01"}], [], require_explicit=True
+        )
+        == [error]
+    )
+    assert _catalog_task_type_errors([{"id": "D01"}], [], require_explicit=False) == []
 
 
 def test_prompt_declares_task_specific_answer_format():
@@ -215,11 +318,16 @@ def test_run_reporting_keeps_scope_ids_out_of_the_summary():
         "model": "mock",
         "modality": "text",
         "repeats": 1,
+        "scoring_policy": {
+            "credit_policy": "all_or_nothing",
+            "process_policy": "excluded_from_primary",
+        },
         "scope": {
             "coverage_label": "full",
             "kind": "full_dataset",
             "selected_questions": 74,
             "selected_possible_points": 353,
+            "coverage": {"selected_question_ids": ["GB25-BJ-Q01"]},
         },
         "aggregate": {
             "possible_points": 353,
@@ -262,6 +370,63 @@ def test_run_reporting_keeps_scope_ids_out_of_the_summary():
     assert "Versions  dataset 0.0.4 · engine 0.1.6" in human
     assert "selected_question_ids" not in json.dumps(compact)
     assert compact["versions"]["scorer"] == "0.1.4"
+    assert compact["scoring_policy"]["credit_policy"] == "all_or_nothing"
+    assert "selected_question_ids" not in json.dumps(compact["scope"]["coverage"])
+
+
+def test_subset_reporting_separates_run_scope_from_dataset_coverage():
+    coverage = {
+        "selected_questions": 2,
+        "selected_points": 10,
+        "scored_questions": 74,
+        "scored_points": 353,
+        "catalog_questions": 26,
+        "catalog_points": 397,
+        "full_paper_questions": 100,
+        "full_paper_points": 750,
+        "selected_question_ids": ["GB25-N1-Q01", "GB25-N1-Q02"],
+    }
+    summary = {
+        "dataset": "Gaokao-Bench",
+        "dataset_version": "0.0.4",
+        "status": "completed",
+        "result_status": "pilot",
+        "run_id": "run-subset",
+        "provider": "mock",
+        "model": "mock",
+        "modality": "text",
+        "repeats": 1,
+        "scope": {
+            "coverage_label": "view:objective",
+            "kind": "selected_subset",
+            "selected_questions": 2,
+            "selected_possible_points": 10,
+            "coverage": coverage,
+        },
+        "aggregate": {
+            "possible_points": 10,
+            "questions": 2,
+            "primary_metric": {"mean": 0.5, "min": 0.5, "max": 0.5},
+            "earned_points": {"mean": 5, "min": 5, "max": 5},
+            "correct_questions": {"mean": 1, "min": 1, "max": 1},
+        },
+        "slices": {},
+        "attempts": {"total": 2, "parse_errors": 0, "truncations": 0},
+        "reproducibility": {"status": "pilot_only", "caveats": []},
+        "versions": {"dataset": "0.0.4", "engine": ENGINE_VERSION},
+        "compatibility": {"dataset": "0.0.4", "engine": ENGINE_VERSION},
+    }
+    human = render_run_summary(summary)
+    compact = compact_run_summary(summary)
+    assert "Run scope  2/74 scored questions · 10/353 scored points" in human
+    assert (
+        "Dataset coverage  74/100 full-paper questions · 353/750 full-paper points "
+        "· catalog 26 questions / 397 points"
+    ) in human
+    assert "GB25-N1-Q01" not in human
+    assert compact["scope"]["coverage"]["selected_questions"] == 2
+    assert compact["scope"]["coverage"]["scored_points"] == 353
+    assert "selected_question_ids" not in json.dumps(compact)
 
 
 def test_prepare_only_reporting_is_clear_and_versioned():
@@ -300,6 +465,17 @@ def test_prepare_only_reporting_is_clear_and_versioned():
     assert compact["scope"]["selected_questions"] == 1
     assert compact["versions"]["engine"] == "0.1.6"
     assert "aggregate" not in compact
+
+
+def test_engine_version_is_consistent_across_release_metadata():
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_zh = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+    assert re.search(r'^version = "([^"]+)"', pyproject, re.MULTILINE).group(1) == ENGINE_VERSION
+    assert re.search(r"^version: ([^\s]+)$", citation, re.MULTILINE).group(1) == ENGINE_VERSION
+    assert "engine-%s-" % ENGINE_VERSION in readme
+    assert "engine-%s-" % ENGINE_VERSION in readme_zh
 
 
 def test_public_readmes_and_theme_assets_are_complete():

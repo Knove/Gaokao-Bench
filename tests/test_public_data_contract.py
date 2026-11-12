@@ -21,7 +21,7 @@ from gaokao_bench.scoring import (
     score_question,
     validate_dataset,
 )
-from gaokao_bench.version import DEFAULT_DATASET_VERSION
+from gaokao_bench.version import DEFAULT_DATASET_VERSION, ENGINE_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,7 +115,7 @@ def test_prompt_manifest_records_the_answer_format_contract(tmp_path):
     assert manifest["status"] == "prepared"
     assert manifest["result_status"] == "prepared"
     assert manifest["versions"]["dataset"] == "0.0.4"
-    assert manifest["versions"]["engine"] == "0.1.7"
+    assert manifest["versions"]["engine"] == ENGINE_VERSION
     rows = [
         json.loads(line)
         for line in (tmp_path / "prepare" / "prompts.jsonl").read_text(encoding="utf-8").splitlines()

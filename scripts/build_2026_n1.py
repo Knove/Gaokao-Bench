@@ -16,11 +16,19 @@ import json
 import math
 import shutil
 import subprocess
+import sys
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from gaokao_bench.benchmark_spec import parse_benchmark_spec  # noqa: E402
+from gaokao_bench.scoring import public_scoring_contract  # noqa: E402
+from gaokao_bench.version import ENGINE_VERSION  # noqa: E402
+
+
 SPEC_PATH = ROOT / "specs" / "2026-math-n1.json"
 CROP_METHOD = "pdf_explicit_bbox_render_2_2x_v1"
 SCHEMA_VERSION = "1.0"
@@ -319,6 +327,15 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     spec_path = Path(args.spec).resolve()
     if out_dir == ROOT or out_dir == Path.home():
         raise ValueError("refusing unsafe output directory")
+    if out_dir.exists() and not out_dir.is_dir():
+        raise ValueError("refusing non-directory output path: %s" % out_dir)
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise ValueError(
+            "refusing to overwrite an existing data package: %s; "
+            "choose a new immutable --out path and dataset version" % out_dir
+        )
+    if out_dir.exists():
+        out_dir.rmdir()
     pdf_path = resolve_pdf(args.pdf, Path(args.cache_dir).resolve(), source)
     prior_manifest = out_dir / "manifest.json"
     prior_manifest_sha256 = sha256(prior_manifest) if prior_manifest.is_file() else None
@@ -330,8 +347,6 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     temporary = out_dir.with_name(out_dir.name + ".building")
     if temporary.exists():
         shutil.rmtree(temporary)
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
     temporary.mkdir(parents=True)
     assets_dir = temporary / "assets" / paper_spec["id"]
     catalog_dir = temporary / "catalog"
@@ -754,6 +769,11 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "review_records": 0,
         "answer_evidence_sources": len(answer_sources),
     }
+    scoring_contract = {
+        **public_scoring_contract(parse_benchmark_spec(spec["benchmark_spec"])),
+        "profile": "strict-source-audited-points-all-or-nothing",
+        "missing_or_invalid_is_zero": True,
+    }
     manifest = {
         "dataset": "Gaokao-Bench",
         "dataset_version": version,
@@ -819,29 +839,16 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "subjective_scoring": "catalogued_not_scored_pending_rubric",
             "audits": audit_reports,
         },
-        "scoring": {
-            "contract": "single_primary_metric_v1",
-            "primary_metric": "score.weighted_points",
-            "unit": "ratio",
-            "metric_version": "1.0",
-            "partial_credit": False,
-            "primary_task_types": list(spec["benchmark_spec"]["scoring"]["primary_task_types"]),
-            "catalog_task_types": list(spec["benchmark_spec"]["scoring"]["catalog_task_types"]),
-            "credit_policy": spec["benchmark_spec"]["scoring"]["credit_policy"],
-            "process_policy": spec["benchmark_spec"]["scoring"]["process_policy"],
-            "profile": "strict-source-audited-points-all-or-nothing",
-            "missing_or_invalid_is_zero": True,
-            "diagnostic_metrics": list(spec["benchmark_spec"]["scoring"]["diagnostic_metrics"]),
-        },
+        "scoring": scoring_contract,
         "compatibility": {
             "dataset": version,
             "benchmark_spec": spec["benchmark_spec"]["version"],
-            "engine": "0.1.7",
+            "engine": ENGINE_VERSION,
         },
         "versions": {
             "dataset": version,
             "benchmark_spec": spec["benchmark_spec"]["version"],
-            "engine": "0.1.7",
+            "engine": ENGINE_VERSION,
         },
         "build_provenance": {
             "repository": SOURCE_REPOSITORY,
@@ -937,7 +944,11 @@ def main() -> int:
     parser.add_argument("--created-at", default="2026-11-11T18:00:00+08:00")
     parser.add_argument("--audit-report", action="append", default=[], help="three JSON audit reports: A, B, C")
     args = parser.parse_args()
-    manifest = build(args)
+    try:
+        manifest = build(args)
+    except (FileNotFoundError, ValueError) as exc:
+        print("error: %s" % exc, file=sys.stderr)
+        return 2
     print(json.dumps({
         "dataset_version": manifest["dataset_version"],
         "status": manifest["status"],

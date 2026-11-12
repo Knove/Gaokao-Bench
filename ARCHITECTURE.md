@@ -736,7 +736,7 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 
 ## 16. 当前实现状态
 
-Engine `0.1.7` 已完成：
+Engine `0.1.8` 已完成：
 
 - Spec-driven validation and legacy adapter.
 - `score.weighted_points` primary metric with explicit scopes.
@@ -744,6 +744,14 @@ Engine `0.1.7` 已完成：
   credit policy; rubric items remain catalogue-only.
 - Closed `coverage` metadata with scored, catalogued, full-paper, and selected
   scopes, including question and point closure checks.
+- `0.1+` packages built with Engine 0.1.8 or newer must declare every explicit
+  scoring-policy field; immutable `0.0.x` and pre-contract `0.1.0-alpha.*`
+  packages keep their historical compatibility path. For `0.1+` dataset
+  versions, a recorded modern engine always opts the package into strict
+  validation.
+- Public manifest and `RELEASE_CARD.json` scoring metadata are generated from
+  one scoring-contract builder, so task eligibility and credit policy cannot
+  drift between release files.
 - Text/vision slices and paper-equal diagnostic.
 - Set-builder `, x ∈ R` regression fix.
 - 32k default output budget and reasoning-budget accounting.
@@ -772,6 +780,8 @@ Engine `0.1.7` 已完成：
 - CLI score/run results default to a short human table. Complete JSON goes to
   `--report`; `--json` prints a compact machine summary without question-ID
   arrays, and `--quiet` suppresses the final summary.
+- Compact run JSON also sanitizes nested coverage, and human summaries report
+  the selected run scope separately from full-paper dataset coverage.
 - Prompt renderer `1.1` adds per-question answer-format instructions for choice,
   multi-choice, single-slot, multi-slot, and circled-number answers. The
   renderer version is recorded in the run protocol, manifest, and prompt index;

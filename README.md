@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine version 0.1.7" src="https://img.shields.io/badge/engine-0.1.7-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine version 0.1.8" src="https://img.shields.io/badge/engine-0.1.8-171513?style=flat-square"></a>
   <a href="#scoring-rules"><img alt="Deterministic scoring" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Dataset on Hugging Face" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>

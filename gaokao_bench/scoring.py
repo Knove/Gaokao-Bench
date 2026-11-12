@@ -153,6 +153,131 @@ PUBLIC_FORBIDDEN_PATHS = {
     "reviews.jsonl",
     "sources.jsonl",
 }
+STRICT_SCORING_POLICY_ENGINE = (0, 1, 8)
+STRICT_SCORING_POLICY_DATASET = (0, 1, 0)
+EXPLICIT_SCORING_POLICY_FIELDS = (
+    "partial_credit",
+    "primary_task_types",
+    "catalog_task_types",
+    "credit_policy",
+    "process_policy",
+    "metric_version",
+)
+PRIMARY_METRIC_DEFINITION = (
+    "earned reviewed exam points divided by possible points in the declared scope"
+)
+
+
+def public_scoring_contract(spec: BenchmarkSpec) -> Dict[str, Any]:
+    """Return the release-facing scoring metadata for one benchmark spec."""
+
+    return {
+        "contract": spec.scoring.contract,
+        "primary_metric": spec.scoring.primary_metric,
+        "unit": "ratio",
+        "metric_version": spec.scoring.metric_version,
+        "definition": PRIMARY_METRIC_DEFINITION,
+        "partial_credit": spec.scoring.partial_credit,
+        "primary_task_types": list(spec.scoring.primary_task_types),
+        "catalog_task_types": list(spec.scoring.catalog_task_types),
+        "credit_policy": spec.scoring.credit_policy,
+        "process_policy": spec.scoring.process_policy,
+        "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
+    }
+
+
+def _version_tuple(value: Any) -> Optional[Tuple[int, int, int]]:
+    match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?", str(value or "").strip())
+    if match is None:
+        return None
+    return tuple(int(part) for part in match.groups())
+
+
+def _requires_explicit_scoring_policy(manifest: Mapping[str, Any]) -> bool:
+    compatibility = manifest.get("compatibility")
+    if not isinstance(compatibility, Mapping) or not compatibility:
+        compatibility = manifest.get("versions")
+    if not isinstance(compatibility, Mapping):
+        compatibility = {}
+    engine = _version_tuple(compatibility.get("engine"))
+    dataset_version = _version_tuple(
+        manifest.get("dataset_version") or compatibility.get("dataset")
+    )
+    if dataset_version is None:
+        return engine is not None and engine >= STRICT_SCORING_POLICY_ENGINE
+    if dataset_version < STRICT_SCORING_POLICY_DATASET:
+        return False
+    if engine is not None:
+        return engine >= STRICT_SCORING_POLICY_ENGINE
+    scoring = manifest.get("scoring")
+    if (
+        isinstance(scoring, Mapping)
+        and "main_metric" in scoring
+        and scoring.get("contract") != CANONICAL_SCORING_CONTRACT
+    ):
+        return False
+    return True
+
+
+def _catalog_task_type_errors(
+    catalog_subjective: Sequence[Mapping[str, Any]],
+    catalog_task_types: Sequence[str],
+    *,
+    require_explicit: bool,
+) -> List[str]:
+    if catalog_subjective and not catalog_task_types and require_explicit:
+        return ["catalogued subjective items require explicit scoring.catalog_task_types"]
+    return []
+
+
+def _scoring_contract_errors(
+    spec: BenchmarkSpec,
+    scoring: Any,
+    *,
+    label: str,
+    require_policy_fields: bool,
+) -> List[str]:
+    """Validate scoring metadata against the versioned benchmark spec."""
+
+    if not isinstance(scoring, Mapping):
+        return ["%s scoring must be an object" % label]
+
+    errors: List[str] = []
+    expected = {
+        "contract": spec.scoring.contract,
+        "primary_metric": spec.scoring.primary_metric,
+        "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
+    }
+    for field, expected_value in expected.items():
+        if scoring.get(field) != expected_value:
+            errors.append(
+                "%s scoring.%s differs from benchmark spec: %s != %s"
+                % (label, field, scoring.get(field), expected_value)
+            )
+    if scoring.get("unit") != "ratio":
+        errors.append("%s scoring.unit must be ratio" % label)
+    if not str(scoring.get("definition", "")).strip():
+        errors.append("%s scoring.definition must be non-empty" % label)
+
+    policy_values = {
+        "partial_credit": spec.scoring.partial_credit,
+        "primary_task_types": list(spec.scoring.primary_task_types),
+        "catalog_task_types": list(spec.scoring.catalog_task_types),
+        "credit_policy": spec.scoring.credit_policy,
+        "process_policy": spec.scoring.process_policy,
+        "metric_version": spec.scoring.metric_version,
+    }
+    for field in EXPLICIT_SCORING_POLICY_FIELDS:
+        if field not in scoring:
+            if require_policy_fields:
+                errors.append("%s scoring.%s is required" % (label, field))
+            continue
+        if scoring.get(field) != policy_values[field]:
+            errors.append(
+                "%s scoring.%s differs from benchmark spec: %s != %s"
+                % (label, field, scoring.get(field), policy_values[field])
+            )
+    return errors
 
 
 def _requires_canonical_metric_contract(
@@ -313,33 +438,19 @@ def _validate_public_manifest(dataset: Dataset) -> None:
     if str(rights.get("public_redistribution", "")).startswith("not_cleared"):
         errors.append("public dataset still declares that redistribution is not cleared")
     scoring = manifest.get("scoring") if isinstance(manifest.get("scoring"), dict) else {}
-    if scoring.get("contract") != dataset.spec.scoring.contract:
-        errors.append(
-            "public scoring contract differs from benchmark spec: %s != %s"
-            % (scoring.get("contract"), dataset.spec.scoring.contract)
-        )
-    if scoring.get("primary_metric") != dataset.spec.scoring.primary_metric:
-        errors.append(
-            "public primary metric differs from benchmark spec: %s != %s"
-            % (scoring.get("primary_metric"), dataset.spec.scoring.primary_metric)
-        )
     if "main_metric" in scoring:
         errors.append("public manifest must not expose a second main_metric")
     if nested_keys(manifest, "main_metric"):
         errors.append("public manifest must expose exactly one canonical metric named scoring.primary_metric")
-    if scoring.get("unit") != "ratio":
-        errors.append("public primary metric unit must be ratio")
-    if not str(scoring.get("definition", "")).strip():
-        errors.append("public primary metric must declare its definition")
-    diagnostic_metrics = scoring.get("diagnostic_metrics")
-    if diagnostic_metrics != list(dataset.spec.scoring.diagnostic_metrics):
-        errors.append("public diagnostic metrics differ from benchmark spec")
-    for field in ("primary_task_types", "catalog_task_types"):
-        if field in scoring and scoring.get(field) != list(getattr(dataset.spec.scoring, field)):
-            errors.append("public scoring.%s differs from benchmark spec" % field)
-    for field in ("credit_policy", "process_policy", "metric_version"):
-        if field in scoring and scoring.get(field) != getattr(dataset.spec.scoring, field):
-            errors.append("public scoring.%s differs from benchmark spec" % field)
+    require_policy_fields = _requires_explicit_scoring_policy(dataset.manifest)
+    errors.extend(
+        _scoring_contract_errors(
+            dataset.spec,
+            scoring,
+            label="public manifest",
+            require_policy_fields=require_policy_fields,
+        )
+    )
     release = manifest.get("release") if isinstance(manifest.get("release"), dict) else {}
     leaderboard = manifest.get("leaderboard") if isinstance(manifest.get("leaderboard"), dict) else {}
     expected_class = dataset.spec.reporting.leaderboard_class
@@ -459,10 +570,16 @@ def _validate_public_manifest(dataset: Dataset) -> None:
     release_card_path = dataset.data_dir / "RELEASE_CARD.json"
     release_card = json.loads(release_card_path.read_text(encoding="utf-8"))
     card_scoring = release_card.get("scoring") if isinstance(release_card.get("scoring"), dict) else {}
-    if card_scoring.get("primary_metric") != dataset.spec.scoring.primary_metric:
-        errors.append("RELEASE_CARD primary metric differs from benchmark spec")
     if "main_metric" in card_scoring or nested_keys(release_card, "main_metric"):
         errors.append("RELEASE_CARD must not expose a second main metric")
+    errors.extend(
+        _scoring_contract_errors(
+            dataset.spec,
+            card_scoring,
+            label="RELEASE_CARD",
+            require_policy_fields=require_policy_fields,
+        )
+    )
     card_reporting = release_card.get("reporting") if isinstance(release_card.get("reporting"), dict) else {}
     if card_reporting.get("leaderboard_class") != expected_class:
         errors.append("RELEASE_CARD leaderboard class differs from benchmark spec")
@@ -591,7 +708,20 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         if isinstance(dataset.manifest.get("scoring"), dict)
         else {}
     )
-    if (
+    strict_scoring = _requires_explicit_scoring_policy(dataset.manifest)
+    canonical_contract = _requires_canonical_metric_contract(
+        dataset_version, manifest_scoring
+    )
+    if strict_scoring:
+        errors.extend(
+            _scoring_contract_errors(
+                spec,
+                manifest_scoring,
+                label="manifest",
+                require_policy_fields=True,
+            )
+        )
+    elif (
         spec.scoring.contract == CANONICAL_SCORING_CONTRACT
         and manifest_scoring.get("contract") != spec.scoring.contract
     ):
@@ -599,14 +729,12 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             "manifest scoring contract differs from benchmark spec: %s != %s"
             % (manifest_scoring.get("contract"), spec.scoring.contract)
         )
-    if _requires_canonical_metric_contract(dataset_version, manifest_scoring):
+    if canonical_contract and not strict_scoring:
         if manifest_scoring.get("primary_metric") != spec.scoring.primary_metric:
             errors.append(
                 "manifest primary metric differs from benchmark spec: %s != %s"
                 % (manifest_scoring.get("primary_metric"), spec.scoring.primary_metric)
             )
-        if "main_metric" in manifest_scoring:
-            errors.append("manifest must not expose a second main_metric")
         if manifest_scoring.get("unit") != "ratio":
             errors.append("manifest primary metric unit must be ratio")
         if manifest_scoring.get("diagnostic_metrics") != list(
@@ -623,6 +751,9 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
                 spec.scoring, field
             ):
                 errors.append("manifest scoring.%s differs from benchmark spec" % field)
+    if (strict_scoring or canonical_contract) and "main_metric" in manifest_scoring:
+        errors.append("manifest must not expose a second main_metric")
+    if canonical_contract:
         content_lineage = (
             dataset.manifest.get("content_lineage")
             if isinstance(dataset.manifest.get("content_lineage"), dict)
@@ -764,6 +895,13 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
 
     catalog_subjective_points = 0
     catalog_task_types = set(spec.scoring.catalog_task_types)
+    errors.extend(
+        _catalog_task_type_errors(
+            dataset.catalog_subjective,
+            spec.scoring.catalog_task_types,
+            require_explicit=strict_scoring,
+        )
+    )
     catalog_ids: set[str] = set()
     for item in dataset.catalog_subjective:
         catalog_id = str(item.get("id", ""))
@@ -2087,6 +2225,9 @@ def evaluate_submission(
         "catalog_points": catalog_points,
         "full_paper_questions": full_paper_questions,
         "full_paper_points": full_paper_points,
+        "selected_fraction_of_dataset_scored_questions": _ratio_or_none(
+            len(selected_questions), len(dataset.questions)
+        ),
         "selected_fraction_of_dataset_scored_points": _ratio_or_none(
             total_possible, dataset_possible_points
         ),
@@ -2101,6 +2242,9 @@ def evaluate_submission(
         ),
         "scored_fraction_of_full_paper_points": _ratio_or_none(
             dataset_possible_points, full_paper_points
+        ),
+        "catalog_fraction_of_full_paper_questions": _ratio_or_none(
+            catalog_questions, full_paper_questions
         ),
         "catalog_fraction_of_full_paper_points": _ratio_or_none(
             catalog_points, full_paper_points
@@ -2129,7 +2273,7 @@ def evaluate_submission(
         denominator=total_possible,
         numerator_unit="points",
         scope=scope,
-        definition="earned reviewed exam points divided by possible points in the declared scope",
+        definition=PRIMARY_METRIC_DEFINITION,
         coverage=coverage,
         role="primary",
     )

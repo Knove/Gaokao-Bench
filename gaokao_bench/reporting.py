@@ -72,9 +72,13 @@ def _coverage_summary(coverage: Any, *, include_ids: bool = False) -> Optional[d
         "catalog_points",
         "full_paper_questions",
         "full_paper_points",
+        "selected_fraction_of_dataset_scored_questions",
         "selected_fraction_of_dataset_scored_points",
+        "selected_fraction_of_full_paper_questions",
         "selected_fraction_of_full_paper_points",
+        "scored_fraction_of_full_paper_questions",
         "scored_fraction_of_full_paper_points",
+        "catalog_fraction_of_full_paper_questions",
         "catalog_fraction_of_full_paper_points",
         "full_paper_questions_closed",
         "full_paper_points_closed",
@@ -89,22 +93,39 @@ def _coverage_text(coverage: Any) -> Optional[str]:
     row = _coverage_summary(coverage)
     if row is None:
         return None
+    selected_questions = row.get("selected_questions")
+    scored_questions = row.get("scored_questions")
+    selected_points = row.get("selected_points", row.get("selected_possible_points"))
+    scored_points = row.get("scored_points", row.get("dataset_possible_points"))
+    if selected_questions is None or scored_questions is None:
+        return None
+
+    lines = [
+        "Run scope  %s/%s scored questions · %s/%s scored points"
+        % (
+            _number(selected_questions),
+            _number(scored_questions),
+            _number(selected_points),
+            _number(scored_points),
+        )
+    ]
     scored_questions = _number(row.get("scored_questions"))
     full_questions = _number(row.get("full_paper_questions"))
-    scored_points = _number(row.get("scored_points"))
+    scored_points = _number(scored_points)
     full_points = _number(row.get("full_paper_points"))
-    line = "Coverage  scored %s/%s questions · %s/%s points" % (
+    dataset_line = "Dataset coverage  %s/%s full-paper questions · %s/%s full-paper points" % (
         scored_questions,
         full_questions,
         scored_points,
         full_points,
     )
     if row.get("catalog_questions") is not None:
-        line += " · catalog %s questions / %s points" % (
+        dataset_line += " · catalog %s questions / %s points" % (
             _number(row.get("catalog_questions")),
             _number(row.get("catalog_points")),
         )
-    return line
+    lines.append(dataset_line)
+    return "\n".join(lines)
 
 
 def compact_evaluation_summary(report: Mapping[str, Any]) -> dict:
@@ -116,6 +137,7 @@ def compact_evaluation_summary(report: Mapping[str, Any]) -> dict:
         "dataset": report.get("dataset"),
         "dataset_version": report.get("dataset_version"),
         "scoring_profile": report.get("scoring_profile"),
+        "scoring_policy": report.get("scoring_policy"),
         "primary_metric": _metric_summary(summary.get("primary_metric")),
         "points": {
             "earned": summary.get("earned_points"),
@@ -231,6 +253,7 @@ def compact_run_summary(summary: Mapping[str, Any]) -> dict:
         "model_snapshot": summary.get("model_snapshot"),
         "modality": summary.get("modality"),
         "repeats": summary.get("repeats"),
+        "scoring_policy": summary.get("scoring_policy"),
     }
     scope = summary.get("scope") if isinstance(summary.get("scope"), Mapping) else summary
     compact["scope"] = {
@@ -249,6 +272,8 @@ def compact_run_summary(summary: Mapping[str, Any]) -> dict:
             "modality_answerable_points",
         )
     }
+    if isinstance(scope.get("coverage"), Mapping):
+        compact["scope"]["coverage"] = _coverage_summary(scope.get("coverage"))
     if status == "prepared":
         compact.update(
             {
