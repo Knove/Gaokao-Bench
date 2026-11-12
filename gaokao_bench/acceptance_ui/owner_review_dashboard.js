@@ -409,6 +409,8 @@
     const isProofQuestion = row.question_type === "catalog_subjective" && /见解析/.test(String(row.canonical_display || ""));
     const answerLabel = isProofQuestion ? "答案结论" : "当前规范答案";
     const answerLabelClass = isProofQuestion ? "answer-label proof" : "answer-label";
+    const hasAnswerConclusion = Boolean(row.answer_conclusion);
+    const canonicalDisplay = hasAnswerConclusion ? row.answer_conclusion : row.canonical_display;
     const answerSlotText = isProofQuestion
       ? "证明题 · 不计入当前自动评分"
       : row.answer_slot_count > 1
@@ -464,8 +466,8 @@
               ${optionsHtml}
               <div class="answer-band">
                 <div>
-                  <div class="${answerLabelClass}">${answerLabel}</div>
-                  <div class="answer-value">${escapeHtml(row.canonical_display)}</div>
+                  <div class="${answerLabelClass}">${answerLabel}${hasAnswerConclusion ? ' <span class="tag amber">验收补全</span>' : ''}</div>
+                  <div class="answer-value">${escapeHtml(canonicalDisplay)}</div>
                   ${answerNote}
                 </div>
                 <div class="answer-meta"><b>${row.points} 分</b><span>${escapeHtml(answerSlotText)}</span><span>${escapeHtml(row.answer_status_label)}</span></div>
@@ -775,6 +777,7 @@
   }
 
   function canonicalInputValue(row) {
+    if (row.answer_conclusion) return String(row.answer_conclusion);
     return Array.isArray(row.canonical) ? JSON.stringify(row.canonical) : String(row.canonical ?? "");
   }
 
@@ -1124,6 +1127,7 @@
     for (const row of ROWS) {
       const record = decisionFor(row.item_id);
       const output = { ...row.raw };
+      if (row.answer_conclusion) output.canonical_answer = row.answer_conclusion;
       output.decision = record?.decision || "";
       output.reviewed_answer = record?.decision === "correct" ? record.reviewed_answer || "" : "";
       output.reviewed_points = record?.decision === "correct" ? record.reviewed_points || "" : "";

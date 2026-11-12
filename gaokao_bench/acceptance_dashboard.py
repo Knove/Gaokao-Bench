@@ -282,8 +282,12 @@ def _load_notes(path: Optional[Path]) -> Dict[str, Dict[str, str]]:
             continue
         label = str(note.get("label") or "重点复核")
         reason = str(note.get("reason") or "")
-        if reason:
-            output[str(item_id)] = {"label": label, "reason": reason}
+        conclusion = str(note.get("answer_conclusion") or "").strip()
+        if reason or conclusion:
+            entry = {"label": label, "reason": reason}
+            if conclusion:
+                entry["answer_conclusion"] = conclusion
+            output[str(item_id)] = entry
     return output
 
 
@@ -381,6 +385,7 @@ def _row_base(
     source_assessments: Sequence[Mapping[str, Any]],
     rejected_source_ids: Sequence[Any],
     priority: Optional[Mapping[str, str]],
+    answer_conclusion: str = "",
     raw: Mapping[str, Any],
 ) -> Dict[str, Any]:
     return {
@@ -399,6 +404,7 @@ def _row_base(
         "options": options if isinstance(options, list) else [],
         "canonical": canonical,
         "canonical_display": _display_answer(canonical),
+        "answer_conclusion": answer_conclusion,
         "answer_slot_count": max(1, int(answer_slot_count or 1)),
         "image_dependency": image_dependency or "none",
         "image_path": image_path,
@@ -526,6 +532,7 @@ def _packet_rows(
             source_assessments=answer_audit_row.get("source_assessments", []),
             rejected_source_ids=answer_audit_row.get("rejected_source_ids", []),
             priority=notes.get(item_id),
+            answer_conclusion=str((notes.get(item_id) or {}).get("answer_conclusion") or ""),
             raw=raw,
         )
         rows.append(row)
@@ -667,6 +674,7 @@ def _data_rows(
             source_assessments=audit.get("source_assessments", []),
             rejected_source_ids=audit.get("rejected_source_ids", []),
             priority=notes.get(item_id),
+            answer_conclusion=str((notes.get(item_id) or {}).get("answer_conclusion") or ""),
             raw=_fallback_raw(
                 item_id=item_id,
                 paper_id=paper_id,
