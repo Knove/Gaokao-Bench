@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import webbrowser
 from pathlib import Path
 from typing import Any, List, Optional
 
+from .acceptance_dashboard import DEFAULT_NOTES_PATH, DEFAULT_UI_DIR, build_acceptance_page
 from .data_fetch import (
     DEFAULT_DATA_REPO_ID,
     DEFAULT_DATA_VERSION,
@@ -78,6 +80,44 @@ def build_parser() -> argparse.ArgumentParser:
     )
     output_mode.add_argument("--quiet", action="store_true", help="suppress the result summary")
     evaluate_parser.add_argument("--strict", action="store_true", help="fail on unknown question IDs")
+
+    acceptance_parser = subparsers.add_parser(
+        "acceptance",
+        help="build the single acceptance dashboard spanning every local data version",
+    )
+    acceptance_parser.add_argument(
+        "--data-root",
+        default="data",
+        help="directory containing data/<version>/ packages (default: data)",
+    )
+    acceptance_parser.add_argument(
+        "--review-root",
+        default="review_packets",
+        help="directory containing review_packets/<version>-owner/ packets",
+    )
+    acceptance_parser.add_argument(
+        "--output",
+        default="reports/acceptance/index.html",
+        help="canonical version-independent output path",
+    )
+    acceptance_parser.add_argument(
+        "--version",
+        action="append",
+        dest="versions",
+        help="limit the build to a dataset version; repeat for multiple versions",
+    )
+    acceptance_parser.add_argument("--default-version", help="version selected without a deep link")
+    acceptance_parser.add_argument(
+        "--notes",
+        help="curated priority notes JSON (default: the notes shipped with the acceptance UI)",
+    )
+    acceptance_parser.add_argument("--ui-dir", default=str(DEFAULT_UI_DIR), help=argparse.SUPPRESS)
+    acceptance_parser.add_argument(
+        "--open",
+        action="store_true",
+        dest="open_browser",
+        help="open the generated file:// page in the default browser",
+    )
     return parser
 
 
@@ -97,6 +137,29 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(str(exc), file=sys.stderr)
             return 2
         _print_json(result)
+        return 0
+
+    if args.command == "acceptance":
+        try:
+            result = build_acceptance_page(
+                data_root=Path(args.data_root).expanduser().resolve(),
+                review_root=Path(args.review_root).expanduser().resolve(),
+                ui_dir=Path(args.ui_dir).expanduser().resolve(),
+                output=Path(args.output).expanduser().resolve(),
+                versions=args.versions,
+                notes_path=(
+                    Path(args.notes).expanduser().resolve()
+                    if args.notes
+                    else DEFAULT_NOTES_PATH
+                ),
+                default_version=args.default_version,
+            )
+        except (OSError, ValueError) as exc:
+            print("error: %s" % exc, file=sys.stderr)
+            return 2
+        _print_json(result)
+        if args.open_browser:
+            webbrowser.open(Path(result["output"]).as_uri())
         return 0
 
     try:

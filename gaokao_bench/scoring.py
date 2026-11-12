@@ -519,7 +519,7 @@ def _validate_public_manifest(dataset: Dataset) -> None:
     forbidden: List[str] = []
     for relative_path in files:
         if relative_path in PUBLIC_FORBIDDEN_PATHS or relative_path.startswith(
-            ("docs/", "reports/", "review_packets/", "runs/", "release/", "review_ui/", "scripts/", "tests/")
+            ("docs/", "reports/", "review_packets/", "runs/", "release/", "scripts/", "tests/")
         ):
             forbidden.append(relative_path)
     if forbidden:

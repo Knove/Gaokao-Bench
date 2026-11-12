@@ -225,8 +225,10 @@ def _review_instructions(dataset: Dataset, packet_id: str) -> str:
 `answer_image_url` / `secondary_page_url` 指向的证据页，再用
 `answer_locator` / `secondary_locator` 核对。若来源展示 `source_assessments`，
 题干不匹配或题干不可见的来源必须显示为 rejected。
-如使用浏览器验收台，打开 `reports/acceptance/{version}/index.html`，逐题点击
-“同意 / 纠错 / 争议”，最后下载 CSV 与签字 JSON；页面不会代填身份。
+如使用浏览器验收台，先运行 `python3 scripts/build_acceptance_dashboard.py`
+生成唯一入口 `reports/acceptance/index.html`，从版本下拉框或深链
+`#v={version}&q=<题目ID>` 进入对应版本，逐题点击“同意 / 纠错 / 争议”，
+最后下载 CSV 与签字 JSON；页面不会代填身份。
 
 ## 边界
 

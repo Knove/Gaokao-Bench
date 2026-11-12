@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Gaokao-Bench 验收台</title>
+  <style>{{STYLES}}</style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">GB</div>
+        <div class="brand-copy">
+          <div class="brand-line">
+            <h1>Gaokao-Bench 验收台</h1>
+            <span class="version-badge" id="versionBadge">全部版本</span>
+          </div>
+          <p id="versionSubtitle">统一验收台 · 历史版本与未来版本</p>
+        </div>
+      </div>
+
+      <div class="hero-stats" aria-label="数据集概况">
+        <div class="hero-stat"><strong id="statQuestions">—</strong><span>复核题</span></div>
+        <div class="hero-stat"><strong id="statPoints">—</strong><span>复核分</span></div>
+        <div class="hero-stat"><strong id="statScored">—</strong><span>自动评分</span></div>
+        <div class="hero-stat"><strong id="statVisual">—</strong><span>视觉必需</span></div>
+        <div class="hero-stat"><strong id="statSources">—</strong><span>答案来源</span></div>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn btn-ghost" id="helpBtn" type="button">验收说明</button>
+        <button class="btn btn-ghost" id="exportProgressBtn" type="button">导出进度</button>
+        <button class="btn btn-primary" id="signBtn" type="button">完成验收</button>
+      </div>
+    </header>
+
+    <section class="progress-strip" aria-label="验收进度">
+      <div class="version-control">
+        <label class="version-field" for="versionSelect">数据版本
+          <select id="versionSelect" aria-label="切换数据版本"></select>
+        </label>
+        <button class="btn btn-secondary btn-compact" id="versionsBtn" type="button">版本档案</button>
+        <span class="version-status-pill" id="versionStatusPill">加载中</span>
+      </div>
+      <div class="progress-copy">
+        <strong id="progressHeadline">加载中</strong>
+        <span id="progressDetail">先逐题核对原卷裁图、结构化题面、答案和来源</span>
+      </div>
+      <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-legend">
+        <span class="legend-item agree"><i></i><b id="countAgree">0</b> 同意</span>
+        <span class="legend-item correct"><i></i><b id="countCorrect">0</b> 纠错</span>
+        <span class="legend-item dispute"><i></i><b id="countDispute">0</b> 争议</span>
+        <span class="legend-item pending"><i></i><b id="countPending">74</b> 待复核</span>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <aside class="rail" aria-label="题目目录">
+        <div class="rail-header">
+          <div class="rail-title-row">
+            <div>
+              <span class="eyebrow">REVIEW QUEUE</span>
+              <h2>题目目录</h2>
+            </div>
+            <span class="result-count" id="listCount">74 题</span>
+          </div>
+
+          <label class="search-box" for="searchInput">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+            <input id="searchInput" type="search" placeholder="搜索题号、题干、答案…" autocomplete="off">
+          </label>
+
+          <div class="select-row">
+            <label>试卷
+              <select id="paperFilter">
+                <option value="all">全部五套</option>
+              </select>
+            </label>
+            <label>题型
+              <select id="typeFilter">
+                <option value="all">全部题型</option>
+                <option value="single_choice">单选题</option>
+                <option value="multi_choice">多选题</option>
+                <option value="fill_blank">填空题</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="status-filters" id="statusFilters" aria-label="复核状态筛选">
+            <button type="button" class="filter-chip active" data-status="all">全部 <span id="filterCountAll">74</span></button>
+            <button type="button" class="filter-chip" data-status="pending">待复核 <span id="filterCountPending">74</span></button>
+            <button type="button" class="filter-chip" data-status="agree">同意 <span id="filterCountAgree">0</span></button>
+            <button type="button" class="filter-chip" data-status="correct">纠错 <span id="filterCountCorrect">0</span></button>
+            <button type="button" class="filter-chip" data-status="dispute">争议 <span id="filterCountDispute">0</span></button>
+          </div>
+
+          <div class="toggle-row">
+            <label class="mini-toggle"><input id="priorityFilter" type="checkbox"><span id="priorityToggleText">只看重点 9 题</span></label>
+            <label class="mini-toggle"><input id="visualFilter" type="checkbox"><span>只看视觉必需</span></label>
+          </div>
+        </div>
+        <div class="question-list" id="questionList" role="listbox" aria-label="题目列表"></div>
+        <div class="rail-footer">
+          <span><kbd>J</kbd><kbd>K</kbd> 翻题</span>
+          <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 判定</span>
+          <button type="button" id="nextPendingBtnSmall">下一道待复核</button>
+        </div>
+      </aside>
+
+      <section class="center" id="center" aria-live="polite"></section>
+      <aside class="review-pane" id="reviewPane" aria-label="复核判定"></aside>
+    </main>
+  </div>
+
+  <dialog class="modal help-modal" id="helpDialog">
+    <div class="modal-header">
+      <div>
+        <span class="eyebrow">ACCEPTANCE GUIDE</span>
+        <h2>怎么用这个验收台</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-dialog="helpDialog" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="guide-grid">
+        <article class="guide-card">
+          <span class="guide-number">01</span>
+          <h3>先对照题面</h3>
+          <p>右侧“原卷裁图”是原始证据。左边是结构化题面和选项，先看两者是否一致。</p>
+        </article>
+        <article class="guide-card">
+          <span class="guide-number">02</span>
+          <h3>再核答案与分值</h3>
+          <p>看 canonical answer、主来源、第二来源和摘录。分值按试卷结构对账，不按难度猜。</p>
+        </article>
+        <article class="guide-card">
+          <span class="guide-number">03</span>
+          <h3>逐题做判定</h3>
+          <p><b>同意</b>、<b>纠错</b>、<b>争议</b>。纠错必须填修改值和依据；争议必须写原因。</p>
+        </article>
+        <article class="guide-card">
+          <span class="guide-number">04</span>
+          <h3>最后签字下载</h3>
+          <p>全部题目判定后，填写真实姓名和签名，下载 CSV 与 JSON。系统不会代签。</p>
+        </article>
+      </div>
+
+      <div class="callout neutral" id="helpBoundary">
+        <strong>本版边界</strong>
+        <p>本页只展示当前数据版本的复核范围；具体题量、分值和自动评分范围会在切换版本后更新。</p>
+      </div>
+
+      <div class="callout neutral" id="helpVisual">
+        <strong>视觉必需题</strong>
+        <p>离开原卷图形就无法确定答案的题目会单独标记；其余裁图用于核对结构化题面。</p>
+      </div>
+
+      <div class="help-section-head">
+        <div>
+          <span class="eyebrow">PRIORITY CHECKS</span>
+          <h3>建议先看的 <span id="priorityCount">9</span> 道重点题</h3>
+        </div>
+        <button type="button" class="btn btn-secondary" id="focusPriorityBtn">只看重点题</button>
+      </div>
+      <div class="priority-help-list" id="priorityHelpList"></div>
+
+      <div class="shortcut-table">
+        <span><kbd>J</kbd> / <kbd>↓</kbd> 下一题</span>
+        <span><kbd>K</kbd> / <kbd>↑</kbd> 上一题</span>
+        <span><kbd>1</kbd> 同意</span>
+        <span><kbd>2</kbd> 纠错</span>
+        <span><kbd>3</kbd> 争议</span>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal versions-modal" id="versionsDialog">
+    <div class="modal-header">
+      <div>
+        <span class="eyebrow">VERSION ARCHIVE</span>
+        <h2>版本档案与审计状态</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-dialog="versionsDialog" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="versions-intro">一个验收台覆盖全部本地数据版本。新增 <code>data/&lt;version&gt;/</code> 后重新生成页面，即可进入版本档案，不需要再新建一套验收台。</p>
+      <section class="current-audit-section">
+        <div class="help-section-head compact-head">
+          <div><span class="eyebrow">CURRENT VERSION</span><h3>当前版本审计</h3></div>
+        </div>
+        <div id="currentVersionAudit" class="current-audit-grid"></div>
+      </section>
+      <section>
+        <div class="help-section-head compact-head">
+          <div><span class="eyebrow">ALL VERSIONS</span><h3>全部版本</h3></div>
+        </div>
+        <div class="version-catalog" id="versionCatalog"></div>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog class="modal sign-modal" id="signDialog">
+    <div class="modal-header">
+      <div>
+        <span class="eyebrow">OWNER SIGN-OFF</span>
+        <h2>完成 owner 复核签字</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-dialog="signDialog" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="signReadiness" class="sign-readiness"></div>
+
+      <div class="sign-summary">
+        <div><span>同意</span><strong id="signAgree">0</strong></div>
+        <div><span>纠错</span><strong id="signCorrect">0</strong></div>
+        <div><span>争议</span><strong id="signDispute">0</strong></div>
+        <div><span>待复核</span><strong id="signPending">74</strong></div>
+      </div>
+
+      <div class="form-grid">
+        <label>真实姓名
+          <input id="reviewerName" type="text" placeholder="请填写你的真实姓名" autocomplete="name">
+        </label>
+        <label>复核人标识
+          <input id="reviewerId" type="text" placeholder="例如 owner.gaokao" autocomplete="username">
+        </label>
+        <label>签名（必须与姓名完全一致）
+          <input id="signature" type="text" placeholder="再次输入真实姓名" autocomplete="off">
+        </label>
+        <label>签字时间（含时区）
+          <input id="reviewedAt" type="text" placeholder="2026-11-05T14:30:00+08:00">
+        </label>
+      </div>
+
+      <label class="notes-label">签字备注（可选）
+        <textarea id="signNotes" rows="2" placeholder="例如：已逐题复核，重点题 9 道已检查。"></textarea>
+      </label>
+
+      <label class="attest-check">
+        <input id="attestationCheck" type="checkbox">
+        <span>我确认已亲自逐题复核答案、分值和来源定位，并理解这是 owner 单人验收，不代表双人独立复核。</span>
+      </label>
+
+      <div class="sign-actions">
+        <button class="btn btn-secondary" type="button" id="fillNowBtn">填入当前时间</button>
+        <button class="btn btn-secondary" type="button" id="jumpIncompleteBtn">定位未复核题</button>
+        <button class="btn btn-primary" type="button" id="downloadReviewBtn" disabled>下载复核 CSV</button>
+        <button class="btn btn-primary" type="button" id="downloadSignoffBtn" disabled>下载签字 JSON</button>
+      </div>
+
+      <div class="callout warning compact">
+        <strong>下载后还要导入验证</strong>
+        <p>把下载的 <code>owner_review.csv</code> 和 <code>owner_signoff.json</code> 交回项目，运行现有导入器。导入器只生成签字报告，不修改数据。</p>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="zoom-modal" id="zoomDialog">
+    <button class="zoom-close" type="button" data-close-dialog="zoomDialog" aria-label="关闭">×</button>
+    <div class="zoom-toolbar">
+      <strong id="zoomTitle">原卷裁图</strong>
+      <span>滚轮或浏览器缩放查看细节</span>
+    </div>
+    <div class="zoom-canvas"><img id="zoomImage" alt="原卷裁图放大"></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript><div class="noscript">此验收页需要启用 JavaScript。</div></noscript>
+
+  <script id="review-data" type="application/json">{{DATA_JSON}}</script>
+  <script>{{SCRIPT}}</script>
+</body>
+</html>

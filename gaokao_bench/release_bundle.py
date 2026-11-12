@@ -35,6 +35,7 @@ PUBLIC_CODE_EXACT_FILES = {
     "requirements-lock.txt",
 }
 PUBLIC_CODE_SCRIPTS = {
+    "build_acceptance_dashboard.py",
     "build_public_data.py",
     "build_release.py",
     "evaluate.py",
@@ -50,7 +51,7 @@ PUBLIC_CODE_SCRIPTS = {
     "validate.py",
     "verify_release_bundle.py",
 }
-PUBLIC_CODE_TESTS = {"test_public_contract.py"}
+PUBLIC_CODE_TESTS = {"test_acceptance_dashboard.py", "test_public_contract.py"}
 
 
 class ReleaseBundleError(ValueError):
@@ -110,6 +111,11 @@ def _public_code_files(project_root: Path) -> List[Tuple[Path, str]]:
     for path in sorted(package_root.glob("*.py")):
         if path.is_file():
             files.append((path, path.relative_to(project_root).as_posix()))
+    acceptance_ui = package_root / "acceptance_ui"
+    if acceptance_ui.is_dir():
+        for path in sorted(acceptance_ui.iterdir()):
+            if path.is_file() and path.suffix in {".html", ".css", ".js"}:
+                files.append((path, path.relative_to(project_root).as_posix()))
     for name in sorted(PUBLIC_CODE_SCRIPTS):
         path = project_root / "scripts" / name
         if path.is_file():
@@ -130,6 +136,8 @@ def _public_code_path_allowed(rel: str) -> bool:
     if rel in PUBLIC_CODE_README_FILES or rel in PUBLIC_CODE_EXACT_FILES:
         return True
     if PurePosixPath(rel).parent.as_posix() == "gaokao_bench" and rel.endswith(".py"):
+        return True
+    if rel.startswith("gaokao_bench/acceptance_ui/") and PurePosixPath(rel).suffix in {".html", ".css", ".js"}:
         return True
     if rel.startswith("scripts/") and PurePosixPath(rel).name in PUBLIC_CODE_SCRIPTS:
         return PurePosixPath(rel).parent.as_posix() == "scripts"
@@ -228,7 +236,6 @@ def build_release_bundle(
             "scripts",
             "tests",
             "docs",
-            "review_ui",
             "release",
             source_data.relative_to(project_root).as_posix(),
         ]

@@ -12,7 +12,7 @@ review dataset candidates. The 2026 National I mathematics builder and spec are
 intentionally tracked:
 
 - `scripts/build_2026_n1.py`
-- `scripts/build_2026_n1_acceptance.py`
+- `scripts/build_acceptance_dashboard.py`
 - `specs/2026-math-n1.json`
 
 The 2026 spec contains question text, answers, point metadata, and source

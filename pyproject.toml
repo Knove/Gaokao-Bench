@@ -26,6 +26,9 @@ Dataset = "https://huggingface.co/datasets/Knove/Gaokao-Bench"
 [tool.setuptools.packages.find]
 include = ["gaokao_bench*"]
 
+[tool.setuptools.package-data]
+gaokao_bench = ["acceptance_ui/*.html", "acceptance_ui/*.css", "acceptance_ui/*.js", "acceptance_ui/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"

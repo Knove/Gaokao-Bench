@@ -10,6 +10,31 @@ Versioning
 2026-11-12
 ----------
 
+Acceptance tooling / Engine 0.1.8
+
+- Replace per-version owner review pages with one canonical entry at
+  `reports/acceptance/index.html`. The builder discovers every local
+  `data/<version>/` package, keeps historical and future versions in one
+  archive, and exposes `#v=<version>&q=<item-id>` deep links plus a
+  `?view=versions` archive route.
+- Preserve the established three-column review flow: search, paper/type/status
+  filters, agreement/correction/dispute decisions, keyboard navigation, local
+  progress, CSV export, and owner sign-off JSON generation. Signed and archived
+  versions remain browsable but strictly read-only.
+- Fix packet source projection so `answer_source_id`, `answer_locator`,
+  `secondary_source_id`, and `secondary_locator` resolve to the correct
+  publisher, page, and answer image. Historical manifests now fall back to
+  `dataset_license`, and manifest-recorded owner audits are shown as completed
+  even when the local review packet is absent.
+- Move the dashboard templates into `gaokao_bench/acceptance_ui/`, add
+  `gaokao-bench acceptance` and `scripts/build_acceptance_dashboard.py`, and
+  convert the two former single-version builders into compatibility shims so a
+  second acceptance template cannot drift back into use.
+- Add synthetic contract tests for version discovery, candidate/signed/archive
+  modes, source mapping, asset deduplication, the single output path, and the
+  CLI entry point. No dataset was republished and no owner-attestation state was
+  changed.
+
 Engine 0.1.8 / Scorer 0.1.6 / Summary schema 2.4
 
 - Centralize release-facing scoring metadata in one builder used by both the

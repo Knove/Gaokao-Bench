@@ -22,7 +22,6 @@ build/
 /runs/
 /scripts/evidence/
 /.tmp_research/
-/review_ui/
 
 # Internal planning, release notes, and the owner-facing local README.
 /README.internal.md
@@ -42,6 +41,7 @@ build/
 !/tests/test_public_contract.py
 !/tests/test_public_data_contract.py
 !/tests/test_release_contract.py
+!/tests/test_acceptance_dashboard.py
 
 # Source PDFs and question crops are local inputs and are never redistributed.
 *.pdf
