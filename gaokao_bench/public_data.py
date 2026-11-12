@@ -766,6 +766,10 @@ def _build_manifest(
         "unit": "ratio",
         "percentage_display": "100 * ratio; display only, never a second score",
         "partial_credit": spec.scoring.partial_credit,
+        "primary_task_types": list(spec.scoring.primary_task_types),
+        "catalog_task_types": list(spec.scoring.catalog_task_types),
+        "credit_policy": spec.scoring.credit_policy,
+        "process_policy": spec.scoring.process_policy,
         "missing_or_invalid_is_zero": True,
         "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
     }
@@ -1062,6 +1066,10 @@ def _build_public_data_package_at(
             "metric_version": spec.scoring.metric_version,
             "definition": "earned reviewed exam points divided by possible points in the declared scope",
             "partial_credit": spec.scoring.partial_credit,
+            "primary_task_types": list(spec.scoring.primary_task_types),
+            "catalog_task_types": list(spec.scoring.catalog_task_types),
+            "credit_policy": spec.scoring.credit_policy,
+            "process_policy": spec.scoring.process_policy,
             "diagnostic_metrics": list(spec.scoring.diagnostic_metrics),
         },
         "reporting": {

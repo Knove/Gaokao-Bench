@@ -825,6 +825,10 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "unit": "ratio",
             "metric_version": "1.0",
             "partial_credit": False,
+            "primary_task_types": list(spec["benchmark_spec"]["scoring"]["primary_task_types"]),
+            "catalog_task_types": list(spec["benchmark_spec"]["scoring"]["catalog_task_types"]),
+            "credit_policy": spec["benchmark_spec"]["scoring"]["credit_policy"],
+            "process_policy": spec["benchmark_spec"]["scoring"]["process_policy"],
             "profile": "strict-source-audited-points-all-or-nothing",
             "missing_or_invalid_is_zero": True,
             "diagnostic_metrics": list(spec["benchmark_spec"]["scoring"]["diagnostic_metrics"]),
@@ -832,12 +836,12 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "compatibility": {
             "dataset": version,
             "benchmark_spec": spec["benchmark_spec"]["version"],
-            "engine": "0.1.6",
+            "engine": "0.1.7",
         },
         "versions": {
             "dataset": version,
             "benchmark_spec": spec["benchmark_spec"]["version"],
-            "engine": "0.1.6",
+            "engine": "0.1.7",
         },
         "build_provenance": {
             "repository": SOURCE_REPOSITORY,

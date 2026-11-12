@@ -70,6 +70,9 @@ def test_public_gold_submission_scores_the_full_denominator():
     assert report["summary"]["earned_points"] == 353
     assert report["summary"]["possible_points"] == 353
     assert report["primary_metric"]["value"] == 1.0
+    coverage = report["primary_metric"]["coverage"]
+    assert coverage["scored_points"] + coverage["catalog_points"] == coverage["full_paper_points"]
+    assert coverage["full_paper_points_closed"] is True
 
 
 def test_beijing_q15_prompt_and_scorer_accept_the_same_set_semantics():
@@ -112,7 +115,7 @@ def test_prompt_manifest_records_the_answer_format_contract(tmp_path):
     assert manifest["status"] == "prepared"
     assert manifest["result_status"] == "prepared"
     assert manifest["versions"]["dataset"] == "0.0.4"
-    assert manifest["versions"]["engine"] == "0.1.6"
+    assert manifest["versions"]["engine"] == "0.1.7"
     rows = [
         json.loads(line)
         for line in (tmp_path / "prepare" / "prompts.jsonl").read_text(encoding="utf-8").splitlines()
@@ -228,6 +231,10 @@ def test_evaluate_cli_json_and_quiet_modes(tmp_path, capsys):
     compact = json.loads(capsys.readouterr().out)
     assert "selected_question_ids" not in json.dumps(compact)
     assert compact["primary_metric"]["value"] == 1.0
+    assert compact["coverage"]["scored_points"] == 353
+    assert compact["coverage"]["catalog_points"] == 397
+    assert compact["coverage"]["full_paper_points_closed"] is True
+    assert compact["diagnostics"]["diagnostic.exact_accuracy"]["denominator"] == 74
 
     assert (
         main(

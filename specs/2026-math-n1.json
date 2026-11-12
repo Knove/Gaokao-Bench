@@ -70,18 +70,31 @@
       "contract": "single_primary_metric_v1",
       "diagnostic_metrics": [
         "diagnostic.paper_equal_weighted_points",
-        "diagnostic.exact_accuracy",
+        "diagnostic.full_credit_rate",
         "slice.text_answerable.weighted_points",
         "slice.vision_required.weighted_points",
         "slice.text_on_scope_denominator.weighted_points"
       ],
       "metric_version": "1.0",
       "partial_credit": false,
+      "primary_task_types": [
+        "single_choice",
+        "multi_choice",
+        "fill_blank"
+      ],
+      "catalog_task_types": [
+        "catalog_subjective"
+      ],
+      "credit_policy": "all_or_nothing",
+      "process_policy": "excluded_from_primary",
       "primary_metric": "score.weighted_points",
       "profile": "strict-source-audited-points-all-or-nothing"
     },
     "subject": "数学",
     "task_types": {
+      "catalog_subjective": {
+        "shape": "rubric"
+      },
       "fill_blank": {
         "shape": "slots"
       },
@@ -98,7 +111,7 @@
     "validators": [
       "numeric"
     ],
-    "version": "1.0",
+    "version": "1.1",
     "views": [
       {
         "description": "All 14 scored objective questions and their 73 exam points.",

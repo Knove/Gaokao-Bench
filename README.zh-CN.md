@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine 版本 0.1.6" src="https://img.shields.io/badge/engine-0.1.6-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine 版本 0.1.7" src="https://img.shields.io/badge/engine-0.1.7-171513?style=flat-square"></a>
   <a href="#计分规则"><img alt="确定性评分" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Hugging Face 数据集" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -212,7 +212,7 @@ python3 scripts/run_benchmark.py \
 $$\mathrm{score.weighted\_points} = \frac{\text{当前作用域内获得题分}}{\text{当前作用域内可能题分}}$$
 
 - **唯一主指标：** 值为 `0–1` ratio，并带明确作用域（`full_dataset`、`full_view` 或 `selected_subset`）。对外百分比只是 `100 × ratio`，不再同时维护另一套 full-test 分数。完整 `0.0.4` 数据包的作用域分母是 **353 分**。
-- **诊断切片：** `slice.text_answerable.weighted_points`、`slice.vision_required.weighted_points` 和 `diagnostic.exact_accuracy` 都是带独立 ID 和分母的次级指标，不替代主指标。
+- **诊断切片：** `slice.text_answerable.weighted_points`、`slice.vision_required.weighted_points` 和全对率（新包为 `diagnostic.full_credit_rate`，历史 `0.0.x` 包为 `diagnostic.exact_accuracy`）都是带独立 ID 和分母的次级指标，不替代主指标。
 - **单题全对得分：** `0.0.4` 版本暂不启用多选题与多空填空题的部分分，单题所有空位全部匹配才得分。
 - **失败样本不剔除：** 漏答、JSON 解析失败、请求超时、API 报错一律记录在案并记 `0` 分。
 - **文本与多模态统一分母：** 两种模式均以 353 分为基准分母。在 `text` 模式下，4 道必须看图的题目不会发送给模型，直接记 `0` 分（因此纯文本模式最高可得 334/353 分）；在 `vision` 模式下，这 4 道题会附带对应的题图裁片。

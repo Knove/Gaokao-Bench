@@ -2261,6 +2261,11 @@ def run_benchmark(
     primary_metric = metrics.get(dataset.spec.scoring.primary_metric)
     if primary_metric is None:
         raise ValueError("scoring reports did not produce the declared primary metric")
+    diagnostic_metrics = {
+        metric_id: metric
+        for metric_id, metric in metrics.items()
+        if metric_id.startswith("diagnostic.")
+    }
     reproducibility = _reproducibility_summary(
         repeat_summaries,
         attempts,
@@ -2341,6 +2346,14 @@ def run_benchmark(
         "versions": versions,
         "compatibility": versions,
         "scoring_profile": dataset.spec.scoring.profile,
+        "scoring_policy": {
+            "contract": dataset.spec.scoring.contract,
+            "primary_task_types": list(dataset.spec.scoring.primary_task_types),
+            "catalog_task_types": list(dataset.spec.scoring.catalog_task_types),
+            "credit_policy": dataset.spec.scoring.credit_policy,
+            "process_policy": dataset.spec.scoring.process_policy,
+            "partial_credit": dataset.spec.scoring.partial_credit,
+        },
         "metric_version": dataset.spec.scoring.metric_version,
         "evaluation_protocol": protocol,
         "evaluation_protocol_sha256": protocol_sha256,
@@ -2372,6 +2385,7 @@ def run_benchmark(
             "dataset_questions": len(dataset.questions),
             "selected_possible_points": selected_possible_points,
             "dataset_possible_points": dataset_possible_points,
+            "coverage": first_scope.get("coverage"),
             "modality_answerable_questions": len(answerable_ids),
             "modality_answerable_points": answerable_possible_points,
         },
@@ -2393,10 +2407,12 @@ def run_benchmark(
                 int(row.get("borderline_candidate_questions", 0)) for row in repeat_summaries
             ),
             "primary_metric": reproducibility["primary_metric"],
+            "diagnostics": diagnostic_metrics,
             "slices": slice_metrics,
         },
         "primary_metric": primary_metric,
         "metrics": metrics,
+        "diagnostics": diagnostic_metrics,
         "slices": slice_metrics,
         "modality_summary": {
             "profile": modality,

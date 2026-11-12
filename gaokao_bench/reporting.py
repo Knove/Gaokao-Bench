@@ -48,10 +48,70 @@ def _slice_summary(slices: Mapping[str, Any]) -> dict:
     return compact
 
 
+def _diagnostic_summary(metrics: Any) -> dict:
+    if not isinstance(metrics, Mapping):
+        return {}
+    return {
+        metric_id: _metric_summary(metric)
+        for metric_id, metric in metrics.items()
+        if isinstance(metric, Mapping)
+    }
+
+
+def _coverage_summary(coverage: Any, *, include_ids: bool = False) -> Optional[dict]:
+    if not isinstance(coverage, Mapping):
+        return None
+    fields = (
+        "label",
+        "scope",
+        "selected_questions",
+        "selected_points",
+        "scored_questions",
+        "scored_points",
+        "catalog_questions",
+        "catalog_points",
+        "full_paper_questions",
+        "full_paper_points",
+        "selected_fraction_of_dataset_scored_points",
+        "selected_fraction_of_full_paper_points",
+        "scored_fraction_of_full_paper_points",
+        "catalog_fraction_of_full_paper_points",
+        "full_paper_questions_closed",
+        "full_paper_points_closed",
+    )
+    row = {field: coverage.get(field) for field in fields if field in coverage}
+    if include_ids and "selected_question_ids" in coverage:
+        row["selected_question_ids"] = coverage.get("selected_question_ids")
+    return row
+
+
+def _coverage_text(coverage: Any) -> Optional[str]:
+    row = _coverage_summary(coverage)
+    if row is None:
+        return None
+    scored_questions = _number(row.get("scored_questions"))
+    full_questions = _number(row.get("full_paper_questions"))
+    scored_points = _number(row.get("scored_points"))
+    full_points = _number(row.get("full_paper_points"))
+    line = "Coverage  scored %s/%s questions · %s/%s points" % (
+        scored_questions,
+        full_questions,
+        scored_points,
+        full_points,
+    )
+    if row.get("catalog_questions") is not None:
+        line += " · catalog %s questions / %s points" % (
+            _number(row.get("catalog_questions")),
+            _number(row.get("catalog_points")),
+        )
+    return line
+
+
 def compact_evaluation_summary(report: Mapping[str, Any]) -> dict:
     """Return a small JSON payload without duplicate question-ID arrays."""
 
     summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    metrics = report.get("metrics") if isinstance(report.get("metrics"), Mapping) else {}
     return {
         "dataset": report.get("dataset"),
         "dataset_version": report.get("dataset_version"),
@@ -71,6 +131,14 @@ def compact_evaluation_summary(report: Mapping[str, Any]) -> dict:
             if key != "correct" and value
         },
         "slices": _slice_summary(summary.get("slices") or {}),
+        "diagnostics": _diagnostic_summary(
+            {metric_id: metric for metric_id, metric in metrics.items() if str(metric_id).startswith("diagnostic.")}
+        ),
+        "coverage": _coverage_summary(
+            (report.get("scope") or {}).get("coverage")
+            if isinstance(report.get("scope"), Mapping)
+            else None
+        ),
         "unexpected_answer_ids": list(report.get("unexpected_answer_ids") or []),
     }
 
@@ -97,6 +165,11 @@ def render_evaluation_summary(report: Mapping[str, Any]) -> str:
         ),
         "Scope  %s" % primary.get("scope", "n/a"),
     ]
+    coverage_line = _coverage_text(
+        primary.get("coverage") if isinstance(primary, Mapping) else None
+    )
+    if coverage_line:
+        lines.append(coverage_line)
 
     labels = (("text_answerable", "Text"), ("vision_required", "Vision"))
     slices = summary.get("slices") if isinstance(summary.get("slices"), Mapping) else {}
@@ -171,6 +244,7 @@ def compact_run_summary(summary: Mapping[str, Any]) -> dict:
             "dataset_questions",
             "selected_possible_points",
             "dataset_possible_points",
+            "coverage",
             "modality_answerable_questions",
             "modality_answerable_points",
         )
@@ -198,9 +272,11 @@ def compact_run_summary(summary: Mapping[str, Any]) -> dict:
                     "borderline_candidate_questions"
                 ),
                 "primary_metric": aggregate.get("primary_metric"),
+                "diagnostics": _diagnostic_summary(aggregate.get("diagnostics")),
                 "slices": _slice_summary(aggregate.get("slices") or {}),
             },
             "primary_metric": _metric_summary(summary.get("primary_metric")),
+            "diagnostics": _diagnostic_summary(summary.get("diagnostics")),
             "slices": _slice_summary(summary.get("slices") or {}),
             "modality_summary": summary.get("modality_summary"),
             "versions": summary.get("versions"),
@@ -311,6 +387,10 @@ def render_run_summary(
             _number(aggregate.get("questions")),
         ),
     ]
+    scope = summary.get("scope") if isinstance(summary.get("scope"), Mapping) else {}
+    coverage_line = _coverage_text(scope.get("coverage"))
+    if coverage_line:
+        lines.append(coverage_line)
     if versions:
         lines.append(version_line)
     slices = summary.get("slices") if isinstance(summary.get("slices"), Mapping) else {}

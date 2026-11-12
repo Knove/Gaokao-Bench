@@ -26,6 +26,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .benchmark_spec import (
     BenchmarkSpec,
+    CANONICAL_SCORING_CONTRACT,
     load_benchmark_spec,
     question_requires_vision,
     question_type,
@@ -312,6 +313,11 @@ def _validate_public_manifest(dataset: Dataset) -> None:
     if str(rights.get("public_redistribution", "")).startswith("not_cleared"):
         errors.append("public dataset still declares that redistribution is not cleared")
     scoring = manifest.get("scoring") if isinstance(manifest.get("scoring"), dict) else {}
+    if scoring.get("contract") != dataset.spec.scoring.contract:
+        errors.append(
+            "public scoring contract differs from benchmark spec: %s != %s"
+            % (scoring.get("contract"), dataset.spec.scoring.contract)
+        )
     if scoring.get("primary_metric") != dataset.spec.scoring.primary_metric:
         errors.append(
             "public primary metric differs from benchmark spec: %s != %s"
@@ -328,6 +334,12 @@ def _validate_public_manifest(dataset: Dataset) -> None:
     diagnostic_metrics = scoring.get("diagnostic_metrics")
     if diagnostic_metrics != list(dataset.spec.scoring.diagnostic_metrics):
         errors.append("public diagnostic metrics differ from benchmark spec")
+    for field in ("primary_task_types", "catalog_task_types"):
+        if field in scoring and scoring.get(field) != list(getattr(dataset.spec.scoring, field)):
+            errors.append("public scoring.%s differs from benchmark spec" % field)
+    for field in ("credit_policy", "process_policy", "metric_version"):
+        if field in scoring and scoring.get(field) != getattr(dataset.spec.scoring, field):
+            errors.append("public scoring.%s differs from benchmark spec" % field)
     release = manifest.get("release") if isinstance(manifest.get("release"), dict) else {}
     leaderboard = manifest.get("leaderboard") if isinstance(manifest.get("leaderboard"), dict) else {}
     expected_class = dataset.spec.reporting.leaderboard_class
@@ -579,6 +591,14 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         if isinstance(dataset.manifest.get("scoring"), dict)
         else {}
     )
+    if (
+        spec.scoring.contract == CANONICAL_SCORING_CONTRACT
+        and manifest_scoring.get("contract") != spec.scoring.contract
+    ):
+        errors.append(
+            "manifest scoring contract differs from benchmark spec: %s != %s"
+            % (manifest_scoring.get("contract"), spec.scoring.contract)
+        )
     if _requires_canonical_metric_contract(dataset_version, manifest_scoring):
         if manifest_scoring.get("primary_metric") != spec.scoring.primary_metric:
             errors.append(
@@ -589,6 +609,20 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             errors.append("manifest must not expose a second main_metric")
         if manifest_scoring.get("unit") != "ratio":
             errors.append("manifest primary metric unit must be ratio")
+        if manifest_scoring.get("diagnostic_metrics") != list(
+            spec.scoring.diagnostic_metrics
+        ):
+            errors.append("manifest diagnostic metrics differ from benchmark spec")
+        for field in ("primary_task_types", "catalog_task_types"):
+            if field in manifest_scoring and manifest_scoring.get(field) != list(
+                getattr(spec.scoring, field)
+            ):
+                errors.append("manifest scoring.%s differs from benchmark spec" % field)
+        for field in ("credit_policy", "process_policy", "metric_version"):
+            if field in manifest_scoring and manifest_scoring.get(field) != getattr(
+                spec.scoring, field
+            ):
+                errors.append("manifest scoring.%s differs from benchmark spec" % field)
         content_lineage = (
             dataset.manifest.get("content_lineage")
             if isinstance(dataset.manifest.get("content_lineage"), dict)
@@ -652,6 +686,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             )
         if paper.get("year") not in spec.years:
             errors.append("paper year is outside the benchmark spec years: %s" % paper_id)
+    primary_task_types = set(spec.scoring.primary_task_types)
     for question in dataset.questions:
         qid = str(question.get("id", ""))
         if not isinstance(question.get("points"), int) or isinstance(question.get("points"), bool) or question["points"] <= 0:
@@ -661,6 +696,11 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         if question_type(question) not in spec.task_types:
             errors.append(
                 "question type %r is not declared by benchmark spec: %s"
+                % (question_type(question), qid)
+            )
+        if question_type(question) not in primary_task_types:
+            errors.append(
+                "question type %r is not eligible for primary scoring: %s"
                 % (question_type(question), qid)
             )
         if not str(question.get("stem", "")).strip():
@@ -722,7 +762,28 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     if expected.paper_points and set(paper_points) != set(expected.paper_points):
         errors.append("paper IDs do not match expected IDs")
 
-    catalog_subjective_points = sum(int(q["points"]) for q in dataset.catalog_subjective)
+    catalog_subjective_points = 0
+    catalog_task_types = set(spec.scoring.catalog_task_types)
+    catalog_ids: set[str] = set()
+    for item in dataset.catalog_subjective:
+        catalog_id = str(item.get("id", ""))
+        if not catalog_id:
+            errors.append("catalogued subjective item has no id")
+        elif catalog_id in catalog_ids:
+            errors.append("catalogued subjective IDs are not unique")
+        catalog_ids.add(catalog_id)
+        points = item.get("points")
+        if isinstance(points, bool) or not isinstance(points, int) or points <= 0:
+            errors.append("catalogued subjective points must be a positive integer: %s" % catalog_id)
+        else:
+            catalog_subjective_points += points
+        if item.get("paper_id") not in known_paper_ids:
+            errors.append("catalogued subjective item references an unknown paper: %s" % catalog_id)
+        if catalog_task_types and item.get("type") not in catalog_task_types:
+            errors.append(
+                "catalogued subjective type %r is not declared by benchmark spec: %s"
+                % (item.get("type"), catalog_id)
+            )
     if (
         expected.catalog_question_count is not None
         and len(dataset.catalog_subjective) != expected.catalog_question_count
@@ -736,9 +797,6 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             "expected %d catalogued subjective points, got %d"
             % (expected.catalog_points, catalog_subjective_points)
         )
-    catalog_ids = {row.get("id") for row in dataset.catalog_subjective}
-    if len(catalog_ids) != len(dataset.catalog_subjective):
-        errors.append("catalogued subjective IDs are not unique")
     if any(row.get("included_in_scoring") is not False for row in dataset.catalog_subjective):
         errors.append("catalogued subjective items must be excluded from scoring")
     if catalog_ids & set(question_ids):
@@ -746,13 +804,21 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
     for paper in dataset.papers:
         paper_id = paper["id"]
         catalog_rows = [row for row in dataset.catalog_subjective if row.get("paper_id") == paper_id]
-        catalog_points = sum(int(row["points"]) for row in catalog_rows)
+        catalog_points = sum(
+            int(row["points"])
+            for row in catalog_rows
+            if isinstance(row.get("points"), int) and not isinstance(row.get("points"), bool)
+        )
         if int(paper.get("catalog_subjective_questions", 0)) != len(catalog_rows):
             errors.append("paper %s catalog_subjective_questions field is stale" % paper_id)
         if int(paper.get("catalog_subjective_points", 0)) != catalog_points:
             errors.append("paper %s catalog_subjective_points field is stale" % paper_id)
         if paper.get("full_paper_points") is not None and paper_points[paper_id] + catalog_points != int(paper["full_paper_points"]):
             errors.append("paper %s scored plus catalogued points do not close" % paper_id)
+        if paper.get("full_question_count") is not None and len(
+            [q for q in dataset.questions if q.get("paper_id") == paper_id]
+        ) + len(catalog_rows) != int(paper["full_question_count"]):
+            errors.append("paper %s scored plus catalogued questions do not close" % paper_id)
 
     for question in dataset.questions:
         qid = question["id"]
@@ -1891,6 +1957,30 @@ def _metric(
     }
 
 
+def _ratio_or_none(numerator: int, denominator: Optional[int]) -> Optional[float]:
+    if denominator is None or denominator <= 0:
+        return None
+    return numerator / denominator
+
+
+def _complete_paper_total(dataset: Dataset, field: str) -> Optional[int]:
+    """Return a full-paper total only when every paper declares a positive value."""
+
+    values: List[int] = []
+    for paper in dataset.papers:
+        value = paper.get(field)
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            return None
+        values.append(value)
+    return sum(values) if values else None
+
+
+def _declared_metric(
+    metric_id: str, declared_metrics: Sequence[str]
+) -> Optional[str]:
+    return metric_id if metric_id in declared_metrics else None
+
+
 def evaluate_submission(
     dataset: Dataset,
     answers: Mapping[str, Any],
@@ -1962,7 +2052,7 @@ def evaluate_submission(
             "earned_points": earned,
             "possible_points": possible,
             "point_accuracy": earned / possible if possible else 0.0,
-            "exact_accuracy": correct / len(paper_results) if paper_results else 0.0,
+            "full_credit_rate": correct / len(paper_results) if paper_results else 0.0,
         }
 
     total_awarded = sum(int(row["awarded"]) for row in results)
@@ -1972,14 +2062,63 @@ def evaluate_submission(
     for row in results:
         failure_counts[row["status"]] = failure_counts.get(row["status"], 0) + 1
 
+    view_possible_points = sum(int(q["points"]) for q in view_questions)
+    dataset_possible_points = sum(int(q["points"]) for q in dataset.questions)
+    catalog_questions = len(dataset.catalog_subjective)
+    catalog_points = sum(int(q["points"]) for q in dataset.catalog_subjective)
+    full_paper_questions = _complete_paper_total(dataset, "full_question_count")
+    full_paper_points = _complete_paper_total(dataset, "full_paper_points")
     coverage = {
         "label": coverage_label or ("view:%s" % view_id),
+        "scope": scope,
         "selected_questions": len(selected_questions),
-        "view_questions": len(view_questions),
-        "dataset_questions": len(dataset.questions),
+        "selected_points": total_possible,
         "selected_possible_points": total_possible,
-        "view_possible_points": sum(int(q["points"]) for q in view_questions),
-        "dataset_possible_points": sum(int(q["points"]) for q in dataset.questions),
+        "view_questions": len(view_questions),
+        "view_points": view_possible_points,
+        "view_possible_points": view_possible_points,
+        "dataset_questions": len(dataset.questions),
+        "scored_questions": len(dataset.questions),
+        "dataset_scored_questions": len(dataset.questions),
+        "dataset_possible_points": dataset_possible_points,
+        "scored_points": dataset_possible_points,
+        "dataset_scored_points": dataset_possible_points,
+        "catalog_questions": catalog_questions,
+        "catalog_points": catalog_points,
+        "full_paper_questions": full_paper_questions,
+        "full_paper_points": full_paper_points,
+        "selected_fraction_of_dataset_scored_points": _ratio_or_none(
+            total_possible, dataset_possible_points
+        ),
+        "selected_fraction_of_full_paper_questions": _ratio_or_none(
+            len(selected_questions), full_paper_questions
+        ),
+        "selected_fraction_of_full_paper_points": _ratio_or_none(
+            total_possible, full_paper_points
+        ),
+        "scored_fraction_of_full_paper_questions": _ratio_or_none(
+            len(dataset.questions), full_paper_questions
+        ),
+        "scored_fraction_of_full_paper_points": _ratio_or_none(
+            dataset_possible_points, full_paper_points
+        ),
+        "catalog_fraction_of_full_paper_points": _ratio_or_none(
+            catalog_points, full_paper_points
+        ),
+        "full_paper_questions_closed": (
+            None
+            if full_paper_questions is None
+            else len(dataset.questions) + catalog_questions == full_paper_questions
+        ),
+        "full_paper_points_closed": (
+            None
+            if full_paper_points is None
+            else dataset_possible_points + catalog_points == full_paper_points
+        ),
+        "primary_task_types": list(dataset.spec.scoring.primary_task_types),
+        "catalog_task_types": list(dataset.spec.scoring.catalog_task_types),
+        "credit_policy": dataset.spec.scoring.credit_policy,
+        "process_policy": dataset.spec.scoring.process_policy,
         "selected_question_ids": sorted(selected_ids),
     }
     metric_version = dataset.spec.scoring.metric_version
@@ -1994,29 +2133,50 @@ def evaluate_submission(
         coverage=coverage,
         role="primary",
     )
-    exact_accuracy = _metric(
-        "diagnostic.exact_accuracy",
-        metric_version=metric_version,
-        numerator=correct_questions,
-        denominator=len(results),
-        numerator_unit="questions",
-        scope=scope,
-        definition="fully correct questions divided by questions in the declared scope",
-        coverage=coverage,
-        role="diagnostic",
+    declared_diagnostics = dataset.spec.scoring.diagnostic_metrics
+    metrics: Dict[str, Dict[str, Any]] = {weighted_points["id"]: weighted_points}
+    full_credit_metric_id = next(
+        (
+            metric_id
+            for metric_id in (
+                "diagnostic.full_credit_rate",
+                "diagnostic.exact_accuracy",
+            )
+            if metric_id in declared_diagnostics
+        ),
+        None,
     )
-    paper_accuracies = [paper_summaries[paper_id]["point_accuracy"] for paper_id in paper_summaries]
-    paper_equal = _metric(
-        "diagnostic.paper_equal_weighted_points",
-        metric_version=metric_version,
-        numerator=sum(paper_accuracies),
-        denominator=len(paper_accuracies),
-        numerator_unit="paper_ratio_sum",
-        scope=scope,
-        definition="equal-weight mean of paper point accuracies; diagnostic only, never the primary score",
-        coverage=coverage,
-        role="diagnostic",
-    )
+    if full_credit_metric_id is not None:
+        full_credit = _metric(
+            full_credit_metric_id,
+            metric_version=metric_version,
+            numerator=correct_questions,
+            denominator=len(results),
+            numerator_unit="questions",
+            scope=scope,
+            definition="questions receiving full credit divided by questions in the declared scope",
+            coverage=coverage,
+            role="diagnostic",
+        )
+        metrics[full_credit["id"]] = full_credit
+    if _declared_metric(
+        "diagnostic.paper_equal_weighted_points", declared_diagnostics
+    ):
+        paper_accuracies = [
+            paper_summaries[paper_id]["point_accuracy"] for paper_id in paper_summaries
+        ]
+        paper_equal = _metric(
+            "diagnostic.paper_equal_weighted_points",
+            metric_version=metric_version,
+            numerator=sum(paper_accuracies),
+            denominator=len(paper_accuracies),
+            numerator_unit="paper_ratio_sum",
+            scope=scope,
+            definition="equal-weight mean of paper point accuracies; diagnostic only, never the primary score",
+            coverage=coverage,
+            role="diagnostic",
+        )
+        metrics[paper_equal["id"]] = paper_equal
 
     required_ids = {
         str(q["id"]) for q in selected_questions if question_requires_vision(q)
@@ -2027,9 +2187,11 @@ def evaluate_submission(
     vision_rows = [row for row in results if row["question_id"] in required_ids]
     vision_awarded = sum(int(row["awarded"]) for row in vision_rows)
     vision_possible = sum(int(row["points"]) for row in vision_rows)
-    slices = {
-        "text_answerable": _metric(
-            "slice.text_answerable.weighted_points",
+    slices: Dict[str, Dict[str, Any]] = {}
+    text_slice_id = "slice.text_answerable.weighted_points"
+    if _declared_metric(text_slice_id, declared_diagnostics):
+        slices["text_answerable"] = _metric(
+            text_slice_id,
             metric_version=metric_version,
             numerator=text_awarded,
             denominator=text_possible,
@@ -2042,9 +2204,11 @@ def evaluate_submission(
                 "slice_possible_points": text_possible,
             },
             role="diagnostic",
-        ),
-        "vision_required": _metric(
-            "slice.vision_required.weighted_points",
+        )
+    vision_slice_id = "slice.vision_required.weighted_points"
+    if _declared_metric(vision_slice_id, declared_diagnostics):
+        slices["vision_required"] = _metric(
+            vision_slice_id,
             metric_version=metric_version,
             numerator=vision_awarded,
             denominator=vision_possible,
@@ -2059,9 +2223,11 @@ def evaluate_submission(
                 "small_sample_warning": len(vision_rows) < dataset.spec.reporting.min_visual_questions_for_ranking,
             },
             role=dataset.spec.reporting.visual_slice_role,
-        ),
-        "text_on_scope_denominator": _metric(
-            "slice.text_on_scope_denominator.weighted_points",
+        )
+    text_on_scope_id = "slice.text_on_scope_denominator.weighted_points"
+    if _declared_metric(text_on_scope_id, declared_diagnostics):
+        slices["text_on_scope_denominator"] = _metric(
+            text_on_scope_id,
             metric_version=metric_version,
             numerator=text_awarded,
             denominator=total_possible,
@@ -2070,8 +2236,8 @@ def evaluate_submission(
             definition="text-answerable earned points divided by the full selected-scope denominator",
             coverage=coverage,
             role="diagnostic",
-        ),
-    }
+        )
+    metrics.update({metric["id"]: metric for metric in slices.values()})
 
     unexpected_ids = sorted(set(answers) - known_ids)
     out_of_scope_ids = sorted((set(answers) & known_ids) - selected_ids)
@@ -2081,12 +2247,6 @@ def evaluate_submission(
     borderline_candidate_ids = sorted(
         row["question_id"] for row in results if bool(row.get("borderline_candidate"))
     )
-    metrics = {
-        weighted_points["id"]: weighted_points,
-        exact_accuracy["id"]: exact_accuracy,
-        paper_equal["id"]: paper_equal,
-        **{metric["id"]: metric for metric in slices.values()},
-    }
     return {
         "schema_version": SUMMARY_SCHEMA_VERSION,
         "dataset": "Gaokao-Bench",
@@ -2097,6 +2257,14 @@ def evaluate_submission(
             "sha256": dataset.spec.fingerprint(),
         },
         "scoring_profile": dataset.spec.scoring.profile,
+        "scoring_policy": {
+            "contract": dataset.spec.scoring.contract,
+            "primary_task_types": list(dataset.spec.scoring.primary_task_types),
+            "catalog_task_types": list(dataset.spec.scoring.catalog_task_types),
+            "credit_policy": dataset.spec.scoring.credit_policy,
+            "process_policy": dataset.spec.scoring.process_policy,
+            "partial_credit": dataset.spec.scoring.partial_credit,
+        },
         "scorer_version": SCORER_VERSION,
         "scope": {
             "view": view_id,
@@ -2116,6 +2284,7 @@ def evaluate_submission(
             "total_questions": len(results),
             "failure_counts": failure_counts,
             "primary_metric": weighted_points,
+            "coverage": coverage,
             "slices": slices,
             "papers": paper_summaries,
         },

@@ -7,6 +7,37 @@ Versioning
 - Dataset versions track questions, answers, points, assets, and manifest policy.
 - A published result must record both versions plus the dataset and protocol hashes.
 
+2026-11-12
+----------
+
+Engine 0.1.7 / Scorer 0.1.5 / Summary schema 2.3
+
+- Make task eligibility part of the versioned scoring contract. A spec now
+  declares `primary_task_types`, `catalog_task_types`, `credit_policy`, and
+  `process_policy`; primary and catalog types cannot overlap, and every
+  declared task type must belong to one of those two groups.
+- Keep exactly one primary metric, `score.weighted_points`. Scored questions
+  use only `choice` or `slots`; rubric/catalog questions stay outside the
+  denominator. The current credit policy is all-or-nothing and process credit
+  is excluded from the primary score. The canonical contract also rejects a
+  renamed primary metric.
+- Expand `coverage` from a selected-question view into closed dataset metadata:
+  scored questions/points, catalog questions/points, full-paper questions/points,
+  closure flags, and selected/full-paper fractions. Coverage remains report
+  metadata and is not a second leaderboard score.
+- Verify full-paper closure during dataset validation for both questions and
+  points. Existing 2025 packages close at 74 + 26 = 100 questions and
+  353 + 397 = 750 points; the 2026 National I candidate closes at
+  14 + 5 = 19 questions and 73 + 77 = 150 points.
+- Add `diagnostic.full_credit_rate` for new specs. Immutable `0.0.x` packages
+  keep `diagnostic.exact_accuracy` as the legacy ID with the same semantics.
+- Bump the 2026 National I benchmark spec to 1.1 with explicit primary/catalog
+  eligibility and the new full-credit diagnostic.
+- Print a compact coverage line in evaluation and run summaries while keeping
+  selected question-ID arrays out of compact JSON.
+- No dataset was republished and no owner-attestation state was changed by this
+  engine release.
+
 2026-11-11
 ----------
 

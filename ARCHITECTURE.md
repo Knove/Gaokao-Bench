@@ -218,7 +218,26 @@ Benchmark
 
 `View` 是题目集合，如全量、某科目、某年份、某卷、文本可达、视觉必需。视图由 Spec 的声明式 selector 选出，不在 Engine 写死。
 
-`0.0.1` 当前只有一个 `full` 视图。Text/Vision 的差异通过 modality 和切片表示，避免同一分母被解释成两套成绩。
+视图只负责选题，不负责改变评分资格。Text/Vision 的差异通过 modality 和切片表示，避免同一分母被解释成两套成绩。
+
+### 题型资格
+
+Benchmark Spec 在 `scoring` 中声明三件事：
+
+```json
+{
+  "primary_task_types": ["single_choice", "multi_choice", "fill_blank"],
+  "catalog_task_types": ["catalog_subjective"],
+  "credit_policy": "all_or_nothing",
+  "process_policy": "excluded_from_primary"
+}
+```
+
+- `primary_task_types` 必须使用 `choice` 或 `slots` answer shape，题目进入唯一主分母。
+- `catalog_task_types` 必须使用 `rubric` shape，只进入目录，`included_in_scoring=false`。
+- 两组题型不得重叠；同一道题只有一个主评分身份。
+- 当前只允许题级全对得分。部分分和学生过程分尚未实现。
+- 过程评价以后独立建协议；自然语言步骤不与参考答案做步骤匹配，也不进入当前主指标。
 
 ### 运行覆盖
 
@@ -228,7 +247,7 @@ Benchmark
 
 Pilot 只报告 `selected_subset`。不会再用 74 题全量分母计算 5 题 pilot。
 
-### 主指标
+### 主指标与覆盖元数据
 
 唯一主指标：
 
@@ -249,17 +268,32 @@ score.weighted_points = awarded_points / possible_points
   "numerator_unit": "points",
   "scope": "selected_subset",
   "coverage": {
+    "scope": "selected_subset",
     "selected_questions": 2,
-    "view_questions": 74,
-    "selected_possible_points": 8,
-    "view_possible_points": 353
+    "selected_points": 8,
+    "scored_questions": 74,
+    "scored_points": 353,
+    "catalog_questions": 26,
+    "catalog_points": 397,
+    "full_paper_questions": 100,
+    "full_paper_points": 750,
+    "full_paper_points_closed": true
   }
 }
 ```
 
+`coverage` 是报告元数据，不是第二个模型分数。它回答“这次运行覆盖了计分集的多少”以及“计分集覆盖整卷的多少”。运行选子集时，`scope=selected_subset`；数据包本身的计分覆盖仍由 `scored_*` 与 `catalog_*` 表示。完整数据包必须满足：
+
+```text
+scored_points + catalog_points == full_paper_points
+scored_questions + catalog_questions == full_paper_questions
+```
+
+无法从题卷元数据得到完整分母时，相应字段为 `null`，不能用 `0` 冒充。
+
 次级指标：
 
-- `diagnostic.exact_accuracy`：全对题数 / 题目数。
+- `diagnostic.full_credit_rate`：完全正确题数 / 计分题数。`0.0.x` 历史包使用旧 ID `diagnostic.exact_accuracy`，语义相同，只作兼容。
 - `diagnostic.paper_equal_weighted_points`：卷级等权均值，只作诊断。
 - `slice.text_answerable.weighted_points`：无需图片的题目得分率。
 - `slice.vision_required.weighted_points`：必须图片的题目得分率。
@@ -702,10 +736,14 @@ data/2025-math-objective/   # 从版本组合生成的研究视图
 
 ## 16. 当前实现状态
 
-Engine `0.1.6` 已完成：
+Engine `0.1.7` 已完成：
 
 - Spec-driven validation and legacy adapter.
 - `score.weighted_points` primary metric with explicit scopes.
+- Explicit primary/catalog task-type eligibility and a single all-or-nothing
+  credit policy; rubric items remain catalogue-only.
+- Closed `coverage` metadata with scored, catalogued, full-paper, and selected
+  scopes, including question and point closure checks.
 - Text/vision slices and paper-equal diagnostic.
 - Set-builder `, x ∈ R` regression fix.
 - 32k default output budget and reasoning-budget accounting.

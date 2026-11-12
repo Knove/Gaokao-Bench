@@ -349,6 +349,16 @@ def main() -> int:
 
     spec_path = output / BENCHMARK_SPEC_FILENAME
     spec_raw = json.loads(spec_path.read_text(encoding="utf-8"))
+    inherited_diagnostics = list(
+        (spec_raw.get("scoring") or {}).get("diagnostic_metrics")
+        or [
+            "diagnostic.paper_equal_weighted_points",
+            "diagnostic.exact_accuracy",
+            "slice.text_answerable.weighted_points",
+            "slice.vision_required.weighted_points",
+            "slice.text_on_scope_denominator.weighted_points",
+        ]
+    )
     spec_raw["version"] = DEFAULT_BENCHMARK_SPEC_VERSION
     spec_raw["scoring"].update(
         {
@@ -357,13 +367,7 @@ def main() -> int:
             "metric_version": DEFAULT_METRIC_VERSION,
             "primary_metric": "score.weighted_points",
             "partial_credit": False,
-            "diagnostic_metrics": [
-                "diagnostic.paper_equal_weighted_points",
-                "diagnostic.exact_accuracy",
-                "slice.text_answerable.weighted_points",
-                "slice.vision_required.weighted_points",
-                "slice.text_on_scope_denominator.weighted_points",
-            ],
+            "diagnostic_metrics": inherited_diagnostics,
         }
     )
     spec_raw["reporting"] = {

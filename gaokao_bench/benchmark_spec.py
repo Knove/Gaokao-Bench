@@ -65,8 +65,13 @@ class PromptSpec:
 class ScoringSpec:
     profile: str
     metric_version: str
+    contract: str = ""
     primary_metric: str = "score.weighted_points"
     partial_credit: bool = False
+    primary_task_types: Tuple[str, ...] = ()
+    catalog_task_types: Tuple[str, ...] = ()
+    credit_policy: str = "all_or_nothing"
+    process_policy: str = "excluded_from_primary"
     diagnostic_metrics: Tuple[str, ...] = ()
 
 
@@ -209,6 +214,173 @@ def _parse_task_types(raw: Any) -> Dict[str, AnswerShapeSpec]:
             values=_tuple_of_strings(definition.get("values"), "task type values"),
         )
     return parsed
+
+
+SUPPORTED_DIAGNOSTIC_METRICS = {
+    "diagnostic.full_credit_rate",
+    "diagnostic.exact_accuracy",
+    "diagnostic.paper_equal_weighted_points",
+    "slice.text_answerable.weighted_points",
+    "slice.vision_required.weighted_points",
+    "slice.text_on_scope_denominator.weighted_points",
+}
+FULL_CREDIT_METRICS = {
+    "diagnostic.full_credit_rate",
+    "diagnostic.exact_accuracy",
+}
+CANONICAL_SCORING_CONTRACT = "single_primary_metric_v1"
+
+
+def _parse_scoring(raw: Any, task_types: Mapping[str, AnswerShapeSpec]) -> ScoringSpec:
+    if not isinstance(raw, Mapping):
+        raise BenchmarkSpecError("scoring must be an object")
+
+    contract = str(raw.get("contract", "")).strip()
+    if contract and contract != CANONICAL_SCORING_CONTRACT:
+        raise BenchmarkSpecError(
+            "scoring.contract must be %s when declared" % CANONICAL_SCORING_CONTRACT
+        )
+    profile = str(raw.get("profile", "")).strip()
+    if not profile:
+        raise BenchmarkSpecError("scoring.profile is required")
+    primary_metric = str(raw.get("primary_metric", "score.weighted_points")).strip()
+    if not primary_metric:
+        raise BenchmarkSpecError("scoring.primary_metric must be non-empty")
+    partial_credit = bool(raw.get("partial_credit", False))
+    credit_policy = str(raw.get("credit_policy", "all_or_nothing")).strip()
+    if credit_policy != "all_or_nothing":
+        raise BenchmarkSpecError("scoring.credit_policy currently supports only all_or_nothing")
+    if partial_credit:
+        raise BenchmarkSpecError("partial_credit must be false when credit_policy is all_or_nothing")
+    process_policy = str(raw.get("process_policy", "excluded_from_primary")).strip()
+    if process_policy != "excluded_from_primary":
+        raise BenchmarkSpecError(
+            "scoring.process_policy currently supports only excluded_from_primary"
+        )
+
+    explicit_primary = raw.get("primary_task_types")
+    if explicit_primary is None:
+        primary_task_types = tuple(
+            name
+            for name, shape in task_types.items()
+            if shape.shape in ("choice", "slots")
+        )
+    else:
+        primary_task_types = _tuple_of_strings(
+            explicit_primary, "scoring.primary_task_types"
+        )
+    if not primary_task_types:
+        raise BenchmarkSpecError("scoring.primary_task_types must not be empty")
+    if len(set(primary_task_types)) != len(primary_task_types):
+        raise BenchmarkSpecError("scoring.primary_task_types must be unique")
+    missing_primary = sorted(set(primary_task_types) - set(task_types))
+    if missing_primary:
+        raise BenchmarkSpecError(
+            "scoring.primary_task_types must be declared in task_types: %s"
+            % ", ".join(missing_primary)
+        )
+    invalid_primary = sorted(
+        name
+        for name in primary_task_types
+        if task_types[name].shape not in ("choice", "slots")
+    )
+    if invalid_primary:
+        raise BenchmarkSpecError(
+            "primary task types must use choice or slots answer shapes: %s"
+            % ", ".join(invalid_primary)
+        )
+
+    explicit_catalog = raw.get("catalog_task_types")
+    if explicit_catalog is None:
+        catalog_task_types = tuple(
+            name for name, shape in task_types.items() if shape.shape == "rubric"
+        )
+    else:
+        catalog_task_types = _tuple_of_strings(
+            explicit_catalog, "scoring.catalog_task_types"
+        )
+    if len(set(catalog_task_types)) != len(catalog_task_types):
+        raise BenchmarkSpecError("scoring.catalog_task_types must be unique")
+    missing_catalog = sorted(set(catalog_task_types) - set(task_types))
+    if missing_catalog:
+        raise BenchmarkSpecError(
+            "scoring.catalog_task_types must be declared in task_types: %s"
+            % ", ".join(missing_catalog)
+        )
+    overlap = sorted(set(primary_task_types) & set(catalog_task_types))
+    if overlap:
+        raise BenchmarkSpecError(
+            "primary and catalog task types must not overlap: %s" % ", ".join(overlap)
+        )
+    invalid_catalog = sorted(
+        name
+        for name in catalog_task_types
+        if task_types[name].shape != "rubric"
+    )
+    if invalid_catalog:
+        raise BenchmarkSpecError(
+            "catalog task types must use the rubric answer shape: %s"
+            % ", ".join(invalid_catalog)
+        )
+    unclassified_task_types = sorted(
+        set(task_types) - set(primary_task_types) - set(catalog_task_types)
+    )
+    if unclassified_task_types:
+        raise BenchmarkSpecError(
+            "every task type must be either primary or catalog: %s"
+            % ", ".join(unclassified_task_types)
+        )
+    diagnostic_metrics = _tuple_of_strings(
+        raw.get("diagnostic_metrics"), "scoring.diagnostic_metrics"
+    )
+    if len(set(diagnostic_metrics)) != len(diagnostic_metrics):
+        raise BenchmarkSpecError("scoring.diagnostic_metrics must be unique")
+    if primary_metric in diagnostic_metrics:
+        raise BenchmarkSpecError("the primary metric cannot also be declared diagnostic")
+    unsupported = sorted(set(diagnostic_metrics) - SUPPORTED_DIAGNOSTIC_METRICS)
+    if unsupported:
+        raise BenchmarkSpecError(
+            "unsupported scoring diagnostic metrics: %s" % ", ".join(unsupported)
+        )
+    full_credit_metrics = [
+        metric_id for metric_id in diagnostic_metrics if metric_id in FULL_CREDIT_METRICS
+    ]
+    if len(full_credit_metrics) > 1:
+        raise BenchmarkSpecError(
+            "declare at most one full-credit diagnostic metric"
+        )
+    if contract == CANONICAL_SCORING_CONTRACT:
+        if primary_metric != "score.weighted_points":
+            raise BenchmarkSpecError(
+                "canonical scoring contract requires primary_metric=score.weighted_points"
+            )
+        required_diagnostics = {
+            "slice.text_answerable.weighted_points",
+            "slice.vision_required.weighted_points",
+        }
+        missing_diagnostics = sorted(required_diagnostics - set(diagnostic_metrics))
+        if missing_diagnostics:
+            raise BenchmarkSpecError(
+                "canonical scoring contract is missing diagnostic slices: %s"
+                % ", ".join(missing_diagnostics)
+            )
+        if len(full_credit_metrics) != 1:
+            raise BenchmarkSpecError(
+                "canonical scoring contract requires exactly one full-credit diagnostic metric"
+            )
+
+    return ScoringSpec(
+        profile=profile,
+        metric_version=str(raw.get("metric_version", "1.0")),
+        contract=contract,
+        primary_metric=primary_metric,
+        partial_credit=partial_credit,
+        primary_task_types=primary_task_types,
+        catalog_task_types=catalog_task_types,
+        credit_policy=credit_policy,
+        process_policy=process_policy,
+        diagnostic_metrics=diagnostic_metrics,
+    )
 
 
 def _parse_expected(raw: Any) -> ExpectedSpec:
@@ -389,24 +561,8 @@ def parse_benchmark_spec(raw: Mapping[str, Any]) -> BenchmarkSpec:
         isinstance(year, bool) or not isinstance(year, int) for year in years_raw
     ):
         raise BenchmarkSpecError("benchmark spec years must be a non-empty integer array")
-    scoring_raw = raw.get("scoring")
-    if not isinstance(scoring_raw, Mapping):
-        raise BenchmarkSpecError("scoring must be an object")
-    scoring = ScoringSpec(
-        profile=str(scoring_raw.get("profile", "")),
-        metric_version=str(scoring_raw.get("metric_version", "1.0")),
-        primary_metric=str(scoring_raw.get("primary_metric", "score.weighted_points")),
-        partial_credit=bool(scoring_raw.get("partial_credit", False)),
-        diagnostic_metrics=_tuple_of_strings(
-            scoring_raw.get("diagnostic_metrics"), "scoring.diagnostic_metrics"
-        ),
-    )
-    if not scoring.profile:
-        raise BenchmarkSpecError("scoring.profile is required")
-    if not scoring.primary_metric:
-        raise BenchmarkSpecError("scoring.primary_metric must be non-empty")
-    if scoring.primary_metric in scoring.diagnostic_metrics:
-        raise BenchmarkSpecError("the primary metric cannot also be declared diagnostic")
+    task_types = _parse_task_types(raw.get("task_types"))
+    scoring = _parse_scoring(raw.get("scoring"), task_types)
     choice_labels = _tuple_of_strings(raw.get("choice_labels"), "choice_labels") or tuple("ABCD")
     if len(set(choice_labels)) != len(choice_labels):
         raise BenchmarkSpecError("choice_labels must be unique")
@@ -415,7 +571,7 @@ def parse_benchmark_spec(raw: Mapping[str, Any]) -> BenchmarkSpec:
         version=version,
         subject=subject,
         years=tuple(int(year) for year in years_raw),
-        task_types=_parse_task_types(raw.get("task_types")),
+        task_types=task_types,
         choice_labels=choice_labels,
         expected=_parse_expected(raw.get("expected")),
         views=_parse_views(raw.get("views")),

@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white"></a>
-  <a href="CITATION.cff"><img alt="Engine version 0.1.6" src="https://img.shields.io/badge/engine-0.1.6-171513?style=flat-square"></a>
+  <a href="CITATION.cff"><img alt="Engine version 0.1.7" src="https://img.shields.io/badge/engine-0.1.7-171513?style=flat-square"></a>
   <a href="#scoring-rules"><img alt="Deterministic scoring" src="https://img.shields.io/badge/scoring-deterministic-20786A?style=flat-square"></a>
   <a href="https://huggingface.co/datasets/Knove/Gaokao-Bench"><img alt="Dataset on Hugging Face" src="https://img.shields.io/badge/dataset-Hugging%20Face-FFD21E?style=flat-square&amp;logo=huggingface&amp;logoColor=171513"></a>
 </p>
@@ -212,7 +212,7 @@ Run summaries are human-readable by default. `--report` saves the full `summary.
 $$\mathrm{score.weighted\_points} = \frac{\text{Earned Points in Scope}}{\text{Possible Points in Scope}}$$
 
 - **One primary metric:** the value is a `0–1` ratio with an explicit scope (`full_dataset`, `full_view`, or `selected_subset`). A displayed percentage is only `100 × ratio`; there is no second full-test metric. For the complete `0.0.4` data package, the scope denominator is **353 points**.
-- **Diagnostic slices:** `slice.text_answerable.weighted_points`, `slice.vision_required.weighted_points`, and `diagnostic.exact_accuracy` are secondary metrics with their own IDs and denominators. They never replace the primary metric.
+- **Diagnostic slices:** `slice.text_answerable.weighted_points`, `slice.vision_required.weighted_points`, and the full-credit rate (`diagnostic.full_credit_rate`; `diagnostic.exact_accuracy` in legacy `0.0.x` packages) are secondary metrics with their own IDs and denominators. They never replace the primary metric.
 - **Exact Match per Question:** In `0.0.4`, multi-select and multi-blank questions are all-or-nothing. Every slot must match to earn the question's points.
 - **No Dropped Samples:** Missing outputs, JSON format errors, timeouts, and API failures are recorded and scored as `0`.
 - **Text vs. Vision Profiles:** Both profiles are evaluated against the same 353-point denominator. In `text` mode, the 4 figure-dependent questions are skipped and scored `0` (capping the reachable score at 334/353). In `vision` mode, the cropped figures are attached for those 4 questions.
