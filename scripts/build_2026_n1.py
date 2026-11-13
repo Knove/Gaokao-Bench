@@ -535,10 +535,14 @@ def build_source_audit(
                 role = "rejected"
                 selected_answer = answer_group
             elif source.get("evidence_scope") == "stem_and_answer":
-                if stem_group is None or answer_group is None:
+                if stem_group is None:
                     continue
-                role = "joint_supporting"
-                selected_answer = answer_group
+                if answer_group is None:
+                    role = "stem_supporting"
+                    selected_answer = None
+                else:
+                    role = "joint_supporting"
+                    selected_answer = answer_group
             elif source.get("evidence_scope") == "stem_only":
                 if stem_group is None:
                     continue
