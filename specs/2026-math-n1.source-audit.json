@@ -49,9 +49,9 @@
       "source_type": "media_exam_gallery",
       "evidence_scope": "stem_only",
       "independence_group": "eol-gkst",
-      "access_method": "浏览器打开四页真题图，逐页核对题干和题号",
+      "access_method": "浏览器打开四页真题图，逐页核对题干、选项续页和题号",
       "retrieved_at": "2026-11-12",
-      "notes": "四页完整题面，无答案。",
+      "notes": "四页题面，无答案；第8题选项续至第2页。第16题在第3页“若 DE = √6，”处截断、第4页直接进入第18题，因此该来源不作为第16题完整题干来源。第17题在第3页完整。",
       "stem_image_urls": [
         "https://www.eol.cn/kaoshi/gaokao/gkst/202606/W020260607699077696368.jpg",
         "https://www.eol.cn/kaoshi/gaokao/gkst/202606/W020260607699077703283.jpg",
@@ -453,12 +453,19 @@
             4,
             5,
             6,
-            7,
-            8
+            7
           ],
           "page_start": 1,
           "page_end": 1,
           "locator_template": "题面第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            8
+          ],
+          "page_start": 1,
+          "page_end": 2,
+          "locator_template": "题面第1–2页；第8题跨页"
         },
         {
           "numbers": [
@@ -476,7 +483,6 @@
         },
         {
           "numbers": [
-            16,
             17
           ],
           "page_start": 3,
