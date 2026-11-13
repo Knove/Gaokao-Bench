@@ -1054,7 +1054,7 @@ def _version_summary(
         "mode": mode,
         "mode_label": REVIEW_MODE_LABELS[mode],
         "review_enabled": packet_available and packet_binding_ok,
-        "decision_enabled": interactive,
+        "decision_enabled": interactive and source_gate_ready,
         "review_scope": "full_paper" if catalog_rows else "scored_questions",
         "questions": total_questions,
         "points": total_points,

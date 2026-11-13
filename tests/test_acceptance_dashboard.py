@@ -517,6 +517,18 @@ def test_source_gate_is_recomputed_instead_of_trusting_stale_manifest(tmp_path):
     assert meta["source_gate_ready"] is False
     assert meta["source_gate_error"]
     assert meta["joint_answer_dual_source_questions"] == 0
+    assert meta["decision_enabled"] is False
+
+    _add_dual_source_audit(data_dir, item_id)
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    meta = payload["datasets"]["v-source-audit"]["meta"]
+
+    assert meta["source_gate"] == "pass"
+    assert meta["source_gate_ready"] is True
     assert meta["decision_enabled"] is True
 
 

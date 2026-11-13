@@ -510,7 +510,7 @@ def _validate_source_page_evidence(
                     evidence_urls.add(str(frozen.get("url") or ""))
                     covered_pages.update(int(page) for page in frozen.get("covered_page_starts", []))
                 page_url = str(assessment.get(kind + "_page_url") or "")
-                if page_url not in evidence_urls:
+                if supports and page_url not in evidence_urls:
                     errors.append("source page URL is not backed by frozen evidence for %s/%s/%s" % (qid, source_id, kind))
                 if supports and first_page and first_page not in covered_pages:
                     errors.append("source page range is not covered by evidence for %s/%s/%s" % (qid, source_id, kind))
