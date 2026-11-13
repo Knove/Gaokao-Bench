@@ -907,6 +907,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     spec = read_json(Path(args.spec).resolve())
     audit_spec = load_source_audit_spec(spec)
     source_pages_spec = load_source_pages_spec(spec, audit_spec)
+    source_policy = audit_spec["policy"]
+    required_stem = int(source_policy["required_stem_independent_groups"])
+    required_joint = int(source_policy["required_joint_answer_independent_groups"])
     source = spec["source"]
     paper_spec = spec["paper"]
     version = str(spec["dataset_version"])
