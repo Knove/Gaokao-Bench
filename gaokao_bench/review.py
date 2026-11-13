@@ -201,7 +201,7 @@ def _assignment_manifest(packet_id: str, slot: int, created_at: str, dataset: Da
             "points": len(dataset.questions),
         },
         "public_release": False,
-        "rights": "internal_review_only_not_for_redistribution",
+        "rights": "CC-BY-4.0",
     }
 
 
@@ -413,7 +413,7 @@ python3 scripts/import_review.py \\
         "dataset_version": dataset.manifest["dataset_version"],
         "dataset_manifest_sha256": _file_sha256(dataset.data_dir / "manifest.json"),
         "public_release": False,
-        "rights": "internal_review_only_not_for_redistribution",
+        "rights": "CC-BY-4.0",
         "counts": {"answer_items": len(answer_rows), "point_items": len(point_rows), "reviewers": 2},
         "assignments": assignment_files,
         "arbitration_template_sha256": _file_sha256(destination / "arbitration_template.json"),

@@ -368,6 +368,168 @@ def _canonical_source_value(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
+def _validate_source_page_evidence(
+    dataset: Dataset,
+    block: Mapping[str, Any],
+    policy: Mapping[str, Any],
+    audit_rows: Sequence[Mapping[str, Any]],
+    errors: List[str],
+) -> None:
+    """Validate the frozen page bytes behind every source assessment.
+
+    The source audit is not allowed to be a self-asserted list of URLs.  When
+    the policy asks for replayable evidence, every supporting assessment must
+    carry evidence paths that resolve to a manifested file with the recorded
+    SHA-256 and byte count.  A changed URL, page range, excerpt, or missing file
+    therefore blocks the gate instead of silently becoming another pass.
+    """
+
+    if policy.get("required_source_page_evidence") is not True:
+        return
+    relative = str(block.get("evidence_pages") or "source_pages.jsonl").strip()
+    if relative != "source_pages.jsonl":
+        errors.append("source audit evidence_pages must be source_pages.jsonl")
+    path = dataset.data_dir / relative
+    if not path.is_file():
+        errors.append("source page evidence file is missing: %s" % relative)
+        return
+    files = dataset.manifest.get("files")
+    if not isinstance(files, Mapping) or relative not in files:
+        errors.append("source page evidence file is not covered by manifest.files")
+    else:
+        metadata = files[relative]
+        if not isinstance(metadata, Mapping):
+            errors.append("source page evidence manifest metadata is invalid")
+        else:
+            if metadata.get("sha256") != file_sha256(path):
+                errors.append("source page evidence manifest hash mismatch")
+            if metadata.get("bytes") != path.stat().st_size:
+                errors.append("source page evidence manifest byte count mismatch")
+    actual_sha = file_sha256(path)
+    recorded_sha = str(block.get("evidence_pages_sha256") or "")
+    if recorded_sha != actual_sha:
+        errors.append("manifest.source_audit.evidence_pages_sha256 is stale")
+    evidence_rows = _read_jsonl(path)
+    if int(block.get("evidence_page_count") or -1) != len(evidence_rows):
+        errors.append("manifest.source_audit.evidence_page_count is stale")
+
+    evidence_by_path: Dict[str, Mapping[str, Any]] = {}
+    for index, evidence in enumerate(evidence_rows, 1):
+        evidence_path = str(evidence.get("path") or "").strip()
+        source_id = str(evidence.get("source_id") or "").strip()
+        if not evidence_path:
+            errors.append("source page evidence row %d has no path" % index)
+            continue
+        parts = Path(evidence_path).parts
+        if Path(evidence_path).is_absolute() or ".." in parts:
+            errors.append("source page evidence path is unsafe: %s" % evidence_path)
+            continue
+        if evidence_path in evidence_by_path:
+            errors.append("source page evidence path is duplicated: %s" % evidence_path)
+            continue
+        evidence_by_path[evidence_path] = evidence
+        if not source_id or not evidence_path.startswith("source_pages/%s/" % source_id):
+            errors.append("source page evidence path does not match source id: %s" % evidence_path)
+        file_path = dataset.data_dir / evidence_path
+        if not file_path.is_file():
+            errors.append("source page evidence bytes are missing: %s" % evidence_path)
+            continue
+        if int(evidence.get("bytes") or -1) != file_path.stat().st_size:
+            errors.append("source page evidence byte count mismatch: %s" % evidence_path)
+        digest = str(evidence.get("sha256") or "")
+        if not _is_sha256(digest) or digest != file_sha256(file_path):
+            errors.append("source page evidence hash mismatch: %s" % evidence_path)
+        if not str(evidence.get("url") or "").startswith(("http://", "https://")):
+            errors.append("source page evidence URL is invalid: %s" % evidence_path)
+        if evidence.get("scope") not in {"stem", "answer", "page", "document"}:
+            errors.append("source page evidence scope is invalid: %s" % evidence_path)
+        pages = evidence.get("covered_page_starts")
+        if not isinstance(pages, list) or not pages:
+            errors.append("source page evidence page coverage is empty: %s" % evidence_path)
+
+    expected_items = {str(q["id"]): q for q in dataset.questions}
+    expected_items.update({str(q["id"]): q for q in dataset.catalog_subjective})
+    for row in audit_rows:
+        qid = str(row.get("question_id") or "")
+        item = expected_items.get(qid, {})
+        canonical = _canonical_source_value(
+            dataset.answer_keys[qid].get("canonical")
+            if qid in dataset.answer_keys
+            else item.get("reference_answer")
+        )
+        assessments = row.get("assessments")
+        if not isinstance(assessments, list):
+            continue
+        for assessment in assessments:
+            if not isinstance(assessment, Mapping):
+                continue
+            source_id = str(assessment.get("source_id") or "")
+            for kind, support_field in (("stem", "supports_stem"), ("answer", "supports_canonical")):
+                supports = assessment.get(support_field) is True
+                evidence_value = assessment.get(kind + "_evidence")
+                evidence_list = evidence_value if isinstance(evidence_value, list) else []
+                if supports and not evidence_list:
+                    errors.append("source page evidence is missing for %s/%s/%s" % (qid, source_id, kind))
+                    continue
+                if not supports and evidence_list:
+                    errors.append("source page evidence exists for unsupported %s/%s/%s" % (qid, source_id, kind))
+                page_start = assessment.get(kind + "_page_start")
+                page_end = assessment.get(kind + "_page_end", page_start)
+                if supports:
+                    try:
+                        first_page = int(page_start)
+                        last_page = int(page_end)
+                    except (TypeError, ValueError):
+                        errors.append("source page range is missing for %s/%s/%s" % (qid, source_id, kind))
+                        first_page = last_page = 0
+                    if first_page < 1 or last_page < first_page:
+                        errors.append("source page range is invalid for %s/%s/%s" % (qid, source_id, kind))
+                else:
+                    first_page = last_page = 0
+                evidence_urls: set[str] = set()
+                covered_pages: set[int] = set()
+                for evidence in evidence_list:
+                    if not isinstance(evidence, Mapping):
+                        errors.append("source page evidence row is invalid for %s/%s/%s" % (qid, source_id, kind))
+                        continue
+                    evidence_path = str(evidence.get("path") or "")
+                    frozen = evidence_by_path.get(evidence_path)
+                    if frozen is None:
+                        errors.append("source page evidence is not in source_pages.jsonl for %s/%s/%s" % (qid, source_id, kind))
+                        continue
+                    if str(frozen.get("source_id")) != source_id:
+                        errors.append("source page evidence source mismatch for %s/%s/%s" % (qid, source_id, kind))
+                    if str(frozen.get("url")) != str(evidence.get("url")):
+                        errors.append("source page evidence URL mismatch for %s/%s/%s" % (qid, source_id, kind))
+                    if str(frozen.get("sha256")) != str(evidence.get("sha256")):
+                        errors.append("source page evidence SHA mismatch for %s/%s/%s" % (qid, source_id, kind))
+                    if int(frozen.get("bytes") or -1) != int(evidence.get("bytes") or -2):
+                        errors.append("source page evidence byte mismatch for %s/%s/%s" % (qid, source_id, kind))
+                    if frozen.get("scope") not in ({kind, "page", "document"} if kind == "stem" else {"answer", "page", "document"}):
+                        errors.append("source page evidence scope does not support %s for %s/%s" % (kind, qid, source_id))
+                    evidence_urls.add(str(frozen.get("url") or ""))
+                    covered_pages.update(int(page) for page in frozen.get("covered_page_starts", []))
+                page_url = str(assessment.get(kind + "_page_url") or "")
+                if page_url not in evidence_urls:
+                    errors.append("source page URL is not backed by frozen evidence for %s/%s/%s" % (qid, source_id, kind))
+                if supports and first_page and first_page not in covered_pages:
+                    errors.append("source page range is not covered by evidence for %s/%s/%s" % (qid, source_id, kind))
+                if supports and last_page and last_page not in covered_pages:
+                    errors.append("source page end is not covered by evidence for %s/%s/%s" % (qid, source_id, kind))
+            if assessment.get("supports_stem") is True:
+                stem = str(item.get("stem") or item.get("content") or "").strip()
+                excerpt = str(assessment.get("stem_excerpt") or "").strip()
+                if excerpt and not stem.startswith(excerpt):
+                    errors.append("source audit stem excerpt is not a prefix of the canonical stem for %s/%s" % (qid, source_id))
+            if assessment.get("supports_canonical") is True:
+                value = str(assessment.get("answer_value") or "")
+                if value != canonical:
+                    errors.append("source audit answer value differs for %s/%s" % (qid, source_id))
+                excerpt = str(assessment.get("answer_excerpt") or "")
+                if not (excerpt == canonical or excerpt.startswith(canonical + "；来源页含")):
+                    errors.append("source audit answer excerpt is not backed by the canonical answer for %s/%s" % (qid, source_id))
+
+
 def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
     """Validate the per-question dual-source gate and return its summary."""
 
@@ -417,6 +579,7 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
     stem_pass = 0
     joint_pass = 0
     gate_pass = 0
+    _validate_source_page_evidence(dataset, block, policy, rows, errors)
     for row in rows:
         qid = str(row.get("question_id", ""))
         item = expected_items[qid]
@@ -502,8 +665,6 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                     errors.append("joint source stem does not match for %s/%s" % (qid, source_id))
                 if answer_match not in {"exact_answer_match", "equivalent_answer_match"}:
                     errors.append("joint source answer does not match for %s/%s" % (qid, source_id))
-                if str(assessment.get("answer_value")) != _canonical_source_value(expected_answer):
-                    errors.append("joint source answer value differs for %s/%s" % (qid, source_id))
             elif role == "answer_only_supporting":
                 if supports_stem or not supports_canonical:
                     errors.append("answer-only source support flags disagree for %s/%s" % (qid, source_id))
@@ -511,6 +672,8 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                     errors.append("answer-only source has wrong evidence scope for %s/%s" % (qid, source_id))
                 if stem_match != "not_assessed":
                     errors.append("answer-only source must not assess the stem for %s/%s" % (qid, source_id))
+            if supports_canonical and str(assessment.get("answer_value")) != _canonical_source_value(expected_answer):
+                errors.append("source answer value differs for %s/%s" % (qid, source_id))
             if (
                 supports_stem
                 and stem_match in {"exact_stem_match", "equivalent_stem_match"}

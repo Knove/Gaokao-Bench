@@ -6,7 +6,11 @@ from pathlib import Path
 
 from gaokao_bench import cli
 from gaokao_bench.acceptance_dashboard import build_acceptance_page, build_acceptance_payload
-from gaokao_bench.owner_review import OWNER_REVIEW_FIELDS
+from gaokao_bench.owner_review import (
+    OWNER_REVIEW_FIELDS,
+    OWNER_REVIEW_VERSION,
+    REVIEW_WORKSHEET_NAME,
+)
 
 
 PNG_BYTES = base64.b64decode(
@@ -178,6 +182,8 @@ def _make_dataset(
 def _make_packet(review_root, data_dir, item_id, *, signed):
     packet = review_root / ("%s-owner" % data_dir.name)
     packet.mkdir(parents=True)
+    manifest_sha = hashlib.sha256((data_dir / "manifest.json").read_bytes()).hexdigest()
+    packet_id = "GB-OWNER-%s-%s" % (data_dir.name, manifest_sha[:12])
     row = {field: "" for field in OWNER_REVIEW_FIELDS}
     row.update(
         {
@@ -214,22 +220,39 @@ def _make_packet(review_root, data_dir, item_id, *, signed):
         writer = csv.DictWriter(handle, fieldnames=OWNER_REVIEW_FIELDS, lineterminator="\n")
         writer.writeheader()
         writer.writerow(row)
+    worksheet_sha = hashlib.sha256((packet / REVIEW_WORKSHEET_NAME).read_bytes()).hexdigest()
     _write_json(
         packet / "owner_signoff.json",
         {
+            "schema_version": OWNER_REVIEW_VERSION,
+            "dataset_version": data_dir.name,
+            "dataset_manifest_sha256": manifest_sha,
+            "packet_id": packet_id,
+            "review_worksheet": REVIEW_WORKSHEET_NAME,
+            "review_worksheet_sha256": worksheet_sha if signed else "",
+            "worksheet_items": 1,
+            "reviewer_id": "reviewer.test" if signed else "",
             "owner_attested": signed,
             "reviewer_name": "测试负责人" if signed else "",
+            "signature": "测试负责人" if signed else "",
             "reviewed_at": "2026-01-02T00:00:00+08:00" if signed else "",
         },
     )
+    packet_files = {
+        name: {
+            "sha256": hashlib.sha256((packet / name).read_bytes()).hexdigest(),
+            "bytes": (packet / name).stat().st_size,
+        }
+        for name in (REVIEW_WORKSHEET_NAME, "owner_signoff.json")
+    }
     _write_json(
         packet / "packet_manifest.json",
         {
-            "packet_id": packet.name,
-            "packet_version": "1.0",
-            "dataset_manifest_sha256": hashlib.sha256(
-                (data_dir / "manifest.json").read_bytes()
-            ).hexdigest(),
+            "packet_id": packet_id,
+            "packet_version": OWNER_REVIEW_VERSION,
+            "dataset_version": data_dir.name,
+            "dataset_manifest_sha256": manifest_sha,
+            "files": packet_files,
         },
     )
     return packet
@@ -350,6 +373,13 @@ def test_one_entry_discovers_versions_and_maps_packet_sources(tmp_path):
     modes = {item["id"]: item["mode"] for item in payload["versions"]}
     assert modes == {"v-candidate": "candidate", "v-signed": "signed", "v-archive": "archive"}
     assert len(payload["assets"]) == 1
+    candidate_meta = payload["datasets"]["v-candidate"]["meta"]
+    assert candidate_meta["by_paper"]["paper-test"] == {
+        "title": "测试数学卷",
+        "region": "全国卷 I",
+        "questions": 1,
+        "points": 5,
+    }
 
     candidate = payload["datasets"]["v-candidate"]["rows"][0]
     assert candidate["item_id"] == candidate_item
@@ -518,3 +548,81 @@ def test_stale_owner_packet_is_read_only(tmp_path):
     assert meta["decision_enabled"] is False
     assert meta["packet_binding_ok"] is False
     assert "manifest" in meta["packet_binding_error"]
+
+
+def test_wrong_packet_version_is_stale(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-wrong-packet-version",
+        created_at="2026-05-03T00:00:00+08:00",
+        status="acceptance_candidate",
+    )
+    packet = _make_packet(review_root, data_dir, item_id, signed=False)
+    manifest_path = packet / "packet_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["dataset_version"] = "v-other"
+    _write_json(manifest_path, manifest)
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    meta = payload["datasets"]["v-wrong-packet-version"]["meta"]
+    assert meta["mode"] == "stale_packet"
+    assert meta["review_enabled"] is False
+    assert meta["decision_enabled"] is False
+    assert "版本" in meta["packet_binding_error"]
+
+
+def test_packet_file_hash_mismatch_is_stale(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-packet-hash",
+        created_at="2026-05-04T00:00:00+08:00",
+        status="acceptance_candidate",
+    )
+    packet = _make_packet(review_root, data_dir, item_id, signed=False)
+    signoff_path = packet / "owner_signoff.json"
+    signoff = json.loads(signoff_path.read_text(encoding="utf-8"))
+    signoff["notes"] = "tampered after packet freeze"
+    _write_json(signoff_path, signoff)
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    meta = payload["datasets"]["v-packet-hash"]["meta"]
+    assert meta["mode"] == "stale_packet"
+    assert meta["review_enabled"] is False
+    assert meta["decision_enabled"] is False
+    assert "不匹配" in meta["packet_binding_error"]
+
+
+def test_missing_signoff_file_is_stale(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-missing-signoff",
+        created_at="2026-05-05T00:00:00+08:00",
+        status="acceptance_candidate",
+    )
+    packet = _make_packet(review_root, data_dir, item_id, signed=False)
+    (packet / "owner_signoff.json").unlink()
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    meta = payload["datasets"]["v-missing-signoff"]["meta"]
+    assert meta["mode"] == "stale_packet"
+    assert meta["review_enabled"] is False
+    assert meta["decision_enabled"] is False
+    assert "owner_signoff.json" in meta["packet_binding_error"]

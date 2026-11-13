@@ -20,7 +20,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from .owner_review import OWNER_REVIEW_FIELDS
+from .owner_review import (
+    INVALID_IDENTITY_MARKERS,
+    OWNER_REVIEW_FIELDS,
+    OWNER_REVIEW_VERSION,
+    REVIEW_WORKSHEET_NAME,
+)
 from .scoring import validate_source_audit
 
 
@@ -437,6 +442,155 @@ def _load_packet(review_root: Path, version: str) -> Optional[Path]:
     return None
 
 
+def _valid_iso_timestamp(value: Any) -> bool:
+    text = str(value or "").strip()
+    if not text:
+        return False
+    try:
+        parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None
+
+
+def _validate_packet_binding(
+    *,
+    packet_dir: Path,
+    version: str,
+    current_manifest_sha256: str,
+    review_rows: Sequence[Mapping[str, str]],
+) -> Tuple[bool, str, Dict[str, Any], Dict[str, Any], bool]:
+    """Return a fail-closed binding result for one owner packet.
+
+    A worksheet without a packet manifest, a packet produced for another data
+    version, a changed immutable packet file, or a signoff with only
+    ``owner_attested=true`` must never be presented as reviewable or signed.
+    """
+
+    packet_manifest_path = packet_dir / "packet_manifest.json"
+    signoff_path = packet_dir / "owner_signoff.json"
+    if not packet_manifest_path.is_file():
+        return False, "签字包缺少 packet_manifest.json", {}, {}, False
+    if not signoff_path.is_file():
+        return False, "签字包缺少 owner_signoff.json", {}, {}, False
+    try:
+        packet_manifest = _read_json(packet_manifest_path)
+    except (OSError, ValueError) as exc:
+        return False, "签字包 manifest 无法读取：%s" % exc, {}, {}, False
+    packet_manifest_sha256 = str(packet_manifest.get("dataset_manifest_sha256") or "")
+    if packet_manifest.get("dataset_version") != version:
+        return (
+            False,
+            "签字包绑定版本 %s，当前数据包为 %s"
+            % (packet_manifest.get("dataset_version"), version),
+            packet_manifest,
+            {},
+            False,
+        )
+    if packet_manifest.get("packet_version") != OWNER_REVIEW_VERSION:
+        return (
+            False,
+            "签字包版本 %s 与当前复核协议 %s 不一致"
+            % (packet_manifest.get("packet_version"), OWNER_REVIEW_VERSION),
+            packet_manifest,
+            {},
+            False,
+        )
+    if packet_manifest_sha256 != current_manifest_sha256:
+        return (
+            False,
+            "签字包绑定 manifest %s，当前数据包为 %s"
+            % (packet_manifest_sha256[:12], current_manifest_sha256[:12]),
+            packet_manifest,
+            {},
+            False,
+        )
+    try:
+        signoff = _read_json(signoff_path)
+    except (OSError, ValueError) as exc:
+        return False, "签字文件无法读取：%s" % exc, packet_manifest, {}, False
+
+    files = packet_manifest.get("files")
+    if not isinstance(files, Mapping):
+        return False, "签字包 manifest 缺少文件哈希清单", packet_manifest, signoff, False
+    for required_name in (REVIEW_WORKSHEET_NAME, "owner_signoff.json"):
+        if required_name not in files:
+            return (
+                False,
+                "签字包 manifest 未覆盖 %s" % required_name,
+                packet_manifest,
+                signoff,
+                False,
+            )
+
+    signed_intent = bool(
+        signoff.get("owner_attested") is True
+        or str(signoff.get("reviewer_id") or "").strip()
+        or str(signoff.get("reviewer_name") or "").strip()
+        or str(signoff.get("signature") or "").strip()
+        or str(signoff.get("reviewed_at") or "").strip()
+    )
+    mutable_files = {REVIEW_WORKSHEET_NAME, "owner_signoff.json"}
+    for name, metadata in files.items():
+        relative = str(name or "")
+        parts = Path(relative).parts
+        if not relative or Path(relative).is_absolute() or ".." in parts:
+            return False, "签字包文件清单包含不安全路径：%s" % relative, packet_manifest, signoff, False
+        path = packet_dir / relative
+        if not path.is_file():
+            return False, "签字包文件缺失：%s" % relative, packet_manifest, signoff, False
+        if signed_intent and relative in mutable_files:
+            continue
+        if not isinstance(metadata, Mapping):
+            return False, "签字包文件元数据无效：%s" % relative, packet_manifest, signoff, False
+        if metadata.get("bytes") != path.stat().st_size:
+            return False, "签字包文件字节数不匹配：%s" % relative, packet_manifest, signoff, False
+        if metadata.get("sha256") != _file_sha256(path):
+            return False, "签字包文件哈希不匹配：%s" % relative, packet_manifest, signoff, False
+
+    required_header = {
+        "schema_version": OWNER_REVIEW_VERSION,
+        "dataset_version": version,
+        "dataset_manifest_sha256": current_manifest_sha256,
+        "packet_id": packet_manifest.get("packet_id"),
+        "review_worksheet": REVIEW_WORKSHEET_NAME,
+        "worksheet_items": len(review_rows),
+    }
+    for field, expected in required_header.items():
+        if signoff.get(field) != expected:
+            return (
+                False,
+                "签字字段 %s 与当前数据包不一致" % field,
+                packet_manifest,
+                signoff,
+                False,
+            )
+
+    worksheet_path = packet_dir / REVIEW_WORKSHEET_NAME
+    actual_worksheet_sha = _file_sha256(worksheet_path)
+    supplied_worksheet_sha = str(signoff.get("review_worksheet_sha256") or "").strip()
+    if signed_intent:
+        if supplied_worksheet_sha != actual_worksheet_sha:
+            return False, "签字文件未绑定当前复核表哈希", packet_manifest, signoff, False
+        reviewer_id = str(signoff.get("reviewer_id") or "").strip()
+        reviewer_name = str(signoff.get("reviewer_name") or "").strip()
+        signature = str(signoff.get("signature") or "").strip()
+        if signoff.get("owner_attested") is not True:
+            return False, "签字文件 owner_attested 不为 true", packet_manifest, signoff, False
+        if not reviewer_id or any(marker in reviewer_id.lower() for marker in INVALID_IDENTITY_MARKERS):
+            return False, "签字文件 reviewer_id 为空或为占位值", packet_manifest, signoff, False
+        if not reviewer_name or any(marker in reviewer_name.lower() for marker in INVALID_IDENTITY_MARKERS):
+            return False, "签字文件 reviewer_name 为空或为占位值", packet_manifest, signoff, False
+        if signature != reviewer_name:
+            return False, "签字文件的 signature 必须等于 reviewer_name", packet_manifest, signoff, False
+        if not _valid_iso_timestamp(signoff.get("reviewed_at")):
+            return False, "签字文件 reviewed_at 不是带时区的 ISO 时间", packet_manifest, signoff, False
+    elif supplied_worksheet_sha and supplied_worksheet_sha != actual_worksheet_sha:
+        return False, "未签字复核表哈希与当前文件不一致", packet_manifest, signoff, False
+
+    return True, "", packet_manifest, signoff, signed_intent
+
+
 def _packet_rows(
     *,
     data_dir: Path,
@@ -456,22 +610,15 @@ def _packet_rows(
     packet_dir = _load_packet(review_root, version)
     if packet_dir is None:
         return None, []
-    current_manifest_sha256 = _file_sha256(data_dir / "manifest.json")
-    packet_manifest_path = packet_dir / "packet_manifest.json"
-    packet_manifest = _read_json(packet_manifest_path) if packet_manifest_path.is_file() else {}
-    packet_manifest_sha256 = str(packet_manifest.get("dataset_manifest_sha256") or "")
-    binding_error = ""
-    if not packet_manifest_sha256:
-        binding_error = "签字包未记录 dataset_manifest_sha256"
-    elif packet_manifest_sha256 != current_manifest_sha256:
-        binding_error = (
-            "签字包绑定 manifest %s，当前数据包为 %s"
-            % (packet_manifest_sha256[:12], current_manifest_sha256[:12])
-        )
-    binding_ok = not binding_error
     fields, review_rows = _read_csv(packet_dir / "owner_review.csv")
-    signoff_path = packet_dir / "owner_signoff.json"
-    signoff = _read_json(signoff_path) if signoff_path.is_file() else {}
+    current_manifest_sha256 = _file_sha256(data_dir / "manifest.json")
+    binding_ok, binding_error, packet_manifest, signoff, signed = _validate_packet_binding(
+        packet_dir=packet_dir,
+        version=version,
+        current_manifest_sha256=current_manifest_sha256,
+        review_rows=review_rows,
+    )
+    packet_manifest_sha256 = str(packet_manifest.get("dataset_manifest_sha256") or "")
     rows: List[Dict[str, Any]] = []
     for review in review_rows:
         item_id = str(review.get("item_id") or "")
@@ -557,7 +704,7 @@ def _packet_rows(
         "fields": fields,
         "signoff": signoff,
         "packet_manifest": packet_manifest,
-        "signed": bool(signoff.get("owner_attested")) and binding_ok,
+        "signed": signed and binding_ok,
         "binding_ok": binding_ok,
         "binding_error": binding_error,
         "manifest_sha256": current_manifest_sha256,
@@ -1095,29 +1242,22 @@ def _build_workspace(
     summary["packet_manifest_sha256"] = str((packet or {}).get("packet_manifest_sha256") or "")
     summary["subtitle"] = "%s · %s · %s" % (version, summary["coverage"], summary["mode_label"])
 
+    paper_meta = {str(paper.get("id") or ""): paper for paper in papers_list}
     by_paper: Dict[str, Dict[str, Any]] = {}
-    for paper in papers_list:
-        paper_id = str(paper.get("id") or "")
-        paper_rows = [row for row in rows if row.get("paper_id") == paper_id]
-        if not paper_rows:
-            continue
-        by_paper[paper_id] = {
-            "title": paper.get("title") or paper_id,
-            "region": paper.get("region") or paper_id,
-            "questions": len(paper_rows),
-            "points": sum(int(row.get("points") or 0) for row in paper_rows),
-        }
     for row in rows:
         paper_id = str(row.get("paper_id") or "")
-        if paper_id not in by_paper:
-            by_paper[paper_id] = {
-                "title": row.get("paper_title") or paper_id,
-                "region": row.get("paper_region") or paper_id,
+        paper = paper_meta.get(paper_id, {})
+        bucket = by_paper.setdefault(
+            paper_id,
+            {
+                "title": paper.get("title") or row.get("paper_title") or paper_id,
+                "region": paper.get("region") or row.get("paper_region") or paper_id,
                 "questions": 0,
                 "points": 0,
-            }
-        by_paper[paper_id]["questions"] += 1
-        by_paper[paper_id]["points"] += int(row.get("points") or 0)
+            },
+        )
+        bucket["questions"] += 1
+        bucket["points"] += int(row.get("points") or 0)
 
     quality = manifest.get("quality") if isinstance(manifest.get("quality"), Mapping) else {}
     boundary = (

@@ -114,6 +114,123 @@ def load_source_audit_spec(spec: Mapping[str, Any]) -> Dict[str, Any]:
     return value
 
 
+def load_source_pages_spec(
+    spec: Mapping[str, Any], audit_spec: Mapping[str, Any]
+) -> Dict[str, Any]:
+    relative = str(spec.get("source_pages_spec") or "").strip()
+    if not relative:
+        raise ValueError("spec is missing source_pages_spec")
+    path = (ROOT / relative).resolve()
+    if ROOT not in path.parents or not path.is_file():
+        raise ValueError("source page evidence spec does not exist: %s" % path)
+    value = read_json(path)
+    if value.get("dataset_version") != spec.get("dataset_version"):
+        raise ValueError("source page evidence spec version does not match dataset version")
+    sources = value.get("sources")
+    if not isinstance(sources, Mapping):
+        raise ValueError("source page evidence spec must contain a sources object")
+    expected = {
+        str(source["id"])
+        for source in audit_spec.get("sources", [])
+        if isinstance(source, Mapping) and source.get("id")
+    }
+    if set(sources) != expected:
+        missing = sorted(expected - set(sources))
+        extra = sorted(set(sources) - expected)
+        raise ValueError(
+            "source page evidence coverage mismatch; missing=%s extra=%s" % (missing, extra)
+        )
+    for source_id, rows in sources.items():
+        if not isinstance(rows, list) or not rows:
+            raise ValueError("source page evidence is empty for %s" % source_id)
+        seen_files: set[str] = set()
+        for row in rows:
+            if not isinstance(row, Mapping):
+                raise ValueError("source page evidence row must be an object for %s" % source_id)
+            relative_file = str(row.get("file") or "").strip()
+            if not relative_file or relative_file in seen_files:
+                raise ValueError("source page evidence file is missing or duplicated: %s" % source_id)
+            seen_files.add(relative_file)
+            if not str(row.get("url") or "").startswith(("http://", "https://")):
+                raise ValueError("source page evidence URL is invalid for %s" % source_id)
+            if row.get("scope") not in {"stem", "answer", "page", "document"}:
+                raise ValueError("source page evidence scope is invalid for %s" % source_id)
+            digest = str(row.get("sha256") or "")
+            if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+                raise ValueError("source page evidence SHA-256 is invalid for %s" % source_id)
+            if int(row.get("bytes") or 0) <= 0:
+                raise ValueError("source page evidence byte count is invalid for %s" % source_id)
+            pages = row.get("covered_page_starts")
+            if not isinstance(pages, list) or not pages or any(int(page) < 1 for page in pages):
+                raise ValueError("source page evidence page coverage is invalid for %s" % source_id)
+    return value
+
+
+def materialize_source_pages(
+    *,
+    source_pages_spec: Mapping[str, Any],
+    cache_dir: Path,
+    output_dir: Path,
+) -> tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
+    """Copy and hash-check the frozen page evidence used by the source audit."""
+
+    rows: List[Dict[str, Any]] = []
+    by_source: Dict[str, List[Dict[str, Any]]] = {}
+    seen_paths: set[str] = set()
+    for source_id, entries in source_pages_spec.get("sources", {}).items():
+        if not isinstance(entries, list) or not entries:
+            raise ValueError("source page evidence is empty for %s" % source_id)
+        source_rows: List[Dict[str, Any]] = []
+        for entry in entries:
+            relative_file = str(entry["file"])
+            relative_path = Path("source_pages") / relative_file
+            if relative_path.is_absolute() or ".." in relative_path.parts:
+                raise ValueError("unsafe source page evidence path: %s" % relative_file)
+            if relative_path.as_posix() in seen_paths:
+                raise ValueError("duplicate source page evidence path: %s" % relative_path)
+            seen_paths.add(relative_path.as_posix())
+            cache_path = (cache_dir / relative_file).resolve()
+            if not cache_path.is_file():
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                request = urllib.request.Request(
+                    str(entry["url"]), headers={"User-Agent": "Gaokao-Bench/0.1"}
+                )
+                with urllib.request.urlopen(request, timeout=90) as response:
+                    cache_path.write_bytes(response.read())
+            payload = cache_path.read_bytes()
+            actual_sha256 = hashlib.sha256(payload).hexdigest()
+            if actual_sha256 != entry["sha256"]:
+                raise ValueError(
+                    "source page evidence hash mismatch for %s: %s != %s"
+                    % (relative_file, actual_sha256, entry["sha256"])
+                )
+            if len(payload) != int(entry["bytes"]):
+                raise ValueError("source page evidence byte count mismatch for %s" % relative_file)
+            destination = output_dir / relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(cache_path, destination)
+            if sha256(destination) != entry["sha256"]:
+                raise ValueError("copied source page evidence does not retain its hash: %s" % relative_file)
+            row = {
+                "schema_version": "1.0",
+                "source_id": str(source_id),
+                "path": relative_path.as_posix(),
+                "file": relative_file,
+                "url": str(entry["url"]),
+                "scope": str(entry["scope"]),
+                "page_index": int(entry["page_index"]),
+                "covered_page_starts": sorted(int(page) for page in entry["covered_page_starts"]),
+                "media_type": str(entry["media_type"]),
+                "sha256": actual_sha256,
+                "bytes": len(payload),
+            }
+            rows.append(row)
+            source_rows.append(row)
+        by_source[str(source_id)] = source_rows
+    rows.sort(key=lambda row: (row["source_id"], row["page_index"], row["path"]))
+    return rows, by_source
+
+
 def _group_for_number(
     groups: Any, number: int, *, source_id: str, kind: str
 ) -> Optional[Mapping[str, Any]]:
@@ -161,6 +278,61 @@ def _canonical_text(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
+def _evidence_for_group(
+    source_pages: Sequence[Mapping[str, Any]],
+    group: Optional[Mapping[str, Any]],
+    *,
+    stem: bool,
+) -> List[Dict[str, Any]]:
+    if group is None:
+        return []
+    start = group.get("page_start")
+    if start is None:
+        pages = [1]
+    else:
+        first = int(start)
+        last = int(group.get("page_end", first))
+        if first < 1 or last < first:
+            raise ValueError("invalid evidence page range: %r" % group)
+        pages = list(range(first, last + 1))
+    wanted_scope = "stem" if stem else "answer"
+    matches: List[Dict[str, Any]] = []
+    seen_paths: set[str] = set()
+    for page in pages:
+        candidates = [
+            row
+            for row in source_pages
+            if page in [int(value) for value in row.get("covered_page_starts", [])]
+            and str(row.get("scope")) in {wanted_scope, "page", "document"}
+        ]
+        if not candidates:
+            raise ValueError(
+                "no frozen source page evidence for %s page %d"
+                % ("stem" if stem else "answer", page)
+            )
+        for row in candidates:
+            path = str(row["path"])
+            if path in seen_paths:
+                continue
+            seen_paths.add(path)
+            matches.append(
+                {
+                    "path": path,
+                    "url": str(row["url"]),
+                    "scope": str(row["scope"]),
+                    "page_index": int(row["page_index"]),
+                    "covered_page_starts": [
+                        int(value) for value in row["covered_page_starts"]
+                    ],
+                    "sha256": str(row["sha256"]),
+                    "bytes": int(row["bytes"]),
+                }
+            )
+    if not matches:
+        raise ValueError("empty frozen source page evidence group: %r" % group)
+    return matches
+
+
 def _source_assessment(
     *,
     source: Mapping[str, Any],
@@ -169,6 +341,7 @@ def _source_assessment(
     stem_group: Optional[Mapping[str, Any]],
     answer_group: Optional[Mapping[str, Any]],
     canonical_text: str,
+    source_pages: Sequence[Mapping[str, Any]],
 ) -> Dict[str, Any]:
     number = int(item["number"])
     joint = role == "joint_supporting"
@@ -178,18 +351,48 @@ def _source_assessment(
     answer_note = canonical_text
     if item.get("type") == "catalog_subjective" and "见解析" not in canonical_text:
         answer_note = "%s；来源页含完整证明或解答过程。" % canonical_text
+    stem_evidence = _evidence_for_group(source_pages, stem_group, stem=True)
+    answer_evidence = _evidence_for_group(source_pages, answer_group, stem=False)
+    stem_page_start = (
+        int(stem_group.get("page_start") or 1) if stem_group is not None else None
+    )
+    stem_page_end = (
+        int(stem_group.get("page_end") or stem_page_start)
+        if stem_group is not None
+        else None
+    )
+    answer_page_start = (
+        int(answer_group.get("page_start") or 1) if answer_group is not None else None
+    )
+    answer_page_end = (
+        int(answer_group.get("page_end") or answer_page_start)
+        if answer_group is not None
+        else None
+    )
     return {
         "source_id": source["id"],
         "publisher": source["publisher"],
         "url": source["url"],
         "stem_page_url": (
-            _source_page_url(source, stem_group, stem=True) if stem_group is not None else ""
+            stem_evidence[0]["url"]
+            if stem_evidence
+            else _source_page_url(source, stem_group, stem=True)
+            if stem_group is not None
+            else ""
         ),
         "answer_page_url": (
-            _source_page_url(source, answer_group, stem=False)
+            answer_evidence[0]["url"]
+            if answer_evidence
+            else _source_page_url(source, answer_group, stem=False)
             if answer_group is not None
             else ""
         ),
+        "stem_evidence": stem_evidence,
+        "answer_evidence": answer_evidence,
+        "stem_page_start": stem_page_start,
+        "stem_page_end": stem_page_end,
+        "answer_page_start": answer_page_start,
+        "answer_page_end": answer_page_end,
         "access_method": source.get("access_method") or "打开来源页面并逐题核对",
         "independence_group": source["independence_group"],
         "evidence_scope": source["evidence_scope"],
@@ -211,6 +414,7 @@ def build_source_audit(
     *,
     spec: Mapping[str, Any],
     audit_spec: Mapping[str, Any],
+    source_pages: Mapping[str, Sequence[Mapping[str, Any]]],
     items: Sequence[Mapping[str, Any]],
     answer_keys: Mapping[str, Mapping[str, Any]],
     paper_id: str,
@@ -259,6 +463,7 @@ def build_source_audit(
                 stem_group=primary_group,
                 answer_group=None,
                 canonical_text=canonical_text,
+                source_pages=source_pages.get(primary_id, ()),
             )
         )
 
@@ -307,6 +512,7 @@ def build_source_audit(
                     stem_group=stem_group,
                     answer_group=selected_answer,
                     canonical_text=canonical_text,
+                    source_pages=source_pages.get(source_id, ()),
                 )
             )
 
@@ -356,6 +562,14 @@ def build_source_audit(
             "stem_dual_source_complete": stem_complete,
             "joint_answer_dual_source_complete": joint_complete,
             "gate_complete": stem_complete and joint_complete,
+            "evidence_paths": sorted(
+                {
+                    str(evidence["path"])
+                    for assessment in assessments
+                    for key in ("stem_evidence", "answer_evidence")
+                    for evidence in assessment.get(key, [])
+                }
+            ),
             "assessments": assessments,
         }
         rows.append(row)
@@ -373,6 +587,15 @@ def build_source_audit(
         "evidence_ready": gate_pass == len(rows),
         "gate": "pass" if gate_pass == len(rows) else "blocked",
         "failed_question_ids": [row["question_id"] for row in rows if not row["gate_complete"]],
+        "evidence_page_count": len(
+            {
+                str(evidence["path"])
+                for row in rows
+                for assessment in row["assessments"]
+                for key in ("stem_evidence", "answer_evidence")
+                for evidence in assessment.get(key, [])
+            }
+        ),
     }
     if not summary["evidence_ready"] and not allow_incomplete:
         raise ValueError(
@@ -629,6 +852,7 @@ def validate_audit_reports(
 def build(args: argparse.Namespace) -> Dict[str, Any]:
     spec = read_json(Path(args.spec).resolve())
     audit_spec = load_source_audit_spec(spec)
+    source_pages_spec = load_source_pages_spec(spec, audit_spec)
     source = spec["source"]
     paper_spec = spec["paper"]
     version = str(spec["dataset_version"])
@@ -636,6 +860,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     revision = source_revision()
     spec_path = Path(args.spec).resolve()
     source_audit_spec_path = (ROOT / str(spec["source_audit_spec"])).resolve()
+    source_pages_spec_path = (ROOT / str(spec["source_pages_spec"])).resolve()
     if worktree_is_dirty():
         raise ValueError(
             "refusing to build a release candidate from a dirty worktree; "
@@ -690,6 +915,13 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                     audit_report_dir / ("audit-%s.md" % report["audit_id"].lower()),
                 )
 
+    source_pages_rows, source_pages_by_source = materialize_source_pages(
+        source_pages_spec=source_pages_spec,
+        cache_dir=Path(args.source_page_cache).resolve(),
+        output_dir=temporary,
+    )
+    write_jsonl(temporary / "source_pages.jsonl", source_pages_rows)
+
     paper_id = paper_spec["id"]
     all_items = list(spec["objective"]) + list(spec["subjective"])
     assets: List[Dict[str, Any]] = []
@@ -738,6 +970,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     source_audit_rows, source_audit_by_question, source_audit_summary = build_source_audit(
         spec=spec,
         audit_spec=audit_spec,
+        source_pages=source_pages_by_source,
         items=all_items,
         answer_keys=objective_keys_by_id,
         paper_id=paper_id,
@@ -1184,6 +1417,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "review_records": 0,
         "answer_evidence_sources": len(answer_sources),
         "source_audit_rows": len(source_audit_rows),
+        "source_evidence_pages": len(source_pages_rows),
         "stem_dual_source_questions": source_audit_summary[
             "stem_dual_source_questions"
         ],
@@ -1248,6 +1482,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "source_audit": {
             "path": "source_audit.jsonl",
             "schema_version": SOURCE_AUDIT_SCHEMA_VERSION,
+            "evidence_pages": "source_pages.jsonl",
+            "evidence_pages_sha256": sha256(temporary / "source_pages.jsonl"),
+            "evidence_page_count": len(source_pages_rows),
             **source_audit_summary,
         },
         "quality": {
@@ -1300,6 +1537,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "spec_sha256": sha256(spec_path),
             "source_audit_spec_path": spec["source_audit_spec"],
             "source_audit_spec_sha256": sha256(source_audit_spec_path),
+            "source_pages_spec_path": spec["source_pages_spec"],
+            "source_pages_spec_sha256": sha256(source_pages_spec_path),
+            "source_page_cache": str(Path(args.source_page_cache).resolve()),
             "reproduction": "REPRODUCE.md",
             "publication_gate": "owner_acceptance_then_push_and_public_rebuild",
         },
@@ -1344,6 +1584,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     ] + [row["path"] for row in assets]
     audit_names = [
         "source_audit.jsonl",
+        "source_pages.jsonl",
         "sources.jsonl",
         "answer_sources.jsonl",
         "answer_audit.jsonl",
@@ -1364,6 +1605,10 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "source_pdf_sha256": source["sha256"],
         "content_files": {name: sha256(temporary / name) for name in content_names},
         "audit_files": {name: sha256(temporary / name) for name in audit_names},
+        "evidence_files": {
+            row["path"]: row["sha256"]
+            for row in source_pages_rows
+        },
     }
     all_files = sorted(
         path.relative_to(temporary).as_posix()
@@ -1385,6 +1630,11 @@ def main() -> int:
     parser.add_argument("--spec", default=str(SPEC_PATH))
     parser.add_argument("--pdf", type=Path, help="frozen source PDF; downloads a hash-pinned copy when omitted")
     parser.add_argument("--cache-dir", default=str(ROOT / ".cache" / "gaokao-source"))
+    parser.add_argument(
+        "--source-page-cache",
+        default=str(ROOT / ".cache" / "gaokao-source-pages" / "2026-n1"),
+        help="frozen source-page evidence cache; missing files are downloaded and hash-checked",
+    )
     parser.add_argument("--out", default=str(ROOT / "data" / "0.1.0-alpha.2026-n1.1"))
     parser.add_argument("--created-at", default="2026-11-12T16:40:31+08:00")
     parser.add_argument("--audit-report", action="append", default=[], help="three JSON audit reports: A, B, C")

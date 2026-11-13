@@ -1,5 +1,6 @@
 {
   "schema_version": "1.0",
+  "dataset_version": "0.1.0-alpha.2026-n1.3",
   "policy": {
     "version": "dual_source_v1",
     "scope": "all_catalogued_questions",
@@ -8,6 +9,7 @@
     "answer_only_sources_count_for_gate": false,
     "owner_signoff_requires_gate": true,
     "joint_answer_source_must_match_stem": true,
+    "required_source_page_evidence": true,
     "required_question_count": 19
   },
   "sources": [
@@ -180,16 +182,50 @@
     {
       "id": "src-zizzs-2026-n1-answers",
       "publisher": "自主选拔在线",
-      "url": "https://www.zizzs.com/gk/shitiku/222593_3.html",
-      "source_type": "media_answer_gallery",
-      "evidence_scope": "answer_only",
+      "url": "https://www.zizzs.com/gk/shitiku/222593.html",
+      "source_type": "media_full_paper_gallery",
+      "evidence_scope": "stem_and_answer",
       "independence_group": "zizzs",
-      "access_method": "浏览器打开两页答案图，核对第 1–5 题",
+      "access_method": "逐页打开 17 个文章分页，核对 4 页原卷与 30 页答案解析",
       "retrieved_at": "2026-11-12",
-      "notes": "只公开第 1–5 题答案；只作答案补充，不计入双来源硬门槛。",
+      "notes": "文章分页给出完整 4 页试卷和 30 页答案详解，覆盖 1–19 题；作为独立联合来源。",
+      "stem_image_urls": [
+        "https://cdn.zizzs.com/zixunzhan/_1781149794197_00011781149794216.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794199_00021781149794218.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794203_00031781149794207.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794205_00041781149794202.png"
+      ],
       "answer_image_urls": [
         "https://cdn.zizzs.com/zixunzhan/_1781149794208_00051781149794216.png",
-        "https://cdn.zizzs.com/zixunzhan/_1781149794209_00061781149794213.png"
+        "https://cdn.zizzs.com/zixunzhan/_1781149794209_00061781149794213.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794211_00071781149794300.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794213_00081781149794301.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794215_00091781149794312.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794217_00101781149794322.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794218_00111781149794323.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794220_00121781149794352.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794222_00131781149794373.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794223_00141781149794383.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794225_00151781149794403.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794226_00161781149794415.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794228_00171781149794625.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794229_00181781149794896.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794231_00191781149795121.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794232_00201781149795165.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794234_00211781149795189.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794235_00221781149795558.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794237_00231781149795826.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794238_00241781149795961.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794240_00251781149796191.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794242_00261781149796290.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794244_00271781149796686.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794247_00281781149796782.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794249_00291781149796923.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149794251_00301781149796995.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149811007_00311781149810910.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149811009_00321781149810909.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149811010_00331781149810915.png",
+        "https://cdn.zizzs.com/zixunzhan/_1781149811012_00341781149810905.png"
       ]
     }
   ],
@@ -302,9 +338,33 @@
       ]
     },
     "src-zizzs-2026-n1-answers": {
-      "answer_groups": [
-        {"numbers": [1, 2, 3], "page_start": 1, "page_end": 1, "locator_template": "答案图第1页；第{n}题"},
-        {"numbers": [4, 5], "page_start": 2, "page_end": 2, "locator_template": "答案图第2页；第{n}题"}
+      "stem_groups": [
+        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "原卷图第1页；第{n}题"},
+        {"numbers": [6], "page_start": 1, "page_end": 2, "locator_template": "原卷图第1–2页；第6题跨页"},
+        {"numbers": [7, 8, 9, 10, 11], "page_start": 2, "page_end": 2, "locator_template": "原卷图第2页；第{n}题"},
+        {"numbers": [12, 13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "原卷图第3页；第{n}题"},
+        {"numbers": [17], "page_start": 3, "page_end": 4, "locator_template": "原卷图第3–4页；第17题跨页"},
+        {"numbers": [18, 19], "page_start": 4, "page_end": 4, "locator_template": "原卷图第4页；第{n}题"}
+      ],
+      "joint_answer_groups": [
+        {"numbers": [1, 2], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
+        {"numbers": [3], "page_start": 1, "page_end": 2, "locator_template": "答案解析第1–2页；第3题跨页"},
+        {"numbers": [4], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第4题"},
+        {"numbers": [5], "page_start": 2, "page_end": 3, "locator_template": "答案解析第2–3页；第5题跨页"},
+        {"numbers": [6], "page_start": 3, "page_end": 4, "locator_template": "答案解析第3–4页；第6题跨页"},
+        {"numbers": [7], "page_start": 5, "page_end": 6, "locator_template": "答案解析第5–6页；第7题跨页"},
+        {"numbers": [8], "page_start": 6, "page_end": 7, "locator_template": "答案解析第6–7页；第8题跨页"},
+        {"numbers": [9], "page_start": 7, "page_end": 8, "locator_template": "答案解析第7–8页；第9题跨页"},
+        {"numbers": [10], "page_start": 8, "page_end": 9, "locator_template": "答案解析第8–9页；第10题跨页"},
+        {"numbers": [11], "page_start": 9, "page_end": 11, "locator_template": "答案解析第9–11页；第11题跨页"},
+        {"numbers": [12], "page_start": 12, "page_end": 12, "locator_template": "答案解析第12页；第12题"},
+        {"numbers": [13], "page_start": 12, "page_end": 13, "locator_template": "答案解析第12–13页；第13题跨页"},
+        {"numbers": [14], "page_start": 13, "page_end": 15, "locator_template": "答案解析第13–15页；第14题跨页"},
+        {"numbers": [15], "page_start": 15, "page_end": 17, "locator_template": "答案解析第15–17页；第15题跨页"},
+        {"numbers": [16], "page_start": 18, "page_end": 19, "locator_template": "答案解析第18–19页；第16题跨页"},
+        {"numbers": [17], "page_start": 19, "page_end": 21, "locator_template": "答案解析第19–21页；第17题跨页"},
+        {"numbers": [18], "page_start": 21, "page_end": 25, "locator_template": "答案解析第21–25页；第18题跨页"},
+        {"numbers": [19], "page_start": 25, "page_end": 30, "locator_template": "答案解析第25–30页；第19题跨页"}
       ]
     }
   }
