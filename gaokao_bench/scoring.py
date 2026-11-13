@@ -76,7 +76,13 @@ SOURCE_AUDIT_MATCHES = {
     "equivalent_stem_match",
     "exact_answer_match",
     "equivalent_answer_match",
+    "external_answer_error",
+    "external_source_self_conflict",
     "not_assessed",
+}
+SOURCE_AUDIT_REJECTED_ANSWER_MATCHES = {
+    "external_answer_error",
+    "external_source_self_conflict",
 }
 POINT_AUDIT_STATUSES = {
     "source_points_crosschecked_pending_owner_signoff",
@@ -442,10 +448,38 @@ def _validate_source_page_evidence(
         if not str(evidence.get("url") or "").startswith(("http://", "https://")):
             errors.append("source page evidence URL is invalid: %s" % evidence_path)
         if evidence.get("scope") not in {"stem", "answer", "page", "document"}:
-            errors.append("source page evidence scope is invalid: %s" % evidence_path)
+            if evidence.get("scope") != "stem_and_answer":
+                errors.append("source page evidence scope is invalid: %s" % evidence_path)
         pages = evidence.get("covered_page_starts")
         if not isinstance(pages, list) or not pages:
             errors.append("source page evidence page coverage is empty: %s" % evidence_path)
+        else:
+            try:
+                page_values = [int(page) for page in pages]
+            except (TypeError, ValueError):
+                errors.append("source page evidence page coverage is invalid: %s" % evidence_path)
+                page_values = []
+            if page_values != sorted(set(page_values)):
+                errors.append("source page evidence page coverage is unsorted or duplicated: %s" % evidence_path)
+            if evidence.get("scope") != "document":
+                try:
+                    page_index = int(evidence.get("page_index"))
+                except (TypeError, ValueError):
+                    errors.append("page evidence has no integer page_index: %s" % evidence_path)
+                else:
+                    if page_values != [page_index]:
+                        errors.append(
+                            "non-document evidence must cover exactly its own logical page: %s"
+                            % evidence_path
+                        )
+        question_numbers = evidence.get("question_numbers")
+        if (
+            not isinstance(question_numbers, list)
+            or not question_numbers
+            or any(not isinstance(number, int) or number < 1 for number in question_numbers)
+            or question_numbers != sorted(set(question_numbers))
+        ):
+            errors.append("source page evidence question_numbers is invalid: %s" % evidence_path)
 
     expected_items = {str(q["id"]): q for q in dataset.questions}
     expected_items.update({str(q["id"]): q for q in dataset.catalog_subjective})
@@ -464,18 +498,22 @@ def _validate_source_page_evidence(
             if not isinstance(assessment, Mapping):
                 continue
             source_id = str(assessment.get("source_id") or "")
+            role = str(assessment.get("role") or "")
+            number = int(item.get("number") or 0)
             for kind, support_field in (("stem", "supports_stem"), ("answer", "supports_canonical")):
                 supports = assessment.get(support_field) is True
+                rejection_evidence = role == "rejected" and kind == "answer"
+                requires_evidence = supports or rejection_evidence
                 evidence_value = assessment.get(kind + "_evidence")
                 evidence_list = evidence_value if isinstance(evidence_value, list) else []
-                if supports and not evidence_list:
+                if requires_evidence and not evidence_list:
                     errors.append("source page evidence is missing for %s/%s/%s" % (qid, source_id, kind))
                     continue
-                if not supports and evidence_list:
+                if not requires_evidence and evidence_list:
                     errors.append("source page evidence exists for unsupported %s/%s/%s" % (qid, source_id, kind))
                 page_start = assessment.get(kind + "_page_start")
                 page_end = assessment.get(kind + "_page_end", page_start)
-                if supports:
+                if requires_evidence:
                     try:
                         first_page = int(page_start)
                         last_page = int(page_end)
@@ -505,29 +543,54 @@ def _validate_source_page_evidence(
                         errors.append("source page evidence SHA mismatch for %s/%s/%s" % (qid, source_id, kind))
                     if int(frozen.get("bytes") or -1) != int(evidence.get("bytes") or -2):
                         errors.append("source page evidence byte mismatch for %s/%s/%s" % (qid, source_id, kind))
-                    if frozen.get("scope") not in ({kind, "page", "document"} if kind == "stem" else {"answer", "page", "document"}):
+                    allowed_scopes = (
+                        {"stem", "stem_and_answer", "page", "document"}
+                        if kind == "stem"
+                        else {"answer", "stem_and_answer", "page", "document"}
+                    )
+                    if frozen.get("scope") not in allowed_scopes:
                         errors.append("source page evidence scope does not support %s for %s/%s" % (kind, qid, source_id))
+                    evidence_numbers = frozen.get("question_numbers")
+                    if not isinstance(evidence_numbers, list) or number not in evidence_numbers:
+                        errors.append(
+                            "source page evidence does not name question %d for %s/%s/%s"
+                            % (number, qid, source_id, kind)
+                        )
                     evidence_urls.add(str(frozen.get("url") or ""))
                     covered_pages.update(int(page) for page in frozen.get("covered_page_starts", []))
                 page_url = str(assessment.get(kind + "_page_url") or "")
-                if supports and page_url not in evidence_urls:
+                if requires_evidence and page_url not in evidence_urls:
                     errors.append("source page URL is not backed by frozen evidence for %s/%s/%s" % (qid, source_id, kind))
-                if supports and first_page and first_page not in covered_pages:
-                    errors.append("source page range is not covered by evidence for %s/%s/%s" % (qid, source_id, kind))
-                if supports and last_page and last_page not in covered_pages:
-                    errors.append("source page end is not covered by evidence for %s/%s/%s" % (qid, source_id, kind))
+                if requires_evidence and first_page and last_page:
+                    expected_pages = set(range(first_page, last_page + 1))
+                    if not expected_pages.issubset(covered_pages):
+                        errors.append(
+                            "source page range is not fully covered by evidence for %s/%s/%s"
+                            % (qid, source_id, kind)
+                        )
             if assessment.get("supports_stem") is True:
                 stem = str(item.get("stem") or item.get("content") or "").strip()
                 excerpt = str(assessment.get("stem_excerpt") or "").strip()
-                if excerpt and not stem.startswith(excerpt):
-                    errors.append("source audit stem excerpt is not a prefix of the canonical stem for %s/%s" % (qid, source_id))
+                if excerpt != stem:
+                    errors.append("source audit stem excerpt is not the exact canonical stem for %s/%s" % (qid, source_id))
             if assessment.get("supports_canonical") is True:
                 value = str(assessment.get("answer_value") or "")
                 if value != canonical:
                     errors.append("source audit answer value differs for %s/%s" % (qid, source_id))
                 excerpt = str(assessment.get("answer_excerpt") or "")
-                if not (excerpt == canonical or excerpt.startswith(canonical + "；来源页含")):
-                    errors.append("source audit answer excerpt is not backed by the canonical answer for %s/%s" % (qid, source_id))
+                if excerpt != canonical:
+                    errors.append("source audit answer excerpt is not the exact canonical answer for %s/%s" % (qid, source_id))
+            elif role == "rejected":
+                value = str(assessment.get("answer_value") or "").strip()
+                excerpt = str(assessment.get("answer_excerpt") or "").strip()
+                if assessment.get("answer_match") not in SOURCE_AUDIT_REJECTED_ANSWER_MATCHES:
+                    errors.append("rejected source has no explicit answer-error classification for %s/%s" % (qid, source_id))
+                if not value or value != excerpt:
+                    errors.append("rejected source does not preserve its observed answer for %s/%s" % (qid, source_id))
+                if value == canonical:
+                    errors.append("rejected source repeats the canonical answer for %s/%s" % (qid, source_id))
+                if not str(assessment.get("rejection_reason") or "").strip():
+                    errors.append("rejected source has no rejection reason for %s/%s" % (qid, source_id))
 
 
 def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
@@ -601,6 +664,7 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
         seen_sources: set[str] = set()
         stem_groups: set[str] = set()
         joint_groups: set[str] = set()
+        row_rejected_sources: set[str] = set()
         for index, assessment in enumerate(assessments):
             if not isinstance(assessment, Mapping):
                 errors.append("source assessment %d is not an object for %s" % (index, qid))
@@ -672,6 +736,20 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                     errors.append("answer-only source has wrong evidence scope for %s/%s" % (qid, source_id))
                 if stem_match != "not_assessed":
                     errors.append("answer-only source must not assess the stem for %s/%s" % (qid, source_id))
+            elif role == "rejected":
+                row_rejected_sources.add(source_id)
+                if supports_canonical:
+                    errors.append("rejected source must not support the canonical answer for %s/%s" % (qid, source_id))
+                if supports_stem:
+                    if stem_match not in {"exact_stem_match", "equivalent_stem_match"}:
+                        errors.append("rejected source stem does not match for %s/%s" % (qid, source_id))
+                elif stem_match != "not_assessed":
+                    errors.append("rejected source without stem support must use not_assessed for %s/%s" % (qid, source_id))
+                if answer_match not in SOURCE_AUDIT_REJECTED_ANSWER_MATCHES:
+                    errors.append("rejected source has no answer-error classification for %s/%s" % (qid, source_id))
+                for field in ("answer_locator", "answer_value", "answer_excerpt", "rejection_reason"):
+                    if not str(assessment.get(field, "")).strip():
+                        errors.append("rejected source is missing %s for %s/%s" % (field, qid, source_id))
             if supports_canonical and str(assessment.get("answer_value")) != _canonical_source_value(expected_answer):
                 errors.append("source answer value differs for %s/%s" % (qid, source_id))
             if (
@@ -688,6 +766,10 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                 and answer_match in {"exact_answer_match", "equivalent_answer_match"}
             ):
                 joint_groups.add(str(assessment["independence_group"]))
+        recorded_rejected = row.get("rejected_source_ids")
+        if recorded_rejected is not None:
+            if not isinstance(recorded_rejected, list) or set(map(str, recorded_rejected)) != row_rejected_sources:
+                errors.append("source audit rejected source list is stale for %s" % qid)
         stem_complete = len(stem_groups) >= required_stem
         joint_complete = len(joint_groups) >= required_joint
         if int(row.get("stem_independent_groups") or 0) != len(stem_groups):

@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
-  "dataset_version": "0.1.0-alpha.2026-n1.3",
+  "dataset_version": "0.1.0-alpha.2026-n1.4",
   "policy": {
-    "version": "dual_source_v1",
+    "version": "dual_source_v2",
     "scope": "all_catalogued_questions",
-    "required_stem_independent_groups": 2,
-    "required_joint_answer_independent_groups": 2,
+    "required_stem_independent_groups": 8,
+    "required_joint_answer_independent_groups": 4,
     "answer_only_sources_count_for_gate": false,
     "owner_signoff_requires_gate": true,
     "joint_answer_source_must_match_stem": true,
@@ -60,18 +60,36 @@
       ]
     },
     {
+      "id": "src-eol-2026-n1-answers",
+      "publisher": "中国教育在线",
+      "url": "https://www.eol.cn/m/gaokao/202606/t20260608_2742417.shtml",
+      "source_type": "media_exam_and_answer_gallery",
+      "evidence_scope": "stem_and_answer",
+      "independence_group": "eol-gkst",
+      "access_method": "浏览器打开七页答案解析图，逐页核对题干、答案与解析",
+      "retrieved_at": "2026-11-13",
+      "notes": "七页完整题面与答案解析。第 13、14、15、18、19 题存在可复现的答案错误，逐题登记为 rejected，不进入联合答案门禁；第 1–12、16、17 题可计入联合来源。",
+      "page_urls": {
+        "1": "https://www.eol.cn/m/gaokao/202606/W020260608340022926714.png",
+        "2": "https://www.eol.cn/m/gaokao/202606/W020260608340022937932.png",
+        "3": "https://www.eol.cn/m/gaokao/202606/W020260608340022942047.png",
+        "4": "https://www.eol.cn/m/gaokao/202606/W020260608340022944080.png",
+        "5": "https://www.eol.cn/m/gaokao/202606/W020260608340022959910.png",
+        "6": "https://www.eol.cn/m/gaokao/202606/W020260608340022954681.png",
+        "7": "https://www.eol.cn/m/gaokao/202606/W020260608340022965378.png"
+      }
+    },
+    {
       "id": "src-gk100-2026-n1-answers",
       "publisher": "高考100",
       "url": "https://www.gk100.com/read_122151413.htm",
       "source_type": "media_exam_and_answer_gallery",
       "evidence_scope": "stem_and_answer",
       "independence_group": "gk100",
-      "access_method": "浏览器打开专题页，先核对真题长图，再逐页核对答案解析图",
+      "access_method": "浏览器打开专题页，逐页核对 12 页答案图；每页均同时包含题面与答案解析",
       "retrieved_at": "2026-11-12",
-      "notes": "同一专题内提供完整真题长图和 12 页答案解析；第 19 题结论与证明见答案第 11–12 页。",
-      "stem_image_urls": [
-        "https://p1.gk100.com/article/20260607/093642fb5ec28ff6.png"
-      ],
+      "notes": "同一专题提供 12 页答案图，每页同时包含题面、答案与解析；第 19 题结论与证明见答案第 11–12 页。跨 6 页的真题长图不作为题干证据，避免一张长图自报覆盖多页。",
+      "answer_pages_include_stems": true,
       "answer_image_urls": [
         "https://p1.gk100.com/article/20260608/58065c99ad88b76c.png",
         "https://p1.gk100.com/article/20260608/511061f009995db4.png",
@@ -86,6 +104,30 @@
         "https://p1.gk100.com/article/20260608/16cc600ab0b011ec.png",
         "https://p1.gk100.com/article/20260608/d6beefcaecad6851.png"
       ]
+    },
+    {
+      "id": "src-book118-2026-n1-full",
+      "publisher": "原创力文档（文档 7162100005011121）",
+      "url": "https://max.book118.com/html/2026/0607/7162100005011121.shtm",
+      "source_type": "document_preview_with_answers",
+      "evidence_scope": "stem_and_answer",
+      "independence_group": "book118-preview-7162100005011121",
+      "access_method": "浏览器打开 17 页 PDF 预览；公开预览 1–11 页，逐页核对题面、答案与解析",
+      "retrieved_at": "2026-11-13",
+      "notes": "原始文档 17 页，公开预览前 11 页。第 1–4 页完整题面；第 5–11 页覆盖第 1–14 题、第 15 题完整解答和第 16 题完整解答，第 17 题从第 11 页开始但被预览截断，因此不声称覆盖第 17–19 题。",
+      "page_urls": {
+        "1": "https://view-cache.book118.com/view43/M00/0B/21/wKh2CmonnOaAQ7UZAACP4wW2EMw263.png",
+        "2": "https://view-cache.book118.com/view43/M00/0B/24/wKh2AmonnOaABwJ0AACVkw3Qepw612.png",
+        "3": "https://view-cache.book118.com/view43/M01/0B/21/wKh2CmonnOaAJVJeAACvzZBtebE269.png",
+        "4": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAJJXTAACIsSzF9qY592.png",
+        "5": "https://view-cache.book118.com/view43/M00/0B/24/wKh2AmonnOaACRPzAACzy5b4elk084.png",
+        "6": "https://view-cache.book118.com/view43/M00/0B/24/wKh2AmonnOaALpAcAAC6y-yQREQ610.png",
+        "7": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAM6owAAC7kcZdhZw468.png",
+        "8": "https://view-cache.book118.com/view43/M04/0B/24/wKh2AmonnOaAJjKaAADE1zfveCo834.png",
+        "9": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAMTNkAADGqwOyJdw368.png",
+        "10": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAYIiHAACnZC7YGZg985.png",
+        "11": "https://view-cache.book118.com/view43/M03/0B/24/wKh2AmonnOaAO8cIAACT-YSAG-8025.png"
+      }
     },
     {
       "id": "src-rendoc-2026-n1-full",
@@ -159,7 +201,8 @@
       "independence_group": "bendibao",
       "access_method": "浏览器打开网页答案列表，逐题核对答案文字",
       "retrieved_at": "2026-11-12",
-      "notes": "答案覆盖 1–19；部分公式被网页省略，只作答案补充，不计入双来源硬门槛。"
+      "notes": "答案覆盖 1–19；部分公式被网页省略，只作答案补充，不计入双来源硬门槛。页面含动态推荐位，在线复核只检查可访问性；离线冻结证据仍按哈希固定。",
+      "live_hash_stable": false
     },
     {
       "id": "src-sohu-2026-n1-answers",
@@ -234,10 +277,12 @@
       "stem_groups": [
         {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "题面预览第1页；第{n}题"},
         {"numbers": [6], "page_start": 1, "page_end": 2, "locator_template": "题面预览第1–2页；第6题跨页"},
-        {"numbers": [7, 8, 9, 10, 11], "page_start": 2, "page_end": 2, "locator_template": "题面预览第2页；第{n}题"},
-        {"numbers": [12], "page_start": 2, "page_end": 3, "locator_template": "题面预览第2–3页；第12题跨页"},
-        {"numbers": [13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "题面预览第3页；第{n}题"},
-        {"numbers": [17], "page_start": 3, "page_end": 4, "locator_template": "题面预览第3–4页；第17题跨页"},
+        {"numbers": [7, 8, 9, 10], "page_start": 2, "page_end": 2, "locator_template": "题面预览第2页；第{n}题"},
+        {"numbers": [11], "page_start": 2, "page_end": 3, "locator_template": "题面预览第2–3页；第11题跨页"},
+        {"numbers": [12], "page_start": 3, "page_end": 3, "locator_template": "题面预览第3页；第12题"},
+        {"numbers": [13, 14, 15], "page_start": 3, "page_end": 3, "locator_template": "题面预览第3页；第{n}题"},
+        {"numbers": [16], "page_start": 3, "page_end": 4, "locator_template": "题面预览第3–4页；第16题跨页"},
+        {"numbers": [17], "page_start": 4, "page_end": 4, "locator_template": "题面预览第4页；第17题"},
         {"numbers": [18], "page_start": 4, "page_end": 4, "locator_template": "题面预览第4页；第18题"},
         {"numbers": [19], "page_start": 4, "page_end": 5, "locator_template": "题面预览第4–5页；第19题跨页"}
       ]
@@ -250,14 +295,73 @@
         {"numbers": [18, 19], "page_start": 4, "page_end": 4, "locator_template": "题面第4页；第{n}题"}
       ]
     },
+    "src-eol-2026-n1-answers": {
+      "stem_groups": [
+        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
+        {"numbers": [6, 7, 8], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第{n}题"},
+        {"numbers": [9, 10, 11], "page_start": 3, "page_end": 3, "locator_template": "答案解析第3页；第{n}题"},
+        {"numbers": [12, 13, 14], "page_start": 4, "page_end": 4, "locator_template": "答案解析第4页；第{n}题"},
+        {"numbers": [15], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第15题"},
+        {"numbers": [16, 17], "page_start": 6, "page_end": 6, "locator_template": "答案解析第6页；第{n}题"},
+        {"numbers": [18, 19], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"}
+      ],
+      "joint_answer_groups": [
+        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
+        {"numbers": [6, 7, 8], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第{n}题"},
+        {"numbers": [9, 10, 11], "page_start": 3, "page_end": 3, "locator_template": "答案解析第3页；第{n}题"},
+        {"numbers": [12, 13, 14], "page_start": 4, "page_end": 4, "locator_template": "答案解析第4页；第{n}题"},
+        {"numbers": [15], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第15题"},
+        {"numbers": [16, 17], "page_start": 6, "page_end": 6, "locator_template": "答案解析第6页；第{n}题"},
+        {"numbers": [18, 19], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"}
+      ],
+      "question_overrides": {
+        "13": {
+          "role": "rejected",
+          "answer_match": "external_answer_error",
+          "observed_answer": "θ = 3π/2；f(2π/3) = -2",
+          "rejection_reason": "来源把 f(2π/3) 算为 -2；由偶函数与区间单调性可推出 θ=3π/2，且 a=1 或 2 时 f(2π/3)=1。"
+        },
+        "14": {
+          "role": "rejected",
+          "answer_match": "external_answer_error",
+          "observed_answer": "q 的最大值为 4",
+          "rejection_reason": "来源给出 q_max=4；按三项块和 2n 与等比块比值推导，q^3≤3/2，故 q_max=∛(3/2)。"
+        },
+        "15": {
+          "role": "rejected",
+          "answer_match": "external_answer_error",
+          "observed_answer": "距离为 √2/2",
+          "rejection_reason": "来源给出距离 √2/2；独立坐标推导得 a=2，距离 a/2=1。"
+        },
+        "18": {
+          "role": "rejected",
+          "answer_match": "external_answer_error",
+          "observed_answer": "l: y=1/2(x+1)；tan∠PQR 的最小值为 √2/2",
+          "rejection_reason": "来源给出 k=1/2、最小值为 √2/2；独立推导得 k=√5/2、最小值为 4√3。"
+        },
+        "19": {
+          "role": "rejected",
+          "answer_match": "external_answer_error",
+          "observed_answer": "D(-1)=(-1, 3/2)",
+          "rejection_reason": "来源第 (1) 问给出 D(-1)=(-1,3/2)；逐段解不等式得 D(-1)=(0,3/2)。"
+        }
+      }
+    },
     "src-gk100-2026-n1-answers": {
       "stem_groups": [
-        {"numbers": [1, 2, 3], "page_start": 1, "page_end": 1, "locator_template": "真题长图第1段；第{n}题"},
-        {"numbers": [4, 5, 6, 7, 8], "page_start": 2, "page_end": 2, "locator_template": "真题长图第2段；第{n}题"},
-        {"numbers": [9, 10], "page_start": 3, "page_end": 3, "locator_template": "真题长图第3段；第{n}题"},
-        {"numbers": [11, 12, 13, 14, 15], "page_start": 4, "page_end": 4, "locator_template": "真题长图第4段；第{n}题"},
-        {"numbers": [16, 17, 18], "page_start": 5, "page_end": 5, "locator_template": "真题长图第5段；第{n}题"},
-        {"numbers": [19], "page_start": 6, "page_end": 6, "locator_template": "真题长图第6段；第19题"}
+        {"numbers": [1, 2, 3, 4], "page_start": 1, "page_end": 1, "locator_template": "答案图第1页题面；第{n}题"},
+        {"numbers": [5, 6, 7], "page_start": 2, "page_end": 2, "locator_template": "答案图第2页题面；第{n}题"},
+        {"numbers": [8, 9], "page_start": 3, "page_end": 3, "locator_template": "答案图第3页题面；第{n}题"},
+        {"numbers": [10], "page_start": 4, "page_end": 4, "locator_template": "答案图第4页题面；第10题"},
+        {"numbers": [11], "page_start": 4, "page_end": 5, "locator_template": "答案图第4–5页题面；第11题跨页"},
+        {"numbers": [12], "page_start": 5, "page_end": 5, "locator_template": "答案图第5页题面；第12题"},
+        {"numbers": [13], "page_start": 5, "page_end": 6, "locator_template": "答案图第5–6页题面；第13题跨页"},
+        {"numbers": [14], "page_start": 6, "page_end": 6, "locator_template": "答案图第6页题面；第14题"},
+        {"numbers": [15], "page_start": 7, "page_end": 8, "locator_template": "答案图第7–8页题面；第15题跨页"},
+        {"numbers": [16], "page_start": 8, "page_end": 8, "locator_template": "答案图第8页题面；第16题"},
+        {"numbers": [17], "page_start": 8, "page_end": 9, "locator_template": "答案图第8–9页题面；第17题跨页"},
+        {"numbers": [18], "page_start": 9, "page_end": 10, "locator_template": "答案图第9–10页题面；第18题跨页"},
+        {"numbers": [19], "page_start": 11, "page_end": 12, "locator_template": "答案图第11–12页题面；第19题跨页"}
       ],
       "joint_answer_groups": [
         {"numbers": [1, 2, 3, 4], "page_start": 1, "page_end": 1, "locator_template": "答案图第1页；第{n}题"},
@@ -268,7 +372,7 @@
         {"numbers": [12], "page_start": 5, "page_end": 5, "locator_template": "答案图第5页；第12题"},
         {"numbers": [13], "page_start": 5, "page_end": 6, "locator_template": "答案图第5–6页；第13题跨页"},
         {"numbers": [14], "page_start": 6, "page_end": 6, "locator_template": "答案图第6页；第14题"},
-        {"numbers": [15], "page_start": 7, "page_end": 7, "locator_template": "答案图第7页；第15题"},
+        {"numbers": [15], "page_start": 7, "page_end": 8, "locator_template": "答案图第7–8页；第15题跨页"},
         {"numbers": [16], "page_start": 8, "page_end": 8, "locator_template": "答案图第8页；第16题"},
         {"numbers": [17], "page_start": 8, "page_end": 9, "locator_template": "答案图第8–9页；第17题跨页"},
         {"numbers": [18], "page_start": 9, "page_end": 10, "locator_template": "答案图第9–10页；第18题跨页"},
@@ -279,7 +383,8 @@
       "stem_groups": [
         {"numbers": [1, 2, 3, 4, 5, 6, 7], "page_start": 1, "page_end": 1, "locator_template": "题面第1页；第{n}题"},
         {"numbers": [8, 9, 10, 11, 12], "page_start": 2, "page_end": 2, "locator_template": "题面第2页；第{n}题"},
-        {"numbers": [13, 14, 15, 16, 17], "page_start": 3, "page_end": 3, "locator_template": "题面第3页；第{n}题"},
+        {"numbers": [13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "题面第3页；第{n}题"},
+        {"numbers": [17], "page_start": 3, "page_end": 4, "locator_template": "题面第3–4页；第17题跨页"},
         {"numbers": [18, 19], "page_start": 4, "page_end": 4, "locator_template": "题面第4页；第{n}题"}
       ],
       "joint_answer_groups": [
@@ -298,6 +403,25 @@
         {"numbers": [17], "page_start": 13, "page_end": 13, "locator_template": "答案第13页；第17题"},
         {"numbers": [18], "page_start": 13, "page_end": 14, "locator_template": "答案第13–14页；第18题跨页"},
         {"numbers": [19], "page_start": 14, "page_end": 16, "locator_template": "答案第14–16页；第19题跨页"}
+      ]
+    },
+    "src-book118-2026-n1-full": {
+      "stem_groups": [
+        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "题面第1页；第{n}题"},
+        {"numbers": [6, 7, 8, 9, 10], "page_start": 2, "page_end": 2, "locator_template": "题面第2页；第{n}题"},
+        {"numbers": [11, 12, 13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "题面第3页；第{n}题"},
+        {"numbers": [17, 18, 19], "page_start": 4, "page_end": 4, "locator_template": "题面第4页；第{n}题"}
+      ],
+      "joint_answer_groups": [
+        {"numbers": [1, 2, 3, 4], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第{n}题"},
+        {"numbers": [5], "page_start": 5, "page_end": 6, "locator_template": "答案解析第5–6页；第5题跨页"},
+        {"numbers": [6, 7, 8], "page_start": 6, "page_end": 6, "locator_template": "答案解析第6页；第{n}题"},
+        {"numbers": [9, 10], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"},
+        {"numbers": [11], "page_start": 8, "page_end": 8, "locator_template": "答案解析第8页；第11题"},
+        {"numbers": [12], "page_start": 8, "page_end": 9, "locator_template": "答案解析第8–9页；第12题跨页"},
+        {"numbers": [13, 14], "page_start": 9, "page_end": 9, "locator_template": "答案解析第9页；第{n}题"},
+        {"numbers": [15], "page_start": 10, "page_end": 11, "locator_template": "答案解析第10–11页；第15题跨页"},
+        {"numbers": [16], "page_start": 11, "page_end": 11, "locator_template": "答案解析第11页；第16题"}
       ]
     },
     "src-netease-shuhai-2026-n1-full": {

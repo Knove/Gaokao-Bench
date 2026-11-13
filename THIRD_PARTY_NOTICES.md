@@ -7,7 +7,7 @@ publisher endorses Gaokao-Bench, a benchmark result, or a public ranking.
 
 ## 2026 National I Mathematics Candidate
 
-Package version: `0.1.0-alpha.2026-n1.2`
+Package version: `0.1.0-alpha.2026-n1.4`
 
 ### Question-paper sources
 
@@ -27,40 +27,52 @@ Package version: `0.1.0-alpha.2026-n1.2`
 ### Combined stem-and-answer sources
 
 - 高考100, “2026新高考全国一卷数学答案解析”: question-paper images plus
-  complete answer and solution images; one of three independent joint sources
-  used for the source gate. <https://www.gk100.com/read_122151413.htm>
+  complete answer and solution images. Every answer image is also frozen as
+  stem evidence because the question text is visible on the same page; the
+  removed six-page long image is not used as page evidence.
+  <https://www.gk100.com/read_122151413.htm>
+- 中国教育在线, “2026年新高考一卷数学答案及解析”: seven answer-and-solution
+  pages that also reproduce the question stems. Questions 13, 14, 15, 18 and 19
+  contain reproducible answer errors, so those rows are recorded as rejected and
+  do not count as joint-answer evidence.
+  <https://www.eol.cn/m/gaokao/202606/t20260608_2742417.shtml>
+- 原创力文档（文档 7162100005011121）, “2026年全国新高考一卷数学试题及答案”:
+  a 17-page document whose public preview exposes pages 1-11. Pages 1-4 contain
+  the complete paper and pages 5-11 contain complete solutions for questions
+  1-16. The preview cutoff does not support a claim for questions 17-19.
+  <https://max.book118.com/html/2026/0607/7162100005011121.shtm>
 - 人人文库（上传文档 528467279）, “2026年全国新高考一卷数学试题及答案”:
   16-page document preview containing question text, answers, and worked
-  solutions; one of three independent joint sources used for the source gate.
+  solutions.
   <https://www.renrendoc.com/paper/528467279.html>
 - 网易号／新浪财经（原文：数海漫游）, “2026年全国一卷（数学）真题及全解析”:
   15 pages of handwritten solutions plus four complete question-paper pages;
-  one of three independent joint sources used for the source gate.
   <https://m.163.com/dy/article/KUSEQ8DV05568W0A.html>
+- 自主选拔在线, “2026年全国新高考一卷数学试题及答案解析”: four question-paper
+  images plus 30 answer pages. It is a joint stem-and-answer source, not an
+  answer-only check. <https://www.zizzs.com/gk/shitiku/222593_3.html>
 
 ### Answer-only checks
 
 These sources are recorded as supplementary answer checks. They do not count
-toward the required two independent sources that contain both the matching stem
-and the answer.
+toward the joint stem-and-answer gate.
 
 - 深圳本地宝, “2026全国新高考一卷数学试题及答案”: text answer check.
   <https://sz.bendibao.com/edu/202669/1005149.shtm>
-- 自主选拔在线, “2026年全国新高考一卷数学试题及答案解析”: answer-only check for
-  questions 1-5.
-  <https://www.zizzs.com/gk/shitiku/222593_3.html>
 - 搜狐号「一帮N辅导」, “2026年全国新高考一卷数学试题及参考答案”: teacher-reviewed
   answer-only check. The article states that its answers are for reference only.
   <https://news.sohu.com/a/1034912500_121124035>
 
 The package records exact source identifiers, URLs, locators, image indices, and
 retrieval dates in `sources.jsonl`, `answer_sources.jsonl`, and
-`source_audit.jsonl`. Every catalogued question has six independent stem-source
-groups and three independent sources that contain both the matching stem and the
-answer. The hard gate requires at least two of each; the additional source is an
-independence margin, not a claim about any publisher's authority. Answers are
-independently derived and then cross-checked; no source is represented as an
-official examination-authority key.
+`source_audit.jsonl`. Every catalogued question has at least eight independent
+stem-source groups and at least four independent sources that contain both the
+matching stem and the correct answer. Those are the enforced n1.4 thresholds,
+not decorative counts. Chinese Education Online and the other China Education
+Online paper page share one independence group even though they are separate
+URLs. Wrong-answer rows remain visible with their observed answer and rejection
+reason. Answers are independently derived and then cross-checked; no source is
+represented as an official examination-authority key.
 
 ## Attribution and corrections
 

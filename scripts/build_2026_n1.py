@@ -153,7 +153,7 @@ def load_source_pages_spec(
             seen_files.add(relative_file)
             if not str(row.get("url") or "").startswith(("http://", "https://")):
                 raise ValueError("source page evidence URL is invalid for %s" % source_id)
-            if row.get("scope") not in {"stem", "answer", "page", "document"}:
+            if row.get("scope") not in {"stem", "answer", "stem_and_answer", "page", "document"}:
                 raise ValueError("source page evidence scope is invalid for %s" % source_id)
             digest = str(row.get("sha256") or "")
             if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
@@ -163,6 +163,13 @@ def load_source_pages_spec(
             pages = row.get("covered_page_starts")
             if not isinstance(pages, list) or not pages or any(int(page) < 1 for page in pages):
                 raise ValueError("source page evidence page coverage is invalid for %s" % source_id)
+            numbers = row.get("question_numbers")
+            if (
+                not isinstance(numbers, list)
+                or not numbers
+                or any(int(number) < 1 for number in numbers)
+            ):
+                raise ValueError("source page evidence question mapping is invalid for %s" % source_id)
     return value
 
 
@@ -223,6 +230,9 @@ def materialize_source_pages(
                 "media_type": str(entry["media_type"]),
                 "sha256": actual_sha256,
                 "bytes": len(payload),
+                "question_numbers": sorted(
+                    int(number) for number in entry.get("question_numbers", [])
+                ),
             }
             rows.append(row)
             source_rows.append(row)
@@ -303,7 +313,8 @@ def _evidence_for_group(
             row
             for row in source_pages
             if page in [int(value) for value in row.get("covered_page_starts", [])]
-            and str(row.get("scope")) in {wanted_scope, "page", "document"}
+            and str(row.get("scope"))
+            in {wanted_scope, "stem_and_answer", "page", "document"}
         ]
         if not candidates:
             raise ValueError(
@@ -342,15 +353,19 @@ def _source_assessment(
     answer_group: Optional[Mapping[str, Any]],
     canonical_text: str,
     source_pages: Sequence[Mapping[str, Any]],
+    override: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     number = int(item["number"])
     joint = role == "joint_supporting"
     stem_only = role == "stem_supporting"
     answer_only = role == "answer_only_supporting"
+    rejected = role == "rejected"
     stem = str(item.get("stem") or item.get("content") or "").strip()
-    answer_note = canonical_text
-    if item.get("type") == "catalog_subjective" and "见解析" not in canonical_text:
-        answer_note = "%s；来源页含完整证明或解答过程。" % canonical_text
+    observed_answer = str((override or {}).get("observed_answer") or "").strip()
+    answer_note = observed_answer if rejected else canonical_text
+    rejection_reason = (
+        str((override or {}).get("rejection_reason") or "").strip() if rejected else ""
+    )
     stem_evidence = _evidence_for_group(source_pages, stem_group, stem=True)
     answer_evidence = _evidence_for_group(source_pages, answer_group, stem=False)
     stem_page_start = (
@@ -400,13 +415,19 @@ def _source_assessment(
         "supports_stem": bool(stem_group is not None),
         "supports_canonical": bool(joint or answer_only),
         "stem_match": "exact_stem_match" if stem_group is not None else "not_assessed",
-        "answer_match": "not_assessed" if stem_only else "exact_answer_match",
+        "answer_match": (
+            str((override or {}).get("answer_match") or "external_answer_error")
+            if rejected
+            else "not_assessed"
+            if stem_only
+            else "exact_answer_match"
+        ),
         "stem_locator": _locator(stem_group, number) if stem_group is not None else "",
         "answer_locator": _locator(answer_group, number) if answer_group is not None else "",
-        "stem_excerpt": stem[:280],
-        "answer_value": canonical_text,
+        "stem_excerpt": stem,
+        "answer_value": answer_note,
         "answer_excerpt": answer_note,
-        "rejection_reason": None,
+        "rejection_reason": rejection_reason or None,
     }
 
 
@@ -486,7 +507,34 @@ def build_source_audit(
                 source_id=source_id,
                 kind="answer_only",
             )
-            if source.get("evidence_scope") == "stem_and_answer":
+            overrides = source_coverage.get("question_overrides")
+            override = (
+                overrides.get(str(number)) if isinstance(overrides, Mapping) else None
+            )
+            if override is not None:
+                if not isinstance(override, Mapping) or override.get("role") != "rejected":
+                    raise ValueError(
+                        "question override must be a rejected assessment for %s/%s"
+                        % (source_id, number)
+                    )
+                if stem_group is None or answer_group is None:
+                    raise ValueError(
+                        "rejected source override needs stem and answer groups for %s/%s"
+                        % (source_id, number)
+                    )
+                if not str(override.get("observed_answer") or "").strip():
+                    raise ValueError(
+                        "rejected source override has no observed answer for %s/%s"
+                        % (source_id, number)
+                    )
+                if not str(override.get("rejection_reason") or "").strip():
+                    raise ValueError(
+                        "rejected source override has no rejection reason for %s/%s"
+                        % (source_id, number)
+                    )
+                role = "rejected"
+                selected_answer = answer_group
+            elif source.get("evidence_scope") == "stem_and_answer":
                 if stem_group is None or answer_group is None:
                     continue
                 role = "joint_supporting"
@@ -513,6 +561,7 @@ def build_source_audit(
                     answer_group=selected_answer,
                     canonical_text=canonical_text,
                     source_pages=source_pages.get(source_id, ()),
+                    override=override if isinstance(override, Mapping) else None,
                 )
             )
 
@@ -556,6 +605,11 @@ def build_source_audit(
                 assessment["source_id"]
                 for assessment in assessments
                 if assessment["role"] == "answer_only_supporting"
+            ],
+            "rejected_source_ids": [
+                assessment["source_id"]
+                for assessment in assessments
+                if assessment["role"] == "rejected"
             ],
             "stem_independent_groups": len(stem_groups),
             "joint_answer_independent_groups": len(joint_groups),
@@ -1083,7 +1137,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                 "secondary_external_canonical": item["canonical"],
                 "secondary_source_locator": secondary_assessment["answer_locator"],
                 "supporting_source_ids": supporting,
-                "rejected_source_ids": [],
+                "rejected_source_ids": audit_row.get("rejected_source_ids", []),
                 "match_method": "explicit_answer_and_independent_derivation",
                 "source_audit_gate": audit_row["gate_complete"],
                 "source_audit_stem_groups": audit_row["stem_independent_groups"],
@@ -1130,11 +1184,10 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                 "previous_points": None,
                 "delta": 0,
                 "lifetime_delta": 0,
-                "source_ids": [
-                    source["id"],
-                    "src-gk100-2026-n1-answers",
-                    "src-rendoc-2026-n1-full",
-                ],
+                "source_ids": sorted(
+                    {source["id"]}
+                    | {str(assessment["source_id"]) for assessment in assessments}
+                ),
                 "locator": "2026 全国卷 I 数学试卷结构；第%d题" % int(item["number"]),
                 "match_method": "official_paper_section_and_question_points",
                 "decision": "retain_current",
@@ -1290,6 +1343,32 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     shutil.copyfile(ROOT / "THIRD_PARTY_NOTICES.md", temporary / "THIRD_PARTY_NOTICES.md")
     shutil.copyfile(ROOT / "LICENSE-DATA", temporary / "LICENSE-DATA")
 
+    minimum_stem_groups = min(row["stem_independent_groups"] for row in source_audit_rows)
+    minimum_joint_groups = min(
+        row["joint_answer_independent_groups"] for row in source_audit_rows
+    )
+    stem_publishers = sorted(
+        {
+            str(row["publisher"])
+            for row in answer_sources
+            if row.get("evidence_scope") in {"stem_only", "stem_and_answer"}
+        }
+    )
+    joint_publishers = sorted(
+        {
+            str(row["publisher"])
+            for row in answer_sources
+            if row.get("evidence_scope") == "stem_and_answer"
+        }
+    )
+    answer_only_publishers = sorted(
+        {
+            str(row["publisher"])
+            for row in answer_sources
+            if row.get("evidence_scope") == "answer_only"
+        }
+    )
+    rejected_source_count = sum(len(row["rejected_source_ids"]) for row in source_audit_rows)
     audit_summary = "三方独立审计已通过，等待 owner 最终逐题验收。" if audited else "三方独立审计尚未完成。"
     (temporary / "DATA_CARD.md").write_text(
         "# Gaokao-Bench 2026 全国卷 I 数学（验收候选）\n\n"
@@ -1297,10 +1376,16 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "- 确定性自动评分：选择/填空 14 题，73 分。\n"
         "- 解答题：5 题，77 分，已收录题面、参考答案和解答要点，暂不进入自动评分分母。\n"
         "- 图形依赖：客观题 0 题；解答题第 15 题需要随附立体几何图。\n"
-        "- 来源：题干由 deekur/gaokaomath 冻结 PDF、无忧考网、中国教育在线、高考100、人人文库和网易号／新浪财经（原文：数海漫游）交叉核对；答案由高考100、人人文库和网易号三条独立的“题干+答案”来源闭环核验，深圳本地宝、搜狐和自主选拔在线仅作补充。\n"
+        "- 来源：题干由 %s 交叉核对；答案由 %s 的“题干+答案”来源闭环核验；%s 仅作答案补充；%d 个已证实答案错误的来源被逐题拒绝，不进入答案门禁。\n"
         "- 署名：完整来源清单与第三方声明见 `THIRD_PARTY_NOTICES.md`、`SOURCE_REGISTER.md` 和来源 JSONL。\n"
         "- 许可：整个数据包采用 CC BY 4.0，署名 Gaokao-Bench 与准确数据版本即可再分发和改编。\n"
-        f"- 状态：`acceptance_candidate`，{audit_summary}未发布。\n",
+        f"- 状态：`acceptance_candidate`，{audit_summary}未发布。\n"
+        % (
+            "、".join(stem_publishers),
+            "、".join(joint_publishers),
+            "、".join(answer_only_publishers) if answer_only_publishers else "无",
+            rejected_source_count,
+        ),
         encoding="utf-8",
     )
     (temporary / "LICENSE_AND_RIGHTS.md").write_text(
@@ -1331,23 +1416,33 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             )
             for row in answer_sources
         )
-        + "\n\nThe source PDF SHA-256 is `%s`. The hard gate requires at least two "
-        "independent stem sources and two independent sources that each contain both "
-        "the matched stem and the answer. Answer-only pages do not count toward the "
-        "answer gate. Per-question locators and excerpts are in `source_audit.jsonl`.\n\n"
+        + "\n\nThe source PDF SHA-256 is `%s`. The hard gate requires at least %d "
+        "independent stem groups and %d independent sources that each contain both "
+        "the matched stem and the correct answer. This candidate has at least %d stem "
+        "groups and %d joint-answer groups per question. Answer-only pages and rejected "
+        "wrong-answer sources do not count toward the answer gate. Per-question locators, "
+        "exact excerpts and rejection reasons are in `source_audit.jsonl`.\n\n"
         "Attribution is consolidated in "
         "`THIRD_PARTY_NOTICES.md`. All package material is released under CC BY 4.0 "
-        "with attribution to Gaokao-Bench and this exact dataset version.\n" % source["sha256"],
+        "with attribution to Gaokao-Bench and this exact dataset version.\n"
+        % (
+            source["sha256"],
+            required_stem,
+            required_joint,
+            minimum_stem_groups,
+            minimum_joint_groups,
+        ),
         encoding="utf-8",
     )
     (temporary / "RELEASE_NOTES.md").write_text(
         "# 2026 National I mathematics acceptance candidate\n\n"
         "Full 19-question catalogue; 14 objective questions / 73 points are "
         "deterministically scored, and 5 subjective questions / 77 points are "
-        "catalogued with reference answers and solution outlines. All 19 questions "
-        "have six independent stem-source groups and three independent joint "
-        "stem+answer sources; the enforced gate requires at least two. Not published; "
-        "owner acceptance remains pending.\n",
+        "catalogued with reference answers and solution outlines. Every question has "
+        "at least %d independent stem-source groups and %d independent joint "
+        "stem+answer sources; the enforced gate requires %d and %d. Not published; "
+        "owner acceptance remains pending.\n"
+        % (minimum_stem_groups, minimum_joint_groups, required_stem, required_joint),
         encoding="utf-8",
     )
     public_reproduction_note = (
@@ -1385,9 +1480,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "python3 -m pytest -q\n"
         "```\n\n"
         "The builder verifies source PDF SHA-256 `%s`, re-renders all 19 crops from "
-        "explicit page bounding boxes, enforces the 19/19 source gate (six stem "
-        "groups and three joint stem+answer groups per question; the policy minimum "
-        "is two of each), and "
+        "explicit page bounding boxes, enforces the 19/19 source gate (at least %d stem "
+        "groups and %d joint stem+answer groups per question; this candidate has at "
+        "least %d and %d), and "
         "writes a 73/73 objective gold result. "
         "Builder SHA-256: `%s`; spec SHA-256: `%s`; source-audit spec SHA-256: `%s`.\n"
         % (
@@ -1401,6 +1496,10 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             version,
             version,
             source["sha256"],
+            required_stem,
+            required_joint,
+            minimum_stem_groups,
+            minimum_joint_groups,
             sha256(Path(__file__).resolve()),
             sha256(spec_path),
             sha256(source_audit_spec_path),

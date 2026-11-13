@@ -43,6 +43,8 @@ def _media_type(data: bytes) -> tuple[str, str]:
         return "image/png", ".png"
     if data.startswith(b"\xff\xd8\xff"):
         return "image/jpeg", ".jpg"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif", ".gif"
     if data.startswith(b"%PDF-"):
         return "application/pdf", ".pdf"
     prefix = data[:512].lstrip().lower()
@@ -135,6 +137,55 @@ def _page_urls_for_source(
     ]
 
 
+def _question_numbers_by_page(coverage: Mapping[str, Any]) -> Dict[int, set[int]]:
+    by_page: Dict[int, set[int]] = {}
+    groups = (
+        list(coverage.get("stem_groups") or [])
+        + list(coverage.get("joint_answer_groups") or [])
+        + list(coverage.get("answer_groups") or [])
+    )
+    for group in groups:
+        if not isinstance(group, Mapping):
+            continue
+        first = int(group.get("page_start") or 1)
+        last = int(group.get("page_end", first))
+        numbers = {int(number) for number in group.get("numbers", [])}
+        for page in range(first, last + 1):
+            by_page.setdefault(page, set()).update(numbers)
+    return by_page
+
+
+def _attach_question_numbers(
+    entries: Sequence[Dict[str, Any]],
+    *,
+    coverage: Mapping[str, Any],
+    source_id: str,
+    fallback_numbers: Sequence[int],
+) -> None:
+    by_page = _question_numbers_by_page(coverage)
+    all_numbers = sorted(
+        {number for values in by_page.values() for number in values}
+        or {int(number) for number in fallback_numbers}
+    )
+    for entry in entries:
+        if entry.get("scope") == "document":
+            numbers = all_numbers
+        else:
+            numbers = sorted(
+                {
+                    number
+                    for page in entry.get("covered_page_starts", [])
+                    for number in by_page.get(int(page), set())
+                }
+            )
+        if not numbers:
+            raise ValueError(
+                "source page evidence is not mapped to any question number: %s/%s"
+                % (source_id, entry.get("file"))
+            )
+        entry["question_numbers"] = numbers
+
+
 def build_source_page_spec(
     *,
     dataset_spec: Mapping[str, Any],
@@ -145,6 +196,17 @@ def build_source_page_spec(
     source_rows: Dict[str, List[Dict[str, Any]]] = {}
     primary = dataset_spec["source"]
     primary_id = str(primary["id"])
+    all_question_numbers = sorted(
+        {
+            int(number)
+            for source_coverage in audit_spec["coverage"].values()
+            if isinstance(source_coverage, Mapping)
+            for key in ("stem_groups", "joint_answer_groups", "answer_groups")
+            for group in source_coverage.get(key, [])
+            if isinstance(group, Mapping)
+            for number in group.get("numbers", [])
+        }
+    )
 
     for source in audit_spec["sources"]:
         source_id = str(source["id"])
@@ -213,6 +275,11 @@ def build_source_page_spec(
                 coverage.get("answer_groups") or []
             )
             pages = _group_pages(groups) or [1]
+            answer_scope = (
+                "stem_and_answer"
+                if source.get("answer_pages_include_stems") is True
+                else "answer"
+            )
             for index, url in enumerate(answer_urls, 1):
                 covered = pages if len(answer_urls) == 1 else [page for page in pages if page == index]
                 if not covered:
@@ -228,7 +295,7 @@ def build_source_page_spec(
                         url=url,
                         referer=str(source.get("url") or ""),
                         data=None,
-                        scope="answer",
+                        scope=answer_scope,
                         page_index=index,
                         covered_pages=covered,
                     )
@@ -251,6 +318,12 @@ def build_source_page_spec(
 
         if not entries:
             raise ValueError("source has no freezeable page evidence: %s" % source_id)
+        _attach_question_numbers(
+            entries,
+            coverage=coverage,
+            source_id=source_id,
+            fallback_numbers=all_question_numbers,
+        )
         source_rows[source_id] = entries
 
     return {

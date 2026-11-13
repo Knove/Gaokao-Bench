@@ -43,6 +43,7 @@ build/
 !/tests/test_public_data_contract.py
 !/tests/test_release_contract.py
 !/tests/test_acceptance_dashboard.py
+!/tests/test_source_audit_gate.py
 
 # Source PDFs and question crops are local inputs and are never redistributed.
 *.pdf

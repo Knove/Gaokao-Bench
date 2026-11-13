@@ -10,6 +10,33 @@ Versioning
 2026-11-13
 ----------
 
+Dataset 0.1.0-alpha.2026-n1.4
+
+- Supersede the failed n1.3 candidate without reusing its version or manifest.
+  n1.3 is not an acceptance candidate: three independent audits found page-range
+  omissions, a fail-open excerpt check, long-image page overclaiming, and packet
+  fallback contamination.
+- Raise the source policy to eight independent stem groups and four independent
+  joint stem+answer groups per question. Add China Education Online's seven-page
+  answer gallery and the eleven-page public preview from Book118. Reject five
+  reproducible wrong-answer rows from China Education Online instead of counting
+  them as joint support.
+- Make source evidence page-local: non-document images must cover exactly their
+  own page, every frozen page names the question numbers it supports, and a
+  question-page range must be fully backed by matching files.
+- Require exact canonical stem and answer excerpts. Prefixes and free-text
+  suffixes are no longer accepted. Rejected sources preserve the observed wrong
+  answer and a written rejection reason.
+- Use the question-bearing answer pages from 高考100 as stem evidence and remove
+  its six-page long image. Merge the two China Education Online URLs into one
+  independence group.
+- Make a stale owner packet fall back to canonical data rows. Packet CSV content
+  can no longer add ghost papers or change acceptance counts.
+- Add `scripts/verify_source_urls.py` for live URL, redirect, content-type,
+  byte-count and SHA-256 checks against the frozen evidence manifest.
+- Regenerate package documentation from the active source policy and source
+  registry rather than hard-coded n1.2 counts.
+
 Dataset 0.1.0-alpha.2026-n1.2
 
 - Add a third independent full-paper “stem + answer” source: 网易号／新浪财经

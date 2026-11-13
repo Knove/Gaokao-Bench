@@ -542,6 +542,25 @@ def test_stale_owner_packet_is_read_only(tmp_path):
         status="acceptance_candidate",
     )
     _make_packet(review_root, data_dir, item_id, signed=False)
+    worksheet = review_root / "v-stale-packet-owner" / REVIEW_WORKSHEET_NAME
+    with worksheet.open("a", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=OWNER_REVIEW_FIELDS, lineterminator="\n"
+        )
+        polluted = {field: "" for field in OWNER_REVIEW_FIELDS}
+        polluted.update(
+            {
+                "item_id": "GHOST-Q01",
+                "paper_id": "paper-ghost",
+                "display_number": "第1题",
+                "question_type": "single_choice",
+                "points": "5",
+                "included_in_scoring": "true",
+                "stem": "伪造题",
+                "canonical_answer": json.dumps("A"),
+            }
+        )
+        writer.writerow(polluted)
 
     manifest_path = data_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -560,6 +579,12 @@ def test_stale_owner_packet_is_read_only(tmp_path):
     assert meta["decision_enabled"] is False
     assert meta["packet_binding_ok"] is False
     assert "manifest" in meta["packet_binding_error"]
+    dataset_payload = payload["datasets"]["v-stale-packet"]
+    assert len(dataset_payload["rows"]) == 1
+    assert dataset_payload["rows"][0]["item_id"] == item_id
+    assert set(meta["by_paper"]) == {"paper-test"}
+    assert meta["total_questions"] == 1
+    assert meta["total_points"] == 5
 
 
 def test_wrong_packet_version_is_stale(tmp_path):

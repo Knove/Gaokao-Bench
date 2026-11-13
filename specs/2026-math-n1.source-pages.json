@@ -1,5 +1,5 @@
 {
-  "dataset_version": "0.1.0-alpha.2026-n1.3",
+  "dataset_version": "0.1.0-alpha.2026-n1.4",
   "schema_version": "1.0",
   "sources": {
     "src-51test-2026-n1-paper": [
@@ -11,6 +11,14 @@
         "file": "src-51test-2026-n1-paper/stem-01.png",
         "media_type": "image/png",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
         "scope": "stem",
         "sha256": "b18b00de0bc5a3bec37bd773f13256544114b8a4cbf24c23ebaef7e9f7e5c86c",
         "url": "https://img.wykw.com/uploadfile/tiku/2026/0610/1903340608801.png"
@@ -23,6 +31,14 @@
         "file": "src-51test-2026-n1-paper/stem-02.png",
         "media_type": "image/png",
         "page_index": 2,
+        "question_numbers": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
         "scope": "stem",
         "sha256": "67c06a047c290219e5cb47cb0f9b7c151b55875a43aa33b497707e9c8f6f2f23",
         "url": "https://img.wykw.com/uploadfile/tiku/2026/0610/1903340313694.png"
@@ -35,6 +51,14 @@
         "file": "src-51test-2026-n1-paper/stem-03.png",
         "media_type": "image/png",
         "page_index": 3,
+        "question_numbers": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
         "scope": "stem",
         "sha256": "ac7f8bccb0b0f57dcac335dd63c17449ef7a2e26f74485b70612d7a5f4cff519",
         "url": "https://img.wykw.com/uploadfile/tiku/2026/0610/1903340974674.png"
@@ -47,6 +71,12 @@
         "file": "src-51test-2026-n1-paper/stem-04.png",
         "media_type": "image/png",
         "page_index": 4,
+        "question_numbers": [
+          16,
+          17,
+          18,
+          19
+        ],
         "scope": "stem",
         "sha256": "7de690137148ac59d0c2eea17729b52ca47d3ad6197bc73591f72a97ec5cdee9",
         "url": "https://img.wykw.com/uploadfile/tiku/2026/0610/1903350548582.png"
@@ -59,6 +89,9 @@
         "file": "src-51test-2026-n1-paper/stem-05.png",
         "media_type": "image/png",
         "page_index": 5,
+        "question_numbers": [
+          19
+        ],
         "scope": "stem",
         "sha256": "781bdba046eb898bf4941d1a4f14fcb2d76c34abe10860ba0b6153e104be6e04",
         "url": "https://img.wykw.com/uploadfile/tiku/2026/0610/1903350716838.png"
@@ -66,16 +99,231 @@
     ],
     "src-bendibao-2026-n1-answers": [
       {
-        "bytes": 73074,
+        "bytes": 73131,
         "covered_page_starts": [
           1
         ],
         "file": "src-bendibao-2026-n1-answers/page.html",
         "media_type": "text/html",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
         "scope": "answer",
-        "sha256": "2ebbcc82245fb1202a9ba95b9be077f31cacf65844ed912a5d5686daed4192b4",
+        "sha256": "7fcb94c9a22d07ce2b8ac76bfe10f361c89a7ad99d0a5e7c2cd2ca84a3a8f7c8",
         "url": "https://sz.bendibao.com/edu/202669/1005149.shtm"
+      }
+    ],
+    "src-book118-2026-n1-full": [
+      {
+        "bytes": 36835,
+        "covered_page_starts": [
+          1
+        ],
+        "file": "src-book118-2026-n1-full/page-01.gif",
+        "media_type": "image/gif",
+        "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "scope": "page",
+        "sha256": "82ba3d9d849fa97e0ade7b0116d6f93a65276254e547d9bc6b1f9ac4853eb09a",
+        "url": "https://view-cache.book118.com/view43/M00/0B/21/wKh2CmonnOaAQ7UZAACP4wW2EMw263.png"
+      },
+      {
+        "bytes": 38291,
+        "covered_page_starts": [
+          2
+        ],
+        "file": "src-book118-2026-n1-full/page-02.gif",
+        "media_type": "image/gif",
+        "page_index": 2,
+        "question_numbers": [
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "scope": "page",
+        "sha256": "08ecab51f4eb97e8e53958f40cafc32ae496140b8e62ba9d7291f70786b30648",
+        "url": "https://view-cache.book118.com/view43/M00/0B/24/wKh2AmonnOaABwJ0AACVkw3Qepw612.png"
+      },
+      {
+        "bytes": 45005,
+        "covered_page_starts": [
+          3
+        ],
+        "file": "src-book118-2026-n1-full/page-03.gif",
+        "media_type": "image/gif",
+        "page_index": 3,
+        "question_numbers": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "scope": "page",
+        "sha256": "d8fea853c6dd7ec0cf0cfe2f865d4a632261309f605661f9ae25e1130a8149b9",
+        "url": "https://view-cache.book118.com/view43/M01/0B/21/wKh2CmonnOaAJVJeAACvzZBtebE269.png"
+      },
+      {
+        "bytes": 34993,
+        "covered_page_starts": [
+          4
+        ],
+        "file": "src-book118-2026-n1-full/page-04.gif",
+        "media_type": "image/gif",
+        "page_index": 4,
+        "question_numbers": [
+          17,
+          18,
+          19
+        ],
+        "scope": "page",
+        "sha256": "9f2c833ec6f96861dcb89a6e96c0d1aec23997d5617df93daa6762dcc6a87509",
+        "url": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAJJXTAACIsSzF9qY592.png"
+      },
+      {
+        "bytes": 46027,
+        "covered_page_starts": [
+          5
+        ],
+        "file": "src-book118-2026-n1-full/page-05.gif",
+        "media_type": "image/gif",
+        "page_index": 5,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "scope": "page",
+        "sha256": "e73c25d2b7393c2d84de36094f72c4b75c628fff19a8c4e24b6cfad65dff99f7",
+        "url": "https://view-cache.book118.com/view43/M00/0B/24/wKh2AmonnOaACRPzAACzy5b4elk084.png"
+      },
+      {
+        "bytes": 47819,
+        "covered_page_starts": [
+          6
+        ],
+        "file": "src-book118-2026-n1-full/page-06.gif",
+        "media_type": "image/gif",
+        "page_index": 6,
+        "question_numbers": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "scope": "page",
+        "sha256": "fee0eb6f5b32907d79b28c4236a0c632acba61c73dd481fe195fa000514c9582",
+        "url": "https://view-cache.book118.com/view43/M00/0B/24/wKh2AmonnOaALpAcAAC6y-yQREQ610.png"
+      },
+      {
+        "bytes": 48017,
+        "covered_page_starts": [
+          7
+        ],
+        "file": "src-book118-2026-n1-full/page-07.gif",
+        "media_type": "image/gif",
+        "page_index": 7,
+        "question_numbers": [
+          9,
+          10
+        ],
+        "scope": "page",
+        "sha256": "b51a095a343d855dd7b56159709a356fed5368921df875f75a4fb65566410b0a",
+        "url": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAM6owAAC7kcZdhZw468.png"
+      },
+      {
+        "bytes": 50391,
+        "covered_page_starts": [
+          8
+        ],
+        "file": "src-book118-2026-n1-full/page-08.gif",
+        "media_type": "image/gif",
+        "page_index": 8,
+        "question_numbers": [
+          11,
+          12
+        ],
+        "scope": "page",
+        "sha256": "332c424b1e0f51450c0b7a1d55069cbf74fc7380bd079e00ad4059fdd8acc33c",
+        "url": "https://view-cache.book118.com/view43/M04/0B/24/wKh2AmonnOaAJjKaAADE1zfveCo834.png"
+      },
+      {
+        "bytes": 50859,
+        "covered_page_starts": [
+          9
+        ],
+        "file": "src-book118-2026-n1-full/page-09.gif",
+        "media_type": "image/gif",
+        "page_index": 9,
+        "question_numbers": [
+          12,
+          13,
+          14
+        ],
+        "scope": "page",
+        "sha256": "ca6d12a79dcaf835f37744b7166cdd94682646ce704bcba752e9d53956689410",
+        "url": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAMTNkAADGqwOyJdw368.png"
+      },
+      {
+        "bytes": 42852,
+        "covered_page_starts": [
+          10
+        ],
+        "file": "src-book118-2026-n1-full/page-10.gif",
+        "media_type": "image/gif",
+        "page_index": 10,
+        "question_numbers": [
+          15
+        ],
+        "scope": "page",
+        "sha256": "d552133e41c640c08208fc3c66ffbea7b87d8283b1efd5edbdbb05332fdbcd80",
+        "url": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAYIiHAACnZC7YGZg985.png"
+      },
+      {
+        "bytes": 37881,
+        "covered_page_starts": [
+          11
+        ],
+        "file": "src-book118-2026-n1-full/page-11.gif",
+        "media_type": "image/gif",
+        "page_index": 11,
+        "question_numbers": [
+          15,
+          16
+        ],
+        "scope": "page",
+        "sha256": "ab6b0bf27777f1c9b4900580bcb97b11538492c6168198377fb6290d1d6d1543",
+        "url": "https://view-cache.book118.com/view43/M03/0B/24/wKh2AmonnOaAO8cIAACT-YSAG-8025.png"
       }
     ],
     "src-deekur-gaokaomath-2026-n1": [
@@ -89,9 +337,149 @@
         "file": "src-deekur-gaokaomath-2026-n1/source.pdf",
         "media_type": "application/pdf",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
         "scope": "document",
         "sha256": "89adefb3506ff19ed4b6800422d8bcd655940fad8f093a94a1e18c6954623f11",
         "url": "https://raw.githubusercontent.com/deekur/gaokaomath/main/%E6%99%AE%E9%80%9A%E9%AB%98%E8%80%83/2026/2026%E5%85%A8%E5%9B%BD1(%E5%B1%B1%E4%B8%9C,%E5%B9%BF%E4%B8%9C,%E6%B9%96%E5%8D%97,%E6%B9%96%E5%8C%97,%E6%B2%B3%E5%8C%97,%E6%B1%9F%E8%8B%8F,%E7%A6%8F%E5%BB%BA,%E6%B5%99%E6%B1%9F,%E6%B2%B3%E5%8D%97,%E6%B1%9F%E8%A5%BF,%E5%AE%89%E5%BE%BD).pdf"
+      }
+    ],
+    "src-eol-2026-n1-answers": [
+      {
+        "bytes": 79104,
+        "covered_page_starts": [
+          1
+        ],
+        "file": "src-eol-2026-n1-answers/page-01.png",
+        "media_type": "image/png",
+        "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "scope": "page",
+        "sha256": "2d7333b1e03f1c00e0aa136e36f1c2f8fa706b61080fb284eeddae9dab728cda",
+        "url": "https://www.eol.cn/m/gaokao/202606/W020260608340022926714.png"
+      },
+      {
+        "bytes": 107335,
+        "covered_page_starts": [
+          2
+        ],
+        "file": "src-eol-2026-n1-answers/page-02.png",
+        "media_type": "image/png",
+        "page_index": 2,
+        "question_numbers": [
+          6,
+          7,
+          8
+        ],
+        "scope": "page",
+        "sha256": "f49f229c577b00dbcf893ccb8e27c56b501c8be6400fbde5c83851adc2e54956",
+        "url": "https://www.eol.cn/m/gaokao/202606/W020260608340022937932.png"
+      },
+      {
+        "bytes": 123547,
+        "covered_page_starts": [
+          3
+        ],
+        "file": "src-eol-2026-n1-answers/page-03.png",
+        "media_type": "image/png",
+        "page_index": 3,
+        "question_numbers": [
+          9,
+          10,
+          11
+        ],
+        "scope": "page",
+        "sha256": "1e96eb9d50470b5bf5e0503ed92d1293ecd79ef4c97786de41295a803c48d850",
+        "url": "https://www.eol.cn/m/gaokao/202606/W020260608340022942047.png"
+      },
+      {
+        "bytes": 115042,
+        "covered_page_starts": [
+          4
+        ],
+        "file": "src-eol-2026-n1-answers/page-04.png",
+        "media_type": "image/png",
+        "page_index": 4,
+        "question_numbers": [
+          12,
+          13,
+          14
+        ],
+        "scope": "page",
+        "sha256": "8fcb343bd95aec9f8359cf03d61875fc7686e5b81574c8320e92e3263518f997",
+        "url": "https://www.eol.cn/m/gaokao/202606/W020260608340022944080.png"
+      },
+      {
+        "bytes": 77825,
+        "covered_page_starts": [
+          5
+        ],
+        "file": "src-eol-2026-n1-answers/page-05.png",
+        "media_type": "image/png",
+        "page_index": 5,
+        "question_numbers": [
+          15
+        ],
+        "scope": "page",
+        "sha256": "661130bbc220de3ac1489efc2ba84280f97aa49eae579f31b9162b30b0d8d8f3",
+        "url": "https://www.eol.cn/m/gaokao/202606/W020260608340022959910.png"
+      },
+      {
+        "bytes": 85965,
+        "covered_page_starts": [
+          6
+        ],
+        "file": "src-eol-2026-n1-answers/page-06.png",
+        "media_type": "image/png",
+        "page_index": 6,
+        "question_numbers": [
+          16,
+          17
+        ],
+        "scope": "page",
+        "sha256": "34ad35b68e42af1c9893e9810f13fff684d49cc440235f9259791ebdb3bb6d3e",
+        "url": "https://www.eol.cn/m/gaokao/202606/W020260608340022954681.png"
+      },
+      {
+        "bytes": 113140,
+        "covered_page_starts": [
+          7
+        ],
+        "file": "src-eol-2026-n1-answers/page-07.png",
+        "media_type": "image/png",
+        "page_index": 7,
+        "question_numbers": [
+          18,
+          19
+        ],
+        "scope": "page",
+        "sha256": "3fc3e671931c501869205e28c101c436c3582ff1390ce91c4e2782dd498a2807",
+        "url": "https://www.eol.cn/m/gaokao/202606/W020260608340022965378.png"
       }
     ],
     "src-eol-2026-n1-paper": [
@@ -103,6 +491,16 @@
         "file": "src-eol-2026-n1-paper/stem-01.jpg",
         "media_type": "image/jpeg",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
         "scope": "stem",
         "sha256": "eff07016f1b4cabced90a9dddfe60ee6eecbbd503cf7f25b9d76783503898c7c",
         "url": "https://www.eol.cn/kaoshi/gaokao/gkst/202606/W020260607699077696368.jpg"
@@ -115,6 +513,15 @@
         "file": "src-eol-2026-n1-paper/stem-02.jpg",
         "media_type": "image/jpeg",
         "page_index": 2,
+        "question_numbers": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
         "scope": "stem",
         "sha256": "8e0f664d73ede60f38b47dc91ebb2551bd3c2c6a62ca34e2cec63e976a959de2",
         "url": "https://www.eol.cn/kaoshi/gaokao/gkst/202606/W020260607699077703283.jpg"
@@ -127,6 +534,10 @@
         "file": "src-eol-2026-n1-paper/stem-03.jpg",
         "media_type": "image/jpeg",
         "page_index": 3,
+        "question_numbers": [
+          16,
+          17
+        ],
         "scope": "stem",
         "sha256": "b2f9e5cd32965bcd64c0c4f5b0ae6936a708a63a016897e67d3f4df3db774e43",
         "url": "https://www.eol.cn/kaoshi/gaokao/gkst/202606/W020260607699077711469.jpg"
@@ -139,29 +550,16 @@
         "file": "src-eol-2026-n1-paper/stem-04.jpg",
         "media_type": "image/jpeg",
         "page_index": 4,
+        "question_numbers": [
+          18,
+          19
+        ],
         "scope": "stem",
         "sha256": "4e8f306782a1cafcc8986db42c66b23b4c975395491f66c50b131d37698bc3f7",
         "url": "https://www.eol.cn/kaoshi/gaokao/gkst/202606/W020260607699077720599.jpg"
       }
     ],
     "src-gk100-2026-n1-answers": [
-      {
-        "bytes": 2171809,
-        "covered_page_starts": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6
-        ],
-        "file": "src-gk100-2026-n1-answers/stem-01.png",
-        "media_type": "image/png",
-        "page_index": 1,
-        "scope": "stem",
-        "sha256": "a38ab85ad79eaa6adf7b14a38dce0c429ae30301f360495bb5adc3d47c332796",
-        "url": "https://p1.gk100.com/article/20260607/093642fb5ec28ff6.png"
-      },
       {
         "bytes": 560863,
         "covered_page_starts": [
@@ -170,7 +568,13 @@
         "file": "src-gk100-2026-n1-answers/answer-01.png",
         "media_type": "image/png",
         "page_index": 1,
-        "scope": "answer",
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "scope": "stem_and_answer",
         "sha256": "6dd855bdab959ec7f23b8aacd4127118aabcf0bac02e00270c51f75dac0eae6c",
         "url": "https://p1.gk100.com/article/20260608/58065c99ad88b76c.png"
       },
@@ -182,7 +586,12 @@
         "file": "src-gk100-2026-n1-answers/answer-02.png",
         "media_type": "image/png",
         "page_index": 2,
-        "scope": "answer",
+        "question_numbers": [
+          5,
+          6,
+          7
+        ],
+        "scope": "stem_and_answer",
         "sha256": "9d3afe465abbd6d08e363f9253d1b92901ffabac3a25940ab80049ff31bb7554",
         "url": "https://p1.gk100.com/article/20260608/511061f009995db4.png"
       },
@@ -194,7 +603,11 @@
         "file": "src-gk100-2026-n1-answers/answer-03.png",
         "media_type": "image/png",
         "page_index": 3,
-        "scope": "answer",
+        "question_numbers": [
+          8,
+          9
+        ],
+        "scope": "stem_and_answer",
         "sha256": "60a430eae3d12039642f69644a6e6cf2f10ac182dea1f92d450658a8f3200164",
         "url": "https://p1.gk100.com/article/20260608/08ee47d0b1f476d4.png"
       },
@@ -206,7 +619,11 @@
         "file": "src-gk100-2026-n1-answers/answer-04.png",
         "media_type": "image/png",
         "page_index": 4,
-        "scope": "answer",
+        "question_numbers": [
+          10,
+          11
+        ],
+        "scope": "stem_and_answer",
         "sha256": "8a581de98ab6e05c7c43664f4ef3f14483926d9fa38d90e37cb1979cefe13bf7",
         "url": "https://p1.gk100.com/article/20260608/dd4573f6a516e0c3.png"
       },
@@ -218,7 +635,12 @@
         "file": "src-gk100-2026-n1-answers/answer-05.png",
         "media_type": "image/png",
         "page_index": 5,
-        "scope": "answer",
+        "question_numbers": [
+          11,
+          12,
+          13
+        ],
+        "scope": "stem_and_answer",
         "sha256": "13924a2ae3477c42bb0b6dd510a2d9398a2567fc0593c20450d8f95e41d69f6a",
         "url": "https://p1.gk100.com/article/20260608/98690de6d6b21aa0.png"
       },
@@ -230,7 +652,11 @@
         "file": "src-gk100-2026-n1-answers/answer-06.png",
         "media_type": "image/png",
         "page_index": 6,
-        "scope": "answer",
+        "question_numbers": [
+          13,
+          14
+        ],
+        "scope": "stem_and_answer",
         "sha256": "ee27b42073df847bdd3ff4dbfa9407145ee4c411c788f5d34d976ba0a9e50716",
         "url": "https://p1.gk100.com/article/20260608/ed8c5dd10aacd83a.png"
       },
@@ -242,7 +668,10 @@
         "file": "src-gk100-2026-n1-answers/answer-07.png",
         "media_type": "image/png",
         "page_index": 7,
-        "scope": "answer",
+        "question_numbers": [
+          15
+        ],
+        "scope": "stem_and_answer",
         "sha256": "b708e13e93d6359e9a06855ef19c286edb3813f4f49ad34708b30db8ef17601d",
         "url": "https://p1.gk100.com/article/20260608/d1e32c0b3fdd88bd.png"
       },
@@ -254,7 +683,12 @@
         "file": "src-gk100-2026-n1-answers/answer-08.png",
         "media_type": "image/png",
         "page_index": 8,
-        "scope": "answer",
+        "question_numbers": [
+          15,
+          16,
+          17
+        ],
+        "scope": "stem_and_answer",
         "sha256": "78bc3e4b330427ce4ddc42a60871d10470a3d64c30cf2b05ab19503b7367e6ea",
         "url": "https://p1.gk100.com/article/20260608/e8d2d09ccf958d83.png"
       },
@@ -266,7 +700,11 @@
         "file": "src-gk100-2026-n1-answers/answer-09.png",
         "media_type": "image/png",
         "page_index": 9,
-        "scope": "answer",
+        "question_numbers": [
+          17,
+          18
+        ],
+        "scope": "stem_and_answer",
         "sha256": "b799b00953b14ff29f2b7910c9f41a079ae89419052ecb54cea9736e3f2f56ab",
         "url": "https://p1.gk100.com/article/20260608/1e7d9b8399862f13.png"
       },
@@ -278,7 +716,10 @@
         "file": "src-gk100-2026-n1-answers/answer-10.png",
         "media_type": "image/png",
         "page_index": 10,
-        "scope": "answer",
+        "question_numbers": [
+          18
+        ],
+        "scope": "stem_and_answer",
         "sha256": "a5cbd7190a3ede2b7252388ee1b1410844ebdedd98ff00aa24a95fdbd913993f",
         "url": "https://p1.gk100.com/article/20260608/03e985c3b10d1439.png"
       },
@@ -290,7 +731,10 @@
         "file": "src-gk100-2026-n1-answers/answer-11.png",
         "media_type": "image/png",
         "page_index": 11,
-        "scope": "answer",
+        "question_numbers": [
+          19
+        ],
+        "scope": "stem_and_answer",
         "sha256": "89d35e63c62de3581e857eac2e5cbc3d977dd43225ef2b82621b927db856131f",
         "url": "https://p1.gk100.com/article/20260608/16cc600ab0b011ec.png"
       },
@@ -302,7 +746,10 @@
         "file": "src-gk100-2026-n1-answers/answer-12.png",
         "media_type": "image/png",
         "page_index": 12,
-        "scope": "answer",
+        "question_numbers": [
+          19
+        ],
+        "scope": "stem_and_answer",
         "sha256": "91dfcfc5126a10026314a314c23d2964d3a51fe3c12c3c9950fe278b99cc7f2f",
         "url": "https://p1.gk100.com/article/20260608/d6beefcaecad6851.png"
       }
@@ -316,6 +763,13 @@
         "file": "src-netease-shuhai-2026-n1-full/stem-01.png",
         "media_type": "image/png",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
         "scope": "stem",
         "sha256": "47e1e269d4dfd64b2d79caae4d7e1107d95dcb83aad52885cf00cf89e958d1c4",
         "url": "https://dingyue.ws.126.net/2026/0608/acab2a22j00tga1za0061d000u00160c.jpg"
@@ -328,6 +782,15 @@
         "file": "src-netease-shuhai-2026-n1-full/stem-02.png",
         "media_type": "image/png",
         "page_index": 2,
+        "question_numbers": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
         "scope": "stem",
         "sha256": "de9f664d8847b3d9408ba6e44fb530d496fdacc333f0a2626c6fa835a016ea06",
         "url": "https://dingyue.ws.126.net/2026/0608/2e0d5765j00tga1za006fd000u00160c.jpg"
@@ -340,6 +803,15 @@
         "file": "src-netease-shuhai-2026-n1-full/stem-03.png",
         "media_type": "image/png",
         "page_index": 3,
+        "question_numbers": [
+          7,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
         "scope": "stem",
         "sha256": "7793cd70e85bb5b25056b4fab0b55d8478fdfe4ce000f03dc47d60152133b722",
         "url": "https://dingyue.ws.126.net/2026/0608/ba6790c0j00tga1za006wd000u00160c.jpg"
@@ -352,6 +824,12 @@
         "file": "src-netease-shuhai-2026-n1-full/stem-04.png",
         "media_type": "image/png",
         "page_index": 4,
+        "question_numbers": [
+          8,
+          17,
+          18,
+          19
+        ],
         "scope": "stem",
         "sha256": "8adff7282de4f67309885516457845a023bc8de70d33d3dabdc54528cf599250",
         "url": "https://dingyue.ws.126.net/2026/0608/94ac697dj00tga1za005nd000u00160c.jpg"
@@ -364,6 +842,13 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-01.png",
         "media_type": "image/png",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
         "scope": "answer",
         "sha256": "8af86cdf4f2d157845cb658ecd095ad5359dcf48d632737b28c101401d8d57a7",
         "url": "https://dingyue.ws.126.net/2026/0608/d8737620j00tga1z9006td000u0012uc.jpg"
@@ -376,6 +861,15 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-02.png",
         "media_type": "image/png",
         "page_index": 2,
+        "question_numbers": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
         "scope": "answer",
         "sha256": "c3da0d879be5ba2f4b340395e9a65769ccc19751e8fb72d859cb2bf1c6fa8679",
         "url": "https://dingyue.ws.126.net/2026/0608/e2b64898j00tga1za0084d000u0012uc.jpg"
@@ -388,6 +882,15 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-03.png",
         "media_type": "image/png",
         "page_index": 3,
+        "question_numbers": [
+          7,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
         "scope": "answer",
         "sha256": "5c37058acddbc6d1f425f8e837f06389fe72b4a000931c07e437974417ab35e8",
         "url": "https://dingyue.ws.126.net/2026/0608/b3f89440j00tga1za00a6d000u0012uc.jpg"
@@ -400,6 +903,12 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-04.png",
         "media_type": "image/png",
         "page_index": 4,
+        "question_numbers": [
+          8,
+          17,
+          18,
+          19
+        ],
         "scope": "answer",
         "sha256": "9f0c0f67ad00daddbd53d33b4af1a3dfcc51f0cbec4ab5ec9674dba49e0d2c68",
         "url": "https://dingyue.ws.126.net/2026/0608/15b405abj00tga1za007od000u0012uc.jpg"
@@ -412,6 +921,10 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-05.png",
         "media_type": "image/png",
         "page_index": 5,
+        "question_numbers": [
+          9,
+          10
+        ],
         "scope": "answer",
         "sha256": "8ecd3e78e240d9924f2dd2a9e75444eaff4cf2f9caa6d442148847be619f374a",
         "url": "https://dingyue.ws.126.net/2026/0608/6ab7d2a6j00tga1za00asd000u0012uc.jpg"
@@ -424,6 +937,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-06.png",
         "media_type": "image/png",
         "page_index": 6,
+        "question_numbers": [
+          11
+        ],
         "scope": "answer",
         "sha256": "738ff4ec195331d5da6abffd96fa0e9b4a76c6b0f90e4e22d248627b291fd779",
         "url": "https://dingyue.ws.126.net/2026/0608/31b2f88cj00tga1za00dwd000u0012uc.jpg"
@@ -436,6 +952,11 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-07.png",
         "media_type": "image/png",
         "page_index": 7,
+        "question_numbers": [
+          11,
+          12,
+          13
+        ],
         "scope": "answer",
         "sha256": "14f6a23f09f83af2d7c0645b28aa1a2df5314691b187a7a076ae9823e2955dc5",
         "url": "https://dingyue.ws.126.net/2026/0608/9c30be13j00tga1za00b3d000u0012uc.jpg"
@@ -448,6 +969,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-08.png",
         "media_type": "image/png",
         "page_index": 8,
+        "question_numbers": [
+          14
+        ],
         "scope": "answer",
         "sha256": "dac46c7c5edf9add49e2361460a6b59024449425dd561ff86bdfe46998f06098",
         "url": "https://dingyue.ws.126.net/2026/0608/a0e27232j00tga1za00b6d000u0012uc.jpg"
@@ -460,6 +984,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-09.png",
         "media_type": "image/png",
         "page_index": 9,
+        "question_numbers": [
+          15
+        ],
         "scope": "answer",
         "sha256": "1be00e8db90e7ec0f9e65aa39e533be12ca2b6a632d7d989537b4bd4cf3baa11",
         "url": "https://dingyue.ws.126.net/2026/0608/b93c8ee3j00tga1z9008jd000u0012uc.jpg"
@@ -472,6 +999,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-10.png",
         "media_type": "image/png",
         "page_index": 10,
+        "question_numbers": [
+          16
+        ],
         "scope": "answer",
         "sha256": "ba66500bd505a33015ace5753f3c37111cf1025c64243a844d072da89fc0436f",
         "url": "https://dingyue.ws.126.net/2026/0608/52f32f62j00tga1za009pd000u0012uc.jpg"
@@ -484,6 +1014,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-11.png",
         "media_type": "image/png",
         "page_index": 11,
+        "question_numbers": [
+          17
+        ],
         "scope": "answer",
         "sha256": "c1a86cf431d75e63fdef9ba928b2ad4019b97f536deaadb22cb3d28870209dd0",
         "url": "https://dingyue.ws.126.net/2026/0608/5152d1e1j00tga1za008dd000u0012uc.jpg"
@@ -496,6 +1029,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-12.png",
         "media_type": "image/png",
         "page_index": 12,
+        "question_numbers": [
+          18
+        ],
         "scope": "answer",
         "sha256": "d189d8981b2265121c92d579557495b8beeff11eacf4cbcc4d390e2730d0a233",
         "url": "https://dingyue.ws.126.net/2026/0608/5adbb54ej00tga1za00e0d000u0012uc.jpg"
@@ -508,6 +1044,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-13.png",
         "media_type": "image/png",
         "page_index": 13,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "6fe93f83e255209ee9b5d0ec5b0e94be0d89cc0e8308aed5ece39dd0617f4e36",
         "url": "https://dingyue.ws.126.net/2026/0608/e2401cb3j00tga1za00b3d000u0012uc.jpg"
@@ -520,6 +1059,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-14.png",
         "media_type": "image/png",
         "page_index": 14,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "2668ce672b0f2ec8164c7a4103d62cc0f73f1890c825306e5cdfe43342faed63",
         "url": "https://dingyue.ws.126.net/2026/0608/83661ec4j00tga1za00dqd000u0012uc.jpg"
@@ -532,6 +1074,9 @@
         "file": "src-netease-shuhai-2026-n1-full/answer-15.png",
         "media_type": "image/png",
         "page_index": 15,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "57e8911706e3105de18aed3c66fdf6ebe5a8cc1855f7bdba7824e638e816d97b",
         "url": "https://dingyue.ws.126.net/2026/0608/a0883aa5j00tga1za0092d000u0012uc.jpg"
@@ -546,6 +1091,15 @@
         "file": "src-rendoc-2026-n1-full/page-01.jpg",
         "media_type": "image/jpeg",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
         "scope": "page",
         "sha256": "b9262bc905f2aad13748b1aacca156174772df6f2e10da90d2177528b705a1c8",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc258.jpg"
@@ -558,6 +1112,13 @@
         "file": "src-rendoc-2026-n1-full/page-02.jpg",
         "media_type": "image/jpeg",
         "page_index": 2,
+        "question_numbers": [
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
         "scope": "page",
         "sha256": "0aa9e52cb71e8a5ce20bb3c066dbdda04a6f899fd3f8e6fc1250df306a8f345c",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc2582.jpg"
@@ -570,6 +1131,13 @@
         "file": "src-rendoc-2026-n1-full/page-03.jpg",
         "media_type": "image/jpeg",
         "page_index": 3,
+        "question_numbers": [
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
         "scope": "page",
         "sha256": "b820db911cef6c201c1b3fb505eb21a8ec8025b7d03ce88d7fa2c3e4a63947f2",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc2583.jpg"
@@ -582,6 +1150,11 @@
         "file": "src-rendoc-2026-n1-full/page-04.jpg",
         "media_type": "image/jpeg",
         "page_index": 4,
+        "question_numbers": [
+          17,
+          18,
+          19
+        ],
         "scope": "page",
         "sha256": "f3fe3f9b97f2ff101fa63e8ca514c9c7adc0b46204702c5e178071fafd4ffa39",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc2584.jpg"
@@ -594,6 +1167,14 @@
         "file": "src-rendoc-2026-n1-full/page-06.jpg",
         "media_type": "image/jpeg",
         "page_index": 6,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
         "scope": "page",
         "sha256": "11084b97cfbd19dc3d633588718ac875e2f703297b55362bc8444ad9035cc153",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc2586.jpg"
@@ -606,6 +1187,11 @@
         "file": "src-rendoc-2026-n1-full/page-07.jpg",
         "media_type": "image/jpeg",
         "page_index": 7,
+        "question_numbers": [
+          6,
+          7,
+          8
+        ],
         "scope": "page",
         "sha256": "14933eb39805b954a24a50a5b7218f21204df95a262ee296595cf675a19820aa",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc2587.jpg"
@@ -618,6 +1204,11 @@
         "file": "src-rendoc-2026-n1-full/page-08.jpg",
         "media_type": "image/jpeg",
         "page_index": 8,
+        "question_numbers": [
+          8,
+          9,
+          10
+        ],
         "scope": "page",
         "sha256": "192fcef4e32763f21fe305d619fda33692f8d434b84625a675de1b13266fdab1",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc2588.jpg"
@@ -630,6 +1221,10 @@
         "file": "src-rendoc-2026-n1-full/page-09.jpg",
         "media_type": "image/jpeg",
         "page_index": 9,
+        "question_numbers": [
+          10,
+          11
+        ],
         "scope": "page",
         "sha256": "f8df050fb5d8c848edb895afd7b66b6873dd3f596c408deca99866a25fda49ff",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc2589.jpg"
@@ -642,6 +1237,11 @@
         "file": "src-rendoc-2026-n1-full/page-10.jpg",
         "media_type": "image/jpeg",
         "page_index": 10,
+        "question_numbers": [
+          11,
+          12,
+          13
+        ],
         "scope": "page",
         "sha256": "2233b927eecf761927e1f62703187a4449bf6a296a93ce4e9d1ac68bf7dbbddb",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25810.jpg"
@@ -654,6 +1254,11 @@
         "file": "src-rendoc-2026-n1-full/page-11.jpg",
         "media_type": "image/jpeg",
         "page_index": 11,
+        "question_numbers": [
+          13,
+          14,
+          15
+        ],
         "scope": "page",
         "sha256": "a6059c68f34d4ce353115587458f44d40171192f5ae2ae224ccb18d465b82ec9",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25811.jpg"
@@ -666,6 +1271,10 @@
         "file": "src-rendoc-2026-n1-full/page-12.jpg",
         "media_type": "image/jpeg",
         "page_index": 12,
+        "question_numbers": [
+          15,
+          16
+        ],
         "scope": "page",
         "sha256": "d3e70a12e8bf73e5781f93e62d7d10c0d25457267a55b0c56d87944a36b2bce7",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25812.jpg"
@@ -678,6 +1287,11 @@
         "file": "src-rendoc-2026-n1-full/page-13.jpg",
         "media_type": "image/jpeg",
         "page_index": 13,
+        "question_numbers": [
+          16,
+          17,
+          18
+        ],
         "scope": "page",
         "sha256": "002e353b0cd789677f8a1535fb84e0fc83fff573f5dd0f4d22e259a6654f389d",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25813.jpg"
@@ -690,6 +1304,10 @@
         "file": "src-rendoc-2026-n1-full/page-14.jpg",
         "media_type": "image/jpeg",
         "page_index": 14,
+        "question_numbers": [
+          18,
+          19
+        ],
         "scope": "page",
         "sha256": "f4332f2e1b0ef91317452055b87839a4b61abe4a45ccdcd95173afcf4f890dd0",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25814.jpg"
@@ -702,6 +1320,9 @@
         "file": "src-rendoc-2026-n1-full/page-15.jpg",
         "media_type": "image/jpeg",
         "page_index": 15,
+        "question_numbers": [
+          19
+        ],
         "scope": "page",
         "sha256": "8f29c94dea89be2c189bab75177155d0fb4ff5be668d9cf9b31d54f3527d4ad2",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25815.jpg"
@@ -714,6 +1335,9 @@
         "file": "src-rendoc-2026-n1-full/page-16.jpg",
         "media_type": "image/jpeg",
         "page_index": 16,
+        "question_numbers": [
+          19
+        ],
         "scope": "page",
         "sha256": "d635aac02d9f301886974b98bbd111d487e6e768fb8ce3be6f1d15b5277a918f",
         "url": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25816.jpg"
@@ -728,6 +1352,15 @@
         "file": "src-sohu-2026-n1-answers/answer-01.png",
         "media_type": "image/png",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
         "scope": "answer",
         "sha256": "1f8e94b6a40f3a7191e5d4c3c286425138e5dba0f47757162880d2a17b5ce6fd",
         "url": "https://q2.itc.cn/q_70/images03/20260611/0c8a216c9aa74c3aafb2e9e2ea642ee7.png"
@@ -740,6 +1373,11 @@
         "file": "src-sohu-2026-n1-answers/answer-02.png",
         "media_type": "image/png",
         "page_index": 2,
+        "question_numbers": [
+          8,
+          9,
+          10
+        ],
         "scope": "answer",
         "sha256": "574fddf0d1b2da56722da94dc73cb480bbecdb925ed9de9386e9d32605147bca",
         "url": "https://q4.itc.cn/q_70/images03/20260611/b5cac423e1e44472bba812d838daa2d7.png"
@@ -752,6 +1390,10 @@
         "file": "src-sohu-2026-n1-answers/answer-03.png",
         "media_type": "image/png",
         "page_index": 3,
+        "question_numbers": [
+          11,
+          12
+        ],
         "scope": "answer",
         "sha256": "995f27a097c42f0b943190ff2156770f717bcbf78870e7c5a0d5256da2f0ad20",
         "url": "https://q6.itc.cn/q_70/images03/20260611/b4c9c0bdc71148579cb38705fc814def.png"
@@ -764,6 +1406,11 @@
         "file": "src-sohu-2026-n1-answers/answer-04.png",
         "media_type": "image/png",
         "page_index": 4,
+        "question_numbers": [
+          13,
+          14,
+          15
+        ],
         "scope": "answer",
         "sha256": "a09e541a2215321ae7b04220f17ce002fa6d8f6b19dd420cf1f1632244880f67",
         "url": "https://q4.itc.cn/q_70/images03/20260611/5fe41b5c026f418aa2694958b22d2e6e.png"
@@ -776,6 +1423,11 @@
         "file": "src-sohu-2026-n1-answers/answer-05.png",
         "media_type": "image/png",
         "page_index": 5,
+        "question_numbers": [
+          16,
+          17,
+          18
+        ],
         "scope": "answer",
         "sha256": "95aeaeb0f429db4dd07698f947f19804c05bf455d8fe475369a57d6f960d84be",
         "url": "https://q3.itc.cn/q_70/images03/20260611/2e412002154e4c9694d6145832c0281f.png"
@@ -790,6 +1442,14 @@
         "file": "src-zizzs-2026-n1-answers/stem-01.png",
         "media_type": "image/png",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
         "scope": "stem",
         "sha256": "087bb8ba78c044b95c5dd9ad512f8132297b10c8c99ea4256541fe286c9ee065",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794197_00011781149794216.png"
@@ -802,6 +1462,17 @@
         "file": "src-zizzs-2026-n1-answers/stem-02.png",
         "media_type": "image/png",
         "page_index": 2,
+        "question_numbers": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
         "scope": "stem",
         "sha256": "1c7bd5e9ec1fbc1c3cee0a7763179189d8f1223702342b843d3d0ace47705b6d",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794199_00021781149794218.png"
@@ -814,6 +1485,16 @@
         "file": "src-zizzs-2026-n1-answers/stem-03.png",
         "media_type": "image/png",
         "page_index": 3,
+        "question_numbers": [
+          5,
+          6,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
         "scope": "stem",
         "sha256": "5c5be95c42845273345546c9149b9c6d9c087f2dd9dbdcccf79064c90a9f2737",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794203_00031781149794207.png"
@@ -826,6 +1507,12 @@
         "file": "src-zizzs-2026-n1-answers/stem-04.png",
         "media_type": "image/png",
         "page_index": 4,
+        "question_numbers": [
+          6,
+          17,
+          18,
+          19
+        ],
         "scope": "stem",
         "sha256": "ab6badd8cde61dcbf12ea9de8ae8247d0d5163450954b132294da451c2f99699",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794205_00041781149794202.png"
@@ -838,6 +1525,14 @@
         "file": "src-zizzs-2026-n1-answers/answer-01.png",
         "media_type": "image/png",
         "page_index": 1,
+        "question_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
         "scope": "answer",
         "sha256": "ef75b282eb046567b821b1fd983ac2ad6d250bad03b31479b5174615f6d1f9da",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794208_00051781149794216.png"
@@ -850,6 +1545,17 @@
         "file": "src-zizzs-2026-n1-answers/answer-02.png",
         "media_type": "image/png",
         "page_index": 2,
+        "question_numbers": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
         "scope": "answer",
         "sha256": "b606c922e6eaa16081c472bddb0e30ec10929a9a4edcefd1f7ffbdbdfc82107e",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794209_00061781149794213.png"
@@ -862,6 +1568,16 @@
         "file": "src-zizzs-2026-n1-answers/answer-03.png",
         "media_type": "image/png",
         "page_index": 3,
+        "question_numbers": [
+          5,
+          6,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
         "scope": "answer",
         "sha256": "584bf82bceffb7c8680eaa2123b2d1d2e04fe6d446895a08d71e3e66e94df2ad",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794211_00071781149794300.png"
@@ -874,6 +1590,12 @@
         "file": "src-zizzs-2026-n1-answers/answer-04.png",
         "media_type": "image/png",
         "page_index": 4,
+        "question_numbers": [
+          6,
+          17,
+          18,
+          19
+        ],
         "scope": "answer",
         "sha256": "2003ffdd9bec5fb95512e09c9ffd0e9660b438456029b2a6570424d95bc39b0e",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794213_00081781149794301.png"
@@ -886,6 +1608,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-05.png",
         "media_type": "image/png",
         "page_index": 5,
+        "question_numbers": [
+          7
+        ],
         "scope": "answer",
         "sha256": "f7b0bfe095c307cfa6abd5816f017bc4742e68dede81a50711488cfc8abbf7ee",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794215_00091781149794312.png"
@@ -898,6 +1623,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-06.png",
         "media_type": "image/png",
         "page_index": 6,
+        "question_numbers": [
+          7,
+          8
+        ],
         "scope": "answer",
         "sha256": "bd02ee1dff94581bd13c0c711767f66965395829bc9e41145e742267e58931b3",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794217_00101781149794322.png"
@@ -910,6 +1639,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-07.png",
         "media_type": "image/png",
         "page_index": 7,
+        "question_numbers": [
+          8,
+          9
+        ],
         "scope": "answer",
         "sha256": "ffe78242f878e900a75a2247b365a143a1ebeefa129fbbacb56f5ad2f1679a71",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794218_00111781149794323.png"
@@ -922,6 +1655,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-08.png",
         "media_type": "image/png",
         "page_index": 8,
+        "question_numbers": [
+          9,
+          10
+        ],
         "scope": "answer",
         "sha256": "09bc0ea06bce58c62daceff8c55c5aa7d94219ffb1e849285fcc50c6717fe9f6",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794220_00121781149794352.png"
@@ -934,6 +1671,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-09.png",
         "media_type": "image/png",
         "page_index": 9,
+        "question_numbers": [
+          10,
+          11
+        ],
         "scope": "answer",
         "sha256": "576f79402639535f575dbef66440091a9d0665b047c94e9aa41509ccc023a61b",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794222_00131781149794373.png"
@@ -946,6 +1687,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-10.png",
         "media_type": "image/png",
         "page_index": 10,
+        "question_numbers": [
+          11
+        ],
         "scope": "answer",
         "sha256": "294d1001eab40455da9166a3d5c6816b347d7daf24c73f0ca7931b54bf8cb322",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794223_00141781149794383.png"
@@ -958,6 +1702,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-11.png",
         "media_type": "image/png",
         "page_index": 11,
+        "question_numbers": [
+          11
+        ],
         "scope": "answer",
         "sha256": "cfbcd5b46aab29343dc23f8208cc997d92edf325f488259bbab2862ac9eeccbc",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794225_00151781149794403.png"
@@ -970,6 +1717,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-12.png",
         "media_type": "image/png",
         "page_index": 12,
+        "question_numbers": [
+          12,
+          13
+        ],
         "scope": "answer",
         "sha256": "5206cd9c42fdd764fd63c6e747319ddb339d883edddd3705c58ad3efe200d176",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794226_00161781149794415.png"
@@ -982,6 +1733,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-13.png",
         "media_type": "image/png",
         "page_index": 13,
+        "question_numbers": [
+          13,
+          14
+        ],
         "scope": "answer",
         "sha256": "5382d1778792ee95e11b8fdb92836e32c1a7c95cc0331877733020ebe896dd1f",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794228_00171781149794625.png"
@@ -994,6 +1749,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-14.png",
         "media_type": "image/png",
         "page_index": 14,
+        "question_numbers": [
+          14
+        ],
         "scope": "answer",
         "sha256": "04ca038feeae323f7b495bc420ec2191422273c10b945dc7e90401543993eff1",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794229_00181781149794896.png"
@@ -1006,6 +1764,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-15.png",
         "media_type": "image/png",
         "page_index": 15,
+        "question_numbers": [
+          14,
+          15
+        ],
         "scope": "answer",
         "sha256": "5ae59e8090a4a4fcb5007a35e3a3be832746f00b2940c6b894e7debaaefa15e7",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794231_00191781149795121.png"
@@ -1018,6 +1780,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-16.png",
         "media_type": "image/png",
         "page_index": 16,
+        "question_numbers": [
+          15
+        ],
         "scope": "answer",
         "sha256": "c28f0d896eb28c221771a82b2b4f0f57d32850bf5eb0b0abc4a94e63218295dd",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794232_00201781149795165.png"
@@ -1030,6 +1795,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-17.png",
         "media_type": "image/png",
         "page_index": 17,
+        "question_numbers": [
+          15
+        ],
         "scope": "answer",
         "sha256": "0b5db5dc2014c50369a17ce3d4403ed1bf7a2869503c3016f225cff6dbf3e62a",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794234_00211781149795189.png"
@@ -1042,6 +1810,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-18.png",
         "media_type": "image/png",
         "page_index": 18,
+        "question_numbers": [
+          16
+        ],
         "scope": "answer",
         "sha256": "c70d03b1659adbdd74d89f9757dfedeab2e0e98ff604ec6909344a602a0f6101",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794235_00221781149795558.png"
@@ -1054,6 +1825,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-19.png",
         "media_type": "image/png",
         "page_index": 19,
+        "question_numbers": [
+          16,
+          17
+        ],
         "scope": "answer",
         "sha256": "e70f769f151f17faea07ffee48e9329a4a0649538ef2afca89288011d05cb4e0",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794237_00231781149795826.png"
@@ -1066,6 +1841,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-20.png",
         "media_type": "image/png",
         "page_index": 20,
+        "question_numbers": [
+          17
+        ],
         "scope": "answer",
         "sha256": "3e097899b40154931a2cfbdc6d0c38836b2d5f4eb5557d54530c9d830767be9a",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794238_00241781149795961.png"
@@ -1078,6 +1856,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-21.png",
         "media_type": "image/png",
         "page_index": 21,
+        "question_numbers": [
+          17,
+          18
+        ],
         "scope": "answer",
         "sha256": "65a8bc76d5523c9e1e2f0219e3f810f13646d46ce328bfca0c4125a54701b795",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794240_00251781149796191.png"
@@ -1090,6 +1872,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-22.png",
         "media_type": "image/png",
         "page_index": 22,
+        "question_numbers": [
+          18
+        ],
         "scope": "answer",
         "sha256": "d56182f9a44efa5191087bdf5570005a750d841f33947fed4f97b26d23aa042c",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794242_00261781149796290.png"
@@ -1102,6 +1887,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-23.png",
         "media_type": "image/png",
         "page_index": 23,
+        "question_numbers": [
+          18
+        ],
         "scope": "answer",
         "sha256": "8379f7162881cf9af5afd60854098dcf4606018475abce1c713fbce632265c10",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794244_00271781149796686.png"
@@ -1114,6 +1902,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-24.png",
         "media_type": "image/png",
         "page_index": 24,
+        "question_numbers": [
+          18
+        ],
         "scope": "answer",
         "sha256": "106e4eceaebdbcd10a54abf823ec7d797440212d9e39d4eb1e2d802ce2ecf72d",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794247_00281781149796782.png"
@@ -1126,6 +1917,10 @@
         "file": "src-zizzs-2026-n1-answers/answer-25.png",
         "media_type": "image/png",
         "page_index": 25,
+        "question_numbers": [
+          18,
+          19
+        ],
         "scope": "answer",
         "sha256": "485195543b74e260f0dfe986898b02d3a8f27f3ef535ee562a15649e98618d78",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794249_00291781149796923.png"
@@ -1138,6 +1933,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-26.png",
         "media_type": "image/png",
         "page_index": 26,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "fe7c50f1e40baae7a26415ede3fa219de934d638bd3560ae39191828c734097e",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149794251_00301781149796995.png"
@@ -1150,6 +1948,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-27.png",
         "media_type": "image/png",
         "page_index": 27,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "02c3131181b98f477d6086fe2783a4784e3db7eb17ca4fd2f74223e65130ad7b",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149811007_00311781149810910.png"
@@ -1162,6 +1963,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-28.png",
         "media_type": "image/png",
         "page_index": 28,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "9fae3f2df646bcf34a75955a75ee376d99ce1dbad8ca3df432fc22058f8bf33c",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149811009_00321781149810909.png"
@@ -1174,6 +1978,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-29.png",
         "media_type": "image/png",
         "page_index": 29,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "347108f374036d0d92aa9269db1ea4df17f99645b3000fb4c4504d80329c7f13",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149811010_00331781149810915.png"
@@ -1186,6 +1993,9 @@
         "file": "src-zizzs-2026-n1-answers/answer-30.png",
         "media_type": "image/png",
         "page_index": 30,
+        "question_numbers": [
+          19
+        ],
         "scope": "answer",
         "sha256": "15b1bfb0b96c519046a8909584bfa581f233b6ebc24c50a2ed63cf9bf960958f",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149811012_00341781149810905.png"

@@ -699,7 +699,7 @@ def _packet_rows(
             raw=raw,
         )
         rows.append(row)
-    return {
+    packet_summary = {
         "dir": packet_dir,
         "fields": fields,
         "signoff": signoff,
@@ -709,7 +709,10 @@ def _packet_rows(
         "binding_error": binding_error,
         "manifest_sha256": current_manifest_sha256,
         "packet_manifest_sha256": packet_manifest_sha256,
-    }, rows
+    }
+    if not binding_ok:
+        return packet_summary, []
+    return packet_summary, rows
 
 
 def _fallback_raw(
@@ -1277,6 +1280,15 @@ def _build_workspace(
         ]
     else:
         boundary += " 本页只逐题判定自动评分题；解答题目录仅做统计展示。"
+    source_policy = (
+        summary.get("source_audit", {}).get("policy", {})
+        if isinstance(summary.get("source_audit"), Mapping)
+        else {}
+    )
+    required_stem_groups = int(source_policy.get("required_stem_independent_groups") or 2)
+    required_joint_groups = int(
+        source_policy.get("required_joint_answer_independent_groups") or 2
+    )
     meta = dict(summary)
     meta.update(
         {
@@ -1308,8 +1320,9 @@ def _build_workspace(
                 summary["visual_points"],
             ),
             "source_note": (
-                "每题必须同时具备至少两个独立题干来源和两个独立“题干+答案”来源；"
+                "每题必须同时具备至少 %d 个独立题干来源和 %d 个独立“题干+答案”来源；"
                 "仅有答案的页面不进入硬门槛。来源为媒体/文档交叉核验，不等同于考试院官方答案。"
+                % (required_stem_groups, required_joint_groups)
                 if summary["source_audit_applicable"]
                 else "历史版本按当时的来源记录展示；来源为媒体/文档交叉核验，不等同于考试院官方答案。"
             ),
