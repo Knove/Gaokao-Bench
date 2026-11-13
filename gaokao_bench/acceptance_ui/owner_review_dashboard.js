@@ -48,6 +48,23 @@
     return decisionFor(itemId)?.decision || "pending";
   }
 
+  function sourceAuditReady() {
+    if (!META?.source_audit_applicable) return true;
+    return Boolean(
+      META?.source_gate_ready &&
+      META?.source_gate === "pass" &&
+      !META?.source_gate_error
+    );
+  }
+
+  function packetBindingReady() {
+    return Boolean(META?.packet_binding_ok && !META?.packet_binding_error);
+  }
+
+  function signFlowReady() {
+    return Boolean(META?.decision_enabled) && sourceAuditReady() && packetBindingReady();
+  }
+
   function seedDecisions() {
     const seeded = {};
     for (const row of ROWS) {
@@ -492,6 +509,8 @@
           ${auditStatusHtml}
         </section>
 
+        ${sourceAuditHtml(row)}
+
         <section class="evidence-section">
           <div class="section-heading"><h3>答案与来源</h3><span>主来源与独立第二来源分开展示，非官方来源</span></div>
           <div class="evidence-grid">
@@ -511,6 +530,68 @@
     $$("[data-nav]", center).forEach((button) => {
       button.addEventListener("click", () => nextPrevious(button.dataset.nav === "next" ? 1 : -1));
     });
+  }
+
+  function sourceAuditHtml(row) {
+    const audit = row.source_audit || {};
+    const assessments = Array.isArray(audit.assessments) ? audit.assessments : [];
+    if (!assessments.length) return "";
+    const stemSources = assessments.filter((item) => item.supports_stem);
+    const jointSources = assessments.filter((item) => item.role === "joint_supporting");
+    const answerOnly = assessments.filter((item) => item.role === "answer_only_supporting");
+    const gateClass = audit.gate_complete ? "pass" : "blocked";
+    const gateLabel = audit.gate_complete ? "通过" : "未通过";
+    const itemHtml = (item, includeAnswer) => {
+      const roleLabel = item.role === "joint_supporting"
+        ? "题干+答案"
+        : item.role === "answer_only_supporting"
+          ? "答案补充"
+          : "题干";
+      const tagClass = item.role === "joint_supporting" ? "green" : item.role === "answer_only_supporting" ? "amber" : "blue";
+      const stemUrl = item.stem_page_url && item.stem_page_url !== item.url
+        ? `<a href="${escapeHtml(item.stem_page_url)}" target="_blank" rel="noopener noreferrer">打开题干页 ↗</a>`
+        : "";
+      const answerUrl = includeAnswer && item.answer_page_url && item.answer_page_url !== item.stem_page_url && item.answer_page_url !== item.url
+        ? `<a href="${escapeHtml(item.answer_page_url)}" target="_blank" rel="noopener noreferrer">打开答案页 ↗</a>`
+        : "";
+      const sourceUrl = item.url
+        ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">来源文章 ↗</a>`
+        : "";
+      return `
+        <details class="source-audit-item">
+          <summary><strong>${escapeHtml(item.publisher || item.source_id)}</strong><span class="tag ${tagClass}">${roleLabel}</span></summary>
+          <div class="source-audit-detail">
+            ${item.stem_locator ? `<p><b>题干定位：</b>${escapeHtml(item.stem_locator)}</p>` : ""}
+            ${includeAnswer && item.answer_locator ? `<p><b>答案定位：</b>${escapeHtml(item.answer_locator)}</p>` : ""}
+            ${item.stem_excerpt ? `<p><b>题干摘录：</b>${escapeHtml(item.stem_excerpt)}</p>` : ""}
+            ${includeAnswer && item.answer_excerpt ? `<p><b>答案摘录：</b>${escapeHtml(item.answer_excerpt)}</p>` : ""}
+            <div class="mono">${escapeHtml(item.source_id)} · ${escapeHtml(item.independence_group || "")}</div>
+            <div class="source-audit-links">${stemUrl}${answerUrl}${sourceUrl}</div>
+          </div>
+        </details>`;
+    };
+    return `
+      <section class="evidence-section">
+        <div class="section-heading"><h3>双来源硬门槛</h3><span>题干与答案分别要求独立来源；仅有答案的页面不计入硬门槛</span></div>
+        <div class="source-audit-panel">
+          <div class="source-audit-gate-row">
+            <div class="source-audit-gate ${audit.stem_dual_source_complete ? "pass" : "blocked"}"><span>STEM SOURCES</span><strong>${audit.stem_independent_groups} 组</strong><p>题干独立来源；要求至少 2 组</p></div>
+            <div class="source-audit-gate ${audit.joint_answer_dual_source_complete ? "pass" : "blocked"}"><span>JOINT ANSWER SOURCES</span><strong>${audit.joint_answer_independent_groups} 组</strong><p>同一来源同时核对题干与答案；要求至少 2 组</p></div>
+            <div class="source-audit-gate ${gateClass}"><span>QUESTION GATE</span><strong>${gateLabel}</strong><p>${answerOnly.length} 个答案补充来源不计入门槛</p></div>
+          </div>
+          <div class="source-audit-columns">
+            <article class="source-audit-column">
+              <h4>题干来源 · ${stemSources.length}</h4>
+              ${stemSources.map((item) => itemHtml(item, false)).join("")}
+            </article>
+            <article class="source-audit-column">
+              <h4>题干 + 答案联合来源 · ${jointSources.length}</h4>
+              ${jointSources.map((item) => itemHtml(item, true)).join("")}
+              ${answerOnly.length ? `<div class="source-audit-extra"><h4 style="margin-top:10px">答案补充 · 不计入门槛</h4>${answerOnly.map((item) => itemHtml(item, true)).join("")}</div>` : ""}
+            </article>
+          </div>
+        </div>
+      </section>`;
   }
 
   function sourceCardHtml(row, source, label, kind) {
@@ -851,11 +932,19 @@
     $("#signCorrect").textContent = counts.correct;
     $("#signDispute").textContent = counts.dispute;
     $("#signPending").textContent = counts.pending;
-    $("#signBtn").disabled = !META.decision_enabled;
+    const sourceGateBlocked = !sourceAuditReady();
+    const packetBlocked = !packetBindingReady();
+    $("#signBtn").disabled = !META.decision_enabled || sourceGateBlocked || packetBlocked;
     $("#signBtn").textContent = !META.decision_enabled
       ? META.mode === "signed"
         ? "已签收 · 只读"
+        : META.mode === "stale_packet"
+          ? "签字包已过期 · 只读"
         : "历史快照 · 只读"
+      : packetBlocked
+        ? "签字包已过期"
+      : sourceGateBlocked
+        ? "来源门槛未通过"
       : counts.pending
         ? `完成验收 · ${counts.pending} 待复核`
         : "完成验收";
@@ -936,7 +1025,28 @@
     $("#statVisual").textContent = META.visual_required;
     $("#statVisual").title = `视觉必需 ${META.visual_required} 题 / ${META.visual_points} 分`;
     $("#statSources").textContent = META.source_count;
-    $("#statSources").title = `主来源与第二来源共 ${META.source_count} 个唯一来源`;
+    if (META.source_audit_applicable) {
+      $("#statSources").textContent = `${META.joint_answer_dual_source_questions}/${META.source_audit_questions}`;
+      $("#statSources").title = `题干双来源 ${META.stem_dual_source_questions}/${META.source_audit_questions}；题干+答案双来源 ${META.joint_answer_dual_source_questions}/${META.source_audit_questions}；登记来源 ${META.source_count} 个`;
+    } else {
+      $("#statSources").title = `主来源与第二来源共 ${META.source_count} 个唯一来源`;
+    }
+    const gateStrip = $("#sourceGateStrip");
+    if (gateStrip) {
+      if (META.source_audit_applicable) {
+        const sourceGateLabel = META.source_gate_error ? "来源校验失败" : META.source_gate_ready ? "通过" : "未通过";
+        gateStrip.hidden = false;
+        gateStrip.innerHTML = `
+          <span class="source-gate-pill ${sourceAuditReady() ? "pass" : "blocked"}"><i class="gate-dot"></i>来源门槛 ${sourceGateLabel}</span>
+          <span class="source-gate-pill ${META.stem_dual_source_questions === META.source_audit_questions ? "pass" : "blocked"}">题干双来源 <b>${META.stem_dual_source_questions}/${META.source_audit_questions}</b></span>
+          <span class="source-gate-pill ${META.joint_answer_dual_source_questions === META.source_audit_questions ? "pass" : "blocked"}">题干+答案双来源 <b>${META.joint_answer_dual_source_questions}/${META.source_audit_questions}</b></span>
+          ${META.source_gate_error ? `<span class="source-gate-pill blocked" title="${escapeHtml(META.source_gate_error)}">现场校验未通过</span>` : ""}
+          ${META.packet_id && !packetBindingReady() ? `<span class="source-gate-pill blocked" title="${escapeHtml(META.packet_binding_error)}">签字包哈希不匹配</span>` : ""}`;
+      } else {
+        gateStrip.hidden = true;
+        gateStrip.innerHTML = "";
+      }
+    }
     const pill = $("#versionStatusPill");
     pill.textContent = META.mode_label;
     pill.className = `version-status-pill ${modeBadgeClass(META.mode)}`;
@@ -1230,7 +1340,7 @@
   }
 
   function signFormReadyForCredentials() {
-    const ready = $("#signReadiness").classList.contains("ready");
+    const ready = $("#signReadiness").classList.contains("ready") && sourceAuditReady();
     const name = $("#reviewerName").value.trim();
     const reviewerId = $("#reviewerId").value.trim();
     const signature = $("#signature").value.trim();
@@ -1252,8 +1362,28 @@
       container.classList.remove("ready");
       container.classList.add("problem");
       container.innerHTML = `<strong>当前版本只读。</strong> ${
-        META.mode === "signed" ? "该版本已经签收，不能再次生成签字文件。" : "该版本没有可写的 owner review packet。"
+        META.mode === "signed"
+          ? "该版本已经签收，不能再次生成签字文件。"
+          : META.mode === "stale_packet"
+            ? escapeHtml(META.packet_binding_error || "签字包与当前数据包 manifest 不一致，已禁止签字。")
+            : "该版本没有可写的 owner review packet。"
       }`;
+      refreshSignButtons();
+      return;
+    }
+    if (!packetBindingReady()) {
+      container.classList.remove("ready");
+      container.classList.add("problem");
+      container.innerHTML = `<strong>签字包已过期。</strong> ${escapeHtml(META.packet_binding_error || "签字包与当前数据包 manifest 不一致，已禁止签字。")}`;
+      refreshSignButtons();
+      return;
+    }
+    if (!sourceAuditReady()) {
+      container.classList.remove("ready");
+      container.classList.add("problem");
+      container.innerHTML = META.source_gate_error
+        ? `<strong>来源校验失败。</strong> <span class="gate-error-detail">${escapeHtml(META.source_gate_error)}</span>`
+        : `<strong>来源门槛未通过。</strong> 当前题干双来源 ${META.stem_dual_source_questions}/${META.source_audit_questions}，题干+答案双来源 ${META.joint_answer_dual_source_questions}/${META.source_audit_questions}。补齐独立来源后才能生成签字文件。`;
       refreshSignButtons();
       return;
     }
@@ -1283,9 +1413,16 @@
       showToast(
         META.mode === "signed"
           ? "该版本已经签收，历史文件只读。"
+          : META.mode === "stale_packet"
+            ? "签字包与当前数据包不一致，已降为只读。"
           : "该版本没有可写的 owner review packet，当前只读。",
         true
       );
+      return;
+    }
+    if (!signFlowReady()) {
+      updateSignReadiness();
+      showToast(!packetBindingReady() ? "签字包已过期，不能打开签字流程。" : "来源门槛未通过，不能打开签字流程。", true);
       return;
     }
     updateSignReadiness();
@@ -1295,6 +1432,11 @@
   }
 
   async function downloadReviewCsv() {
+    if (!signFlowReady()) {
+      showToast(!packetBindingReady() ? "签字包已过期，不能生成签字文件。" : "来源门槛未通过，不能生成签字文件。", true);
+      updateSignReadiness();
+      return;
+    }
     const issues = reviewIssues();
     if (issues.length) {
       showToast("还有未完成或不合法的判定，不能生成签字文件。", true);
@@ -1306,6 +1448,11 @@
   }
 
   async function downloadSignoffJson() {
+    if (!signFlowReady()) {
+      showToast(!packetBindingReady() ? "签字包已过期，不能生成签字文件。" : "来源门槛未通过，不能生成签字文件。", true);
+      updateSignReadiness();
+      return;
+    }
     const issues = reviewIssues();
     if (issues.length) {
       showToast("还有未完成或不合法的判定，不能生成签字文件。", true);

@@ -1,5 +1,6 @@
 import base64
 import csv
+import hashlib
 import json
 from pathlib import Path
 
@@ -223,9 +224,86 @@ def _make_packet(review_root, data_dir, item_id, *, signed):
     )
     _write_json(
         packet / "packet_manifest.json",
-        {"packet_id": packet.name, "packet_version": "1.0"},
+        {
+            "packet_id": packet.name,
+            "packet_version": "1.0",
+            "dataset_manifest_sha256": hashlib.sha256(
+                (data_dir / "manifest.json").read_bytes()
+            ).hexdigest(),
+        },
     )
     return packet
+
+
+def _add_dual_source_audit(data_dir, item_id):
+    manifest_path = data_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    sources = [
+        json.loads(line)
+        for line in (data_dir / "answer_sources.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    for index, source in enumerate(sources):
+        source["evidence_scope"] = "stem_and_answer"
+        source["independence_group"] = "group-%d" % (index + 1)
+    _write_jsonl(data_dir / "answer_sources.jsonl", sources)
+    assessments = [
+        {
+            "source_id": source["id"],
+            "publisher": source["publisher"],
+            "url": source["url"],
+            "independence_group": source["independence_group"],
+            "evidence_scope": "stem_and_answer",
+            "role": "joint_supporting",
+            "supports_stem": True,
+            "supports_canonical": True,
+            "stem_match": "exact_stem_match",
+            "answer_match": "exact_answer_match",
+            "stem_locator": "第1题",
+            "answer_locator": "第1题",
+            "stem_excerpt": "若 1+1=？",
+            "answer_value": "A",
+            "answer_excerpt": "答案为 A",
+            "access_method": "打开来源逐题核对",
+        }
+        for source in sources
+    ]
+    _write_jsonl(
+        data_dir / "source_audit.jsonl",
+        [
+            {
+                "question_id": item_id,
+                "paper_id": "paper-test",
+                "points": 5,
+                "canonical_answer": "A",
+                "assessments": assessments,
+                "stem_independent_groups": 2,
+                "joint_answer_independent_groups": 2,
+                "stem_dual_source_complete": True,
+                "joint_answer_dual_source_complete": True,
+                "gate_complete": True,
+            }
+        ],
+    )
+    manifest["source_audit"] = {
+        "path": "source_audit.jsonl",
+        "schema_version": "1.0",
+        "policy": {
+            "version": "dual_source_v1",
+            "required_stem_independent_groups": 2,
+            "required_joint_answer_independent_groups": 2,
+            "answer_only_sources_count_for_gate": False,
+        },
+        "questions": 1,
+        "stem_dual_source_questions": 1,
+        "joint_answer_dual_source_questions": 1,
+        "gate_complete_questions": 1,
+        "evidence_ready": True,
+        "gate": "pass",
+        "failed_question_ids": [],
+    }
+    _write_json(manifest_path, manifest)
+    return manifest_path
 
 
 def _fixture(tmp_path):
@@ -379,3 +457,64 @@ def test_missing_answer_key_is_visible_instead_of_silently_omitted(tmp_path):
     assert rows[0]["item_id"] == item_id
     assert rows[0]["answer_status"] == "missing_answer_key"
     assert rows[0]["answer_status_label"] == "缺少答案键"
+
+
+def test_source_gate_is_recomputed_instead_of_trusting_stale_manifest(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-source-audit",
+        created_at="2026-04-01T00:00:00+08:00",
+        status="acceptance_candidate",
+    )
+    _add_dual_source_audit(data_dir, item_id)
+    _make_packet(review_root, data_dir, item_id, signed=False)
+
+    audit_path = data_dir / "source_audit.jsonl"
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    audit["assessments"] = audit["assessments"][:1]
+    audit_path.write_text(json.dumps(audit, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    meta = payload["datasets"]["v-source-audit"]["meta"]
+
+    assert meta["source_gate"] == "blocked"
+    assert meta["source_gate_ready"] is False
+    assert meta["source_gate_error"]
+    assert meta["joint_answer_dual_source_questions"] == 0
+    assert meta["decision_enabled"] is True
+
+
+def test_stale_owner_packet_is_read_only(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-stale-packet",
+        created_at="2026-05-01T00:00:00+08:00",
+        status="acceptance_candidate",
+    )
+    _make_packet(review_root, data_dir, item_id, signed=False)
+
+    manifest_path = data_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["created_at"] = "2026-05-02T00:00:00+08:00"
+    _write_json(manifest_path, manifest)
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    meta = payload["datasets"]["v-stale-packet"]["meta"]
+
+    assert meta["mode"] == "stale_packet"
+    assert meta["review_enabled"] is False
+    assert meta["decision_enabled"] is False
+    assert meta["packet_binding_ok"] is False
+    assert "manifest" in meta["packet_binding_error"]

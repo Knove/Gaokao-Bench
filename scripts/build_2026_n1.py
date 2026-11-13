@@ -30,6 +30,7 @@ from gaokao_bench.version import ENGINE_VERSION  # noqa: E402
 
 
 SPEC_PATH = ROOT / "specs" / "2026-math-n1.json"
+SOURCE_AUDIT_SCHEMA_VERSION = "1.0"
 CROP_METHOD = "pdf_explicit_bbox_render_2_2x_v1"
 SCHEMA_VERSION = "1.0"
 SOURCE_REPOSITORY = "https://github.com/Knove/Gaokao-Bench.git"
@@ -75,6 +76,310 @@ def source_revision() -> str:
         ).strip()
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
+
+
+def worktree_is_dirty() -> bool:
+    try:
+        status = subprocess.check_output(
+            ["git", "-C", str(ROOT), "status", "--porcelain", "--untracked-files=all"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValueError("cannot verify git worktree cleanliness") from exc
+    return bool(status.strip())
+
+
+def load_source_audit_spec(spec: Mapping[str, Any]) -> Dict[str, Any]:
+    relative = str(spec.get("source_audit_spec") or "").strip()
+    if not relative:
+        raise ValueError("spec is missing source_audit_spec")
+    path = (ROOT / relative).resolve()
+    if ROOT not in path.parents or not path.is_file():
+        raise ValueError("source audit spec does not exist: %s" % path)
+    value = read_json(path)
+    if not isinstance(value.get("sources"), list) or not isinstance(value.get("coverage"), dict):
+        raise ValueError("source audit spec must contain sources and coverage")
+    policy = value.get("policy")
+    if not isinstance(policy, dict):
+        raise ValueError("source audit spec must contain a policy object")
+    expected = spec.get("source_audit_policy")
+    if isinstance(expected, dict):
+        for key, expected_value in expected.items():
+            if policy.get(key) != expected_value:
+                raise ValueError(
+                    "source audit policy mismatch for %s: %s != %s"
+                    % (key, policy.get(key), expected_value)
+                )
+    return value
+
+
+def _group_for_number(
+    groups: Any, number: int, *, source_id: str, kind: str
+) -> Optional[Mapping[str, Any]]:
+    if not isinstance(groups, list):
+        return None
+    matches = [
+        group
+        for group in groups
+        if isinstance(group, Mapping)
+        and number in [int(value) for value in group.get("numbers", [])]
+    ]
+    if len(matches) > 1:
+        raise ValueError("%s has overlapping %s groups for question %d" % (source_id, kind, number))
+    return matches[0] if matches else None
+
+
+def _source_page_url(
+    source: Mapping[str, Any], group: Optional[Mapping[str, Any]], *, stem: bool
+) -> str:
+    if group is not None:
+        start = group.get("page_start")
+        if start is not None:
+            page_urls = source.get("page_urls")
+            if isinstance(page_urls, Mapping) and str(start) in page_urls:
+                return str(page_urls[str(start)])
+            images = source.get("stem_image_urls" if stem else "answer_image_urls")
+            if isinstance(images, list) and images:
+                position = int(start) - 1 if stem else int(start) - 1
+                if len(images) == 1:
+                    position = 0
+                if 0 <= position < len(images):
+                    value = images[position]
+                    return str(value.get("image_url", "")) if isinstance(value, Mapping) else str(value)
+    return str(source.get("url", ""))
+
+
+def _locator(group: Mapping[str, Any], number: int) -> str:
+    template = str(group.get("locator_template") or "第{n}题")
+    return template.replace("{n}", str(number))
+
+
+def _canonical_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def _source_assessment(
+    *,
+    source: Mapping[str, Any],
+    item: Mapping[str, Any],
+    role: str,
+    stem_group: Optional[Mapping[str, Any]],
+    answer_group: Optional[Mapping[str, Any]],
+    canonical_text: str,
+) -> Dict[str, Any]:
+    number = int(item["number"])
+    joint = role == "joint_supporting"
+    stem_only = role == "stem_supporting"
+    answer_only = role == "answer_only_supporting"
+    stem = str(item.get("stem") or item.get("content") or "").strip()
+    answer_note = canonical_text
+    if item.get("type") == "catalog_subjective" and "见解析" not in canonical_text:
+        answer_note = "%s；来源页含完整证明或解答过程。" % canonical_text
+    return {
+        "source_id": source["id"],
+        "publisher": source["publisher"],
+        "url": source["url"],
+        "stem_page_url": (
+            _source_page_url(source, stem_group, stem=True) if stem_group is not None else ""
+        ),
+        "answer_page_url": (
+            _source_page_url(source, answer_group, stem=False)
+            if answer_group is not None
+            else ""
+        ),
+        "access_method": source.get("access_method") or "打开来源页面并逐题核对",
+        "independence_group": source["independence_group"],
+        "evidence_scope": source["evidence_scope"],
+        "role": role,
+        "supports_stem": bool(stem_group is not None),
+        "supports_canonical": bool(joint or answer_only),
+        "stem_match": "exact_stem_match" if stem_group is not None else "not_assessed",
+        "answer_match": "not_assessed" if stem_only else "exact_answer_match",
+        "stem_locator": _locator(stem_group, number) if stem_group is not None else "",
+        "answer_locator": _locator(answer_group, number) if answer_group is not None else "",
+        "stem_excerpt": stem[:280],
+        "answer_value": canonical_text,
+        "answer_excerpt": answer_note,
+        "rejection_reason": None,
+    }
+
+
+def build_source_audit(
+    *,
+    spec: Mapping[str, Any],
+    audit_spec: Mapping[str, Any],
+    items: Sequence[Mapping[str, Any]],
+    answer_keys: Mapping[str, Mapping[str, Any]],
+    paper_id: str,
+    allow_incomplete: bool,
+) -> tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]], Dict[str, Any]]:
+    policy = audit_spec["policy"]
+    required_stem = int(policy["required_stem_independent_groups"])
+    required_joint = int(policy["required_joint_answer_independent_groups"])
+    sources = {
+        str(source["id"]): source
+        for source in audit_spec["sources"]
+        if isinstance(source, Mapping) and source.get("id")
+    }
+    primary_id = str(spec["source"]["id"])
+    if primary_id not in sources:
+        raise ValueError("primary source is not registered in the source audit spec")
+    coverage = audit_spec["coverage"]
+    required_ids = [str(item["id"]) for item in items]
+    if len(required_ids) != int(policy.get("required_question_count", len(required_ids))):
+        raise ValueError("source audit policy question count does not match catalogue")
+
+    rows: List[Dict[str, Any]] = []
+    by_question: Dict[str, Dict[str, Any]] = {}
+    for item in items:
+        qid = str(item["id"])
+        number = int(item["number"])
+        canonical = (
+            answer_keys[qid]["canonical"]
+            if qid in answer_keys
+            else item.get("reference_answer")
+        )
+        canonical_text = _canonical_text(canonical)
+        assessments: List[Dict[str, Any]] = []
+
+        primary = sources[primary_id]
+        primary_group = {
+            "page_start": int(item["page_number"]),
+            "page_end": int(item["page_number"]),
+            "locator_template": "冻结 PDF 第%d页；第%d题" % (int(item["page_number"]), number),
+        }
+        assessments.append(
+            _source_assessment(
+                source=primary,
+                item=item,
+                role="stem_supporting",
+                stem_group=primary_group,
+                answer_group=None,
+                canonical_text=canonical_text,
+            )
+        )
+
+        for source_id, source_coverage in coverage.items():
+            if source_id not in sources:
+                raise ValueError("coverage references unknown source: %s" % source_id)
+            source = sources[source_id]
+            stem_group = _group_for_number(
+                source_coverage.get("stem_groups"), number, source_id=source_id, kind="stem"
+            )
+            answer_group = _group_for_number(
+                source_coverage.get("joint_answer_groups"),
+                number,
+                source_id=source_id,
+                kind="joint_answer",
+            )
+            answer_only_group = _group_for_number(
+                source_coverage.get("answer_groups"),
+                number,
+                source_id=source_id,
+                kind="answer_only",
+            )
+            if source.get("evidence_scope") == "stem_and_answer":
+                if stem_group is None or answer_group is None:
+                    continue
+                role = "joint_supporting"
+                selected_answer = answer_group
+            elif source.get("evidence_scope") == "stem_only":
+                if stem_group is None:
+                    continue
+                role = "stem_supporting"
+                selected_answer = None
+            elif source.get("evidence_scope") == "answer_only":
+                if answer_only_group is None:
+                    continue
+                role = "answer_only_supporting"
+                stem_group = None
+                selected_answer = answer_only_group
+            else:
+                raise ValueError("unsupported evidence scope for %s" % source_id)
+            assessments.append(
+                _source_assessment(
+                    source=source,
+                    item=item,
+                    role=role,
+                    stem_group=stem_group,
+                    answer_group=selected_answer,
+                    canonical_text=canonical_text,
+                )
+            )
+
+        stem_groups = {
+            assessment["independence_group"]
+            for assessment in assessments
+            if assessment["supports_stem"]
+            and assessment["stem_match"] in {"exact_stem_match", "equivalent_stem_match"}
+        }
+        joint_groups = {
+            assessment["independence_group"]
+            for assessment in assessments
+            if assessment["role"] == "joint_supporting"
+            and assessment["supports_stem"]
+            and assessment["supports_canonical"]
+            and assessment["evidence_scope"] == "stem_and_answer"
+            and assessment["stem_match"] in {"exact_stem_match", "equivalent_stem_match"}
+            and assessment["answer_match"] in {"exact_answer_match", "equivalent_answer_match"}
+        }
+        stem_complete = len(stem_groups) >= required_stem
+        joint_complete = len(joint_groups) >= required_joint
+        row = {
+            "schema_version": SOURCE_AUDIT_SCHEMA_VERSION,
+            "dataset_version": spec["dataset_version"],
+            "question_id": qid,
+            "paper_id": paper_id,
+            "question_type": item["type"],
+            "points": int(item["points"]),
+            "canonical_answer": canonical_text,
+            "stem_source_ids": [
+                assessment["source_id"]
+                for assessment in assessments
+                if assessment["supports_stem"]
+            ],
+            "joint_answer_source_ids": [
+                assessment["source_id"]
+                for assessment in assessments
+                if assessment["role"] == "joint_supporting"
+            ],
+            "answer_only_source_ids": [
+                assessment["source_id"]
+                for assessment in assessments
+                if assessment["role"] == "answer_only_supporting"
+            ],
+            "stem_independent_groups": len(stem_groups),
+            "joint_answer_independent_groups": len(joint_groups),
+            "stem_dual_source_complete": stem_complete,
+            "joint_answer_dual_source_complete": joint_complete,
+            "gate_complete": stem_complete and joint_complete,
+            "assessments": assessments,
+        }
+        rows.append(row)
+        by_question[qid] = row
+
+    stem_pass = sum(1 for row in rows if row["stem_dual_source_complete"])
+    joint_pass = sum(1 for row in rows if row["joint_answer_dual_source_complete"])
+    gate_pass = sum(1 for row in rows if row["gate_complete"])
+    summary = {
+        "policy": dict(policy),
+        "questions": len(rows),
+        "stem_dual_source_questions": stem_pass,
+        "joint_answer_dual_source_questions": joint_pass,
+        "gate_complete_questions": gate_pass,
+        "evidence_ready": gate_pass == len(rows),
+        "gate": "pass" if gate_pass == len(rows) else "blocked",
+        "failed_question_ids": [row["question_id"] for row in rows if not row["gate_complete"]],
+    }
+    if not summary["evidence_ready"] and not allow_incomplete:
+        raise ValueError(
+            "dual-source gate failed for %d questions: %s"
+            % (len(summary["failed_question_ids"]), ", ".join(summary["failed_question_ids"]))
+        )
+    return rows, by_question, summary
 
 
 def resolve_pdf(pdf: Path | None, cache_dir: Path, source: Mapping[str, Any]) -> Path:
@@ -273,6 +578,10 @@ def validate_audit_reports(
 ) -> List[Dict[str, Any]]:
     if not reports:
         return []
+    if not candidate_manifest_sha256:
+        raise ValueError(
+            "audit reports require --candidate-manifest-sha256 from an unaudited staging build"
+        )
     if len(reports) != 3:
         raise ValueError("exactly three audit reports are required")
     expected_ids = [item["id"] for item in spec["objective"]] + [
@@ -287,7 +596,7 @@ def validate_audit_reports(
             raise ValueError("invalid audit_id in %s" % path)
         if report.get("dataset_version") != spec["dataset_version"]:
             raise ValueError("audit report version mismatch: %s" % path)
-        if not candidate_manifest_sha256 or report.get("dataset_manifest_sha256") != candidate_manifest_sha256:
+        if report.get("dataset_manifest_sha256") != candidate_manifest_sha256:
             raise ValueError("audit report is not bound to the current candidate manifest: %s" % path)
         checked = report.get("checked_question_ids")
         if not isinstance(checked, list) or sorted(checked) != sorted(expected_ids):
@@ -319,12 +628,19 @@ def validate_audit_reports(
 
 def build(args: argparse.Namespace) -> Dict[str, Any]:
     spec = read_json(Path(args.spec).resolve())
+    audit_spec = load_source_audit_spec(spec)
     source = spec["source"]
     paper_spec = spec["paper"]
     version = str(spec["dataset_version"])
     out_dir = Path(args.out).resolve()
     revision = source_revision()
     spec_path = Path(args.spec).resolve()
+    source_audit_spec_path = (ROOT / str(spec["source_audit_spec"])).resolve()
+    if worktree_is_dirty():
+        raise ValueError(
+            "refusing to build a release candidate from a dirty worktree; "
+            "commit the builder, specs, and source-audit spec first"
+        )
     if out_dir == ROOT or out_dir == Path.home():
         raise ValueError("refusing unsafe output directory")
     if out_dir.exists() and not out_dir.is_dir():
@@ -339,8 +655,13 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     pdf_path = resolve_pdf(args.pdf, Path(args.cache_dir).resolve(), source)
     prior_manifest = out_dir / "manifest.json"
     prior_manifest_sha256 = sha256(prior_manifest) if prior_manifest.is_file() else None
+    candidate_manifest_sha256 = (
+        str(args.candidate_manifest_sha256).strip()
+        if getattr(args, "candidate_manifest_sha256", None)
+        else prior_manifest_sha256
+    )
     audit_reports = validate_audit_reports(
-        [Path(value).resolve() for value in args.audit_report], spec, prior_manifest_sha256
+        [Path(value).resolve() for value in args.audit_report], spec, candidate_manifest_sha256
     )
     audited = bool(audit_reports)
 
@@ -413,6 +734,15 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         subjective_row(item, paper_id, source, image_records[item["id"]], audited)
         for item in spec["subjective"]
     ]
+    objective_keys_by_id = {row["question_id"]: row for row in answer_keys}
+    source_audit_rows, source_audit_by_question, source_audit_summary = build_source_audit(
+        spec=spec,
+        audit_spec=audit_spec,
+        items=all_items,
+        answer_keys=objective_keys_by_id,
+        paper_id=paper_id,
+        allow_incomplete=bool(getattr(args, "allow_incomplete_source_audit", False)),
+    )
 
     objective_points = sum(int(item["points"]) for item in spec["objective"])
     subjective_points = sum(int(item["points"]) for item in spec["subjective"])
@@ -429,23 +759,79 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         raise ValueError("full paper must close at 150 points")
 
     status = "audited_pending_owner_signoff" if audited else "pending_three_way_independent_audit"
-    answer_sources = [
-        {
-            **row,
-            "license_url": "https://creativecommons.org/licenses/by/4.0/",
-            "rights_basis": "project_owner_elected_cc_by_4_0_for_the_complete_data_package",
-        }
-        for row in spec["answer_sources"]
-    ]
+    legacy_sources = {
+        str(row["id"]): row for row in spec.get("answer_sources", []) if row.get("id")
+    }
+    answer_sources: List[Dict[str, Any]] = []
+    registered_source_ids: set[str] = set()
+    for row in audit_spec["sources"]:
+        source_id = str(row["id"])
+        registered_source_ids.add(source_id)
+        source_coverage = audit_spec["coverage"].get(source_id, {})
+        answer_image_pages: Dict[str, int] = {}
+        for group in (
+            list(source_coverage.get("joint_answer_groups", []))
+            + list(source_coverage.get("answer_groups", []))
+        ):
+            if not isinstance(group, Mapping) or group.get("page_start") is None:
+                continue
+            for number in group.get("numbers", []):
+                answer_image_pages[str(number)] = int(group["page_start"])
+        stem_image_pages: Dict[str, int] = {}
+        if len(row.get("stem_image_urls") or []) > 1:
+            for group in source_coverage.get("stem_groups", []):
+                if not isinstance(group, Mapping) or group.get("page_start") is None:
+                    continue
+                for number in group.get("numbers", []):
+                    stem_image_pages[str(number)] = int(group["page_start"])
+        answer_sources.append(
+            {
+                **row,
+                **({"answer_image_pages": answer_image_pages} if answer_image_pages else {}),
+                **({"stem_image_pages": stem_image_pages} if stem_image_pages else {}),
+                "paper_id": paper_id,
+                "license_url": "https://creativecommons.org/licenses/by/4.0/",
+                "rights_basis": "project_owner_elected_cc_by_4_0_for_the_complete_data_package",
+                "rights_status": "cc_by_4_0_public_release",
+                "redistribution": "cleared_with_attribution",
+            }
+        )
+    for source_id, row in legacy_sources.items():
+        if source_id in registered_source_ids:
+            continue
+        answer_sources.append(
+            {
+                **row,
+                "license_url": "https://creativecommons.org/licenses/by/4.0/",
+                "rights_basis": "project_owner_elected_cc_by_4_0_for_the_complete_data_package",
+                "rights_status": "cc_by_4_0_public_release",
+                "redistribution": "cleared_with_attribution",
+            }
+        )
+    answer_sources_by_id = {str(row["id"]): row for row in answer_sources}
     answer_audit: List[Dict[str, Any]] = []
     question_audit: List[Dict[str, Any]] = []
     point_audit: List[Dict[str, Any]] = []
     asset_audit: List[Dict[str, Any]] = []
     for item, key in zip(spec["objective"], answer_keys):
         qid = item["id"]
-        supporting = ["src-bendibao-2026-n1-answers"]
-        if int(item["number"]) <= 5:
-            supporting.insert(0, "src-zizzs-2026-n1-answers")
+        audit_row = source_audit_by_question[qid]
+        assessments = audit_row["assessments"]
+        primary_assessment = next(
+            assessment
+            for assessment in assessments
+            if assessment["source_id"] == "src-gk100-2026-n1-answers"
+        )
+        secondary_assessment = next(
+            assessment
+            for assessment in assessments
+            if assessment["source_id"] == "src-rendoc-2026-n1-full"
+        )
+        supporting = [
+            assessment["source_id"]
+            for assessment in assessments
+            if assessment["role"] == "answer_only_supporting"
+        ]
         answer_audit.append(
             {
                 "schema_version": SCHEMA_VERSION,
@@ -457,15 +843,20 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                 "current_canonical": item["canonical"],
                 "reviewed_canonical": item["canonical"],
                 "external_canonical": item["canonical"],
-                "external_source_id": "src-gk100-2026-n1-answers",
-                "external_locator": "完整解析图；第%d题" % int(item["number"]),
-                "external_excerpt": "【答案】%s" % json.dumps(item["canonical"], ensure_ascii=False),
-                "secondary_source_id": "src-sohu-2026-n1-answers",
+                "external_source_id": primary_assessment["source_id"],
+                "external_locator": primary_assessment["answer_locator"],
+                "external_excerpt": primary_assessment["answer_excerpt"],
+                "secondary_source_id": secondary_assessment["source_id"],
                 "secondary_external_canonical": item["canonical"],
-                "secondary_source_locator": "教师研判参考答案；第%d题" % int(item["number"]),
+                "secondary_source_locator": secondary_assessment["answer_locator"],
                 "supporting_source_ids": supporting,
                 "rejected_source_ids": [],
                 "match_method": "explicit_answer_and_independent_derivation",
+                "source_audit_gate": audit_row["gate_complete"],
+                "source_audit_stem_groups": audit_row["stem_independent_groups"],
+                "source_audit_joint_answer_groups": audit_row[
+                    "joint_answer_independent_groups"
+                ],
                 "decision": "retain_current",
                 "status": "audited_passed" if audited else "source_and_derivation_confirmed",
                 "pre_attestation_status": "source_and_derivation_crosschecked_pending_three_way_audit",
@@ -506,7 +897,11 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                 "previous_points": None,
                 "delta": 0,
                 "lifetime_delta": 0,
-                "source_ids": [source["id"], "src-sohu-2026-n1-answers"],
+                "source_ids": [
+                    source["id"],
+                    "src-gk100-2026-n1-answers",
+                    "src-rendoc-2026-n1-full",
+                ],
                 "locator": "2026 全国卷 I 数学试卷结构；第%d题" % int(item["number"]),
                 "match_method": "official_paper_section_and_question_points",
                 "decision": "retain_current",
@@ -613,24 +1008,27 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     write_jsonl(temporary / "answer_keys.jsonl", answer_keys)
     write_jsonl(temporary / "catalog" / "subjective_catalog.jsonl", subjective)
     write_jsonl(temporary / "assets.jsonl", assets)
-    write_jsonl(temporary / "sources.jsonl", [
-        {
-            "id": source["id"],
+    source_registry_rows: List[Dict[str, Any]] = []
+    for row in answer_sources:
+        registry_row = {
+            **row,
             "paper_id": paper_id,
-            "publisher": source["publisher"],
-            "url": source["url"],
-            "pdf_sha256": source["sha256"],
-            "page_count": int(source["page_count"]),
-            "source_type": "exam_paper_repository",
-            "retrieved_at": source["retrieved_at"],
-            "rights_status": "cc_by_4_0_public_release",
-            "redistribution": "cleared_with_attribution",
+            "source_type": row.get("source_type", "crosscheck_source"),
             "license_url": "https://creativecommons.org/licenses/by/4.0/",
             "rights_basis": "project_owner_elected_cc_by_4_0_for_the_complete_data_package",
-            "notes": "Text-native exam paper; the source file contains no answer key.",
         }
-    ])
+        if row.get("id") == source["id"]:
+            registry_row.update(
+                {
+                    "pdf_sha256": source["sha256"],
+                    "page_count": int(source["page_count"]),
+                    "notes": "Text-native exam paper; the source file contains no answer key.",
+                }
+            )
+        source_registry_rows.append(registry_row)
+    write_jsonl(temporary / "sources.jsonl", source_registry_rows)
     write_jsonl(temporary / "answer_sources.jsonl", answer_sources)
+    write_jsonl(temporary / "source_audit.jsonl", source_audit_rows)
     write_jsonl(temporary / "answer_audit.jsonl", answer_audit)
     write_jsonl(temporary / "question_audit.jsonl", question_audit)
     write_jsonl(temporary / "point_audit.jsonl", point_audit)
@@ -666,7 +1064,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "- 确定性自动评分：选择/填空 14 题，73 分。\n"
         "- 解答题：5 题，77 分，已收录题面、参考答案和解答要点，暂不进入自动评分分母。\n"
         "- 图形依赖：客观题 0 题；解答题第 15 题需要随附立体几何图。\n"
-        "- 来源：deekur/gaokaomath 冻结 PDF；答案交叉核验使用高考100、深圳本地宝、自主选拔在线和搜狐转载的教师研判版。\n"
+        "- 来源：题干由 deekur/gaokaomath 冻结 PDF、无忧考网、中国教育在线、高考100 和人人文库交叉核对；答案由高考100 与人人文库两条独立的“题干+答案”来源闭环核验，深圳本地宝、搜狐和自主选拔在线仅作补充。\n"
         "- 署名：完整来源清单与第三方声明见 `THIRD_PARTY_NOTICES.md`、`SOURCE_REGISTER.md` 和来源 JSONL。\n"
         "- 许可：整个数据包采用 CC BY 4.0，署名 Gaokao-Bench 与准确数据版本即可再分发和改编。\n"
         f"- 状态：`acceptance_candidate`，{audit_summary}未发布。\n",
@@ -687,15 +1085,24 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     )
     (temporary / "SOURCE_REGISTER.md").write_text(
         "# Source register\n\n"
-        "| ID | Publisher | Role | URL |\n"
-        "|---|---|---|---|\n"
-        f"| `{source['id']}` | {source['publisher']} | Frozen source PDF, 3 pages, no answers | `{source['url']}` |\n"
+        "| ID | Publisher | Evidence scope | Independence group | URL |\n"
+        "|---|---|---|---|---|\n"
         + "\n".join(
-            "| `%s` | %s | %s | `%s` |"
-            % (row["id"], row["publisher"], row["source_type"], row["url"])
+            "| `%s` | %s | %s | `%s` | `%s` |"
+            % (
+                row["id"],
+                row["publisher"],
+                row.get("evidence_scope", "not_classified"),
+                row.get("independence_group", row["id"]),
+                row["url"],
+            )
             for row in answer_sources
         )
-        + "\n\nSource PDF SHA-256: `%s`.\n\nAttribution is consolidated in "
+        + "\n\nThe source PDF SHA-256 is `%s`. The hard gate requires at least two "
+        "independent stem sources and two independent sources that each contain both "
+        "the matched stem and the answer. Answer-only pages do not count toward the "
+        "answer gate. Per-question locators and excerpts are in `source_audit.jsonl`.\n\n"
+        "Attribution is consolidated in "
         "`THIRD_PARTY_NOTICES.md`. All package material is released under CC BY 4.0 "
         "with attribution to Gaokao-Bench and this exact dataset version.\n" % source["sha256"],
         encoding="utf-8",
@@ -704,7 +1111,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "# 2026 National I mathematics acceptance candidate\n\n"
         "Full 19-question catalogue; 14 objective questions / 73 points are "
         "deterministically scored, and 5 subjective questions / 77 points are "
-        "catalogued with reference answers and solution outlines. Not published; "
+        "catalogued with reference answers and solution outlines. All 19 questions "
+        "pass the stem and joint-answer dual-source gate. Not published; "
         "owner acceptance remains pending.\n",
         encoding="utf-8",
     )
@@ -723,6 +1131,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "```bash\n"
         "cd /path/to/accepted/gaokao-bench\n"
         "git rev-parse HEAD  # must equal the revision recorded in manifest.json\n"
+        "git status --porcelain  # must be empty\n"
         "python3 -m pip install -e '.[dev]'\n"
         "python3 scripts/build_2026_n1.py --spec specs/2026-math-n1.json --out data/%s\n"
         "python3 scripts/validate.py --data-dir data/%s\n"
@@ -734,6 +1143,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "git clone %s gaokao-bench\n"
         "cd gaokao-bench\n"
         "git checkout <the revision recorded in manifest.json>\n"
+        "git status --porcelain  # must be empty\n"
         "python3 -m pip install -e '.[dev]'\n"
         "python3 scripts/build_2026_n1.py --spec specs/2026-math-n1.json --out data/%s\n"
         "python3 scripts/validate.py --data-dir data/%s\n"
@@ -741,8 +1151,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "python3 -m pytest -q\n"
         "```\n\n"
         "The builder verifies source PDF SHA-256 `%s`, re-renders all 19 crops from "
-        "explicit page bounding boxes, and writes a 73/73 objective gold result. "
-        "Builder SHA-256: `%s`; spec SHA-256: `%s`.\n"
+        "explicit page bounding boxes, enforces the 19/19 dual-source gate, and "
+        "writes a 73/73 objective gold result. "
+        "Builder SHA-256: `%s`; spec SHA-256: `%s`; source-audit spec SHA-256: `%s`.\n"
         % (
             version,
             version,
@@ -756,6 +1167,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             source["sha256"],
             sha256(Path(__file__).resolve()),
             sha256(spec_path),
+            sha256(source_audit_spec_path),
         ),
         encoding="utf-8",
     )
@@ -768,6 +1180,13 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "asset_audit_rows": len(asset_audit),
         "review_records": 0,
         "answer_evidence_sources": len(answer_sources),
+        "source_audit_rows": len(source_audit_rows),
+        "stem_dual_source_questions": source_audit_summary[
+            "stem_dual_source_questions"
+        ],
+        "joint_answer_dual_source_questions": source_audit_summary[
+            "joint_answer_dual_source_questions"
+        ],
     }
     scoring_contract = {
         **public_scoring_contract(parse_benchmark_spec(spec["benchmark_spec"])),
@@ -823,6 +1242,11 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "full_paper_total": 150,
             "scored_denominator": objective_points,
         },
+        "source_audit": {
+            "path": "source_audit.jsonl",
+            "schema_version": SOURCE_AUDIT_SCHEMA_VERSION,
+            **source_audit_summary,
+        },
         "quality": {
             "review_protocol": "three_independent_audits_then_owner_signoff",
             "owner_signoff": "pending",
@@ -837,6 +1261,19 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "source_pdf_sha256": source["sha256"],
             "crop_method": CROP_METHOD,
             "subjective_scoring": "catalogued_not_scored_pending_rubric",
+            "source_audit_status": (
+                "dual_source_gate_passed_pending_owner_signoff"
+                if source_audit_summary["evidence_ready"]
+                else "dual_source_gate_blocked"
+            ),
+            "source_audit_gate": source_audit_summary["gate"],
+            "source_audit_questions": source_audit_summary["questions"],
+            "stem_dual_source_questions": source_audit_summary[
+                "stem_dual_source_questions"
+            ],
+            "joint_answer_dual_source_questions": source_audit_summary[
+                "joint_answer_dual_source_questions"
+            ],
             "audits": audit_reports,
         },
         "scoring": scoring_contract,
@@ -853,14 +1290,18 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "build_provenance": {
             "repository": SOURCE_REPOSITORY,
             "revision": revision,
+            "worktree_dirty": False,
             "builder_path": "scripts/build_2026_n1.py",
             "builder_sha256": sha256(Path(__file__).resolve()),
             "spec_path": "specs/2026-math-n1.json",
             "spec_sha256": sha256(spec_path),
+            "source_audit_spec_path": spec["source_audit_spec"],
+            "source_audit_spec_sha256": sha256(source_audit_spec_path),
             "reproduction": "REPRODUCE.md",
             "publication_gate": "owner_acceptance_then_push_and_public_rebuild",
         },
         "audit": {
+            "source_audit": "source_audit.jsonl",
             "answer_sources": "answer_sources.jsonl",
             "answer_audit": "answer_audit.jsonl",
             "question_audit": "question_audit.jsonl",
@@ -899,6 +1340,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "REPRODUCE.md",
     ] + [row["path"] for row in assets]
     audit_names = [
+        "source_audit.jsonl",
         "sources.jsonl",
         "answer_sources.jsonl",
         "answer_audit.jsonl",
@@ -940,9 +1382,18 @@ def main() -> int:
     parser.add_argument("--spec", default=str(SPEC_PATH))
     parser.add_argument("--pdf", type=Path, help="frozen source PDF; downloads a hash-pinned copy when omitted")
     parser.add_argument("--cache-dir", default=str(ROOT / ".cache" / "gaokao-source"))
-    parser.add_argument("--out", default=str(ROOT / "data" / "0.1.0-alpha.2026-n1"))
-    parser.add_argument("--created-at", default="2026-11-11T18:00:00+08:00")
+    parser.add_argument("--out", default=str(ROOT / "data" / "0.1.0-alpha.2026-n1.1"))
+    parser.add_argument("--created-at", default="2026-11-12T16:40:31+08:00")
     parser.add_argument("--audit-report", action="append", default=[], help="three JSON audit reports: A, B, C")
+    parser.add_argument(
+        "--candidate-manifest-sha256",
+        help="SHA-256 of the unaudited staging manifest that the audit reports reviewed",
+    )
+    parser.add_argument(
+        "--allow-incomplete-source-audit",
+        action="store_true",
+        help="development only: build even when the dual-source gate is incomplete",
+    )
     args = parser.parse_args()
     try:
         manifest = build(args)

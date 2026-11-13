@@ -65,6 +65,19 @@ SOURCE_STEM_MATCHES = {
     "stem_not_visible",
 }
 SOURCE_ASSESSMENT_ROLES = {"supporting", "rejected"}
+SOURCE_AUDIT_ROLES = {
+    "stem_supporting",
+    "joint_supporting",
+    "answer_only_supporting",
+    "rejected",
+}
+SOURCE_AUDIT_MATCHES = {
+    "exact_stem_match",
+    "equivalent_stem_match",
+    "exact_answer_match",
+    "equivalent_answer_match",
+    "not_assessed",
+}
 POINT_AUDIT_STATUSES = {
     "source_points_crosschecked_pending_owner_signoff",
     "owner_and_two_independent_reviewers_complete",
@@ -347,6 +360,215 @@ def _validate_source_assessments(
                 errors.append("source assessment is missing %s for %s" % (field, qid))
         if role == "rejected" and not str(item.get("rejection_reason") or "").strip():
             errors.append("rejected source assessment has no rejection_reason for %s" % qid)
+
+
+def _canonical_source_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
+    """Validate the per-question dual-source gate and return its summary."""
+
+    manifest = dataset.manifest
+    block = manifest.get("source_audit")
+    path = dataset.data_dir / "source_audit.jsonl"
+    if not isinstance(block, Mapping):
+        if path.is_file():
+            raise ValueError("source_audit.jsonl exists but manifest.source_audit is missing")
+        return {"applicable": False, "gate": "not_applicable"}
+    if not path.is_file():
+        raise ValueError("manifest.source_audit is present but source_audit.jsonl is missing")
+    policy = block.get("policy")
+    if not isinstance(policy, Mapping):
+        raise ValueError("manifest.source_audit.policy must be an object")
+    required_stem = int(policy.get("required_stem_independent_groups") or 0)
+    required_joint = int(policy.get("required_joint_answer_independent_groups") or 0)
+    if required_stem < 2 or required_joint < 2:
+        raise ValueError("dual-source policy must require at least two independent groups")
+    if policy.get("answer_only_sources_count_for_gate") is not False:
+        raise ValueError("answer-only sources must not count toward the dual-source gate")
+
+    expected_items = {str(q["id"]): q for q in dataset.questions}
+    expected_items.update({str(q["id"]): q for q in dataset.catalog_subjective})
+    rows = _read_jsonl(path)
+    row_ids = [str(row.get("question_id", "")) for row in rows]
+    if len(row_ids) != len(set(row_ids)):
+        raise ValueError("source audit question IDs are not unique")
+    if set(row_ids) != set(expected_items):
+        missing = sorted(set(expected_items) - set(row_ids))
+        extra = sorted(set(row_ids) - set(expected_items))
+        raise ValueError(
+            "source audit coverage mismatch; missing=%s extra=%s" % (missing, extra)
+        )
+
+    source_registry: Dict[str, Mapping[str, Any]] = {}
+    for name in ("sources.jsonl", "answer_sources.jsonl"):
+        source_path = dataset.data_dir / name
+        if not source_path.is_file():
+            continue
+        for source in _read_jsonl(source_path):
+            source_id = str(source.get("id", ""))
+            if source_id:
+                source_registry[source_id] = source
+
+    errors: List[str] = []
+    stem_pass = 0
+    joint_pass = 0
+    gate_pass = 0
+    for row in rows:
+        qid = str(row.get("question_id", ""))
+        item = expected_items[qid]
+        expected_answer = (
+            dataset.answer_keys[qid].get("canonical")
+            if qid in dataset.answer_keys
+            else item.get("reference_answer")
+        )
+        if row.get("canonical_answer") != _canonical_source_value(expected_answer):
+            errors.append("source audit canonical answer differs for %s" % qid)
+        if row.get("paper_id") != item.get("paper_id"):
+            errors.append("source audit paper mismatch for %s" % qid)
+        if int(row.get("points") or -1) != int(item.get("points") or 0):
+            errors.append("source audit points mismatch for %s" % qid)
+        assessments = row.get("assessments")
+        if not isinstance(assessments, list) or not assessments:
+            errors.append("source audit has no assessments for %s" % qid)
+            continue
+        seen_sources: set[str] = set()
+        stem_groups: set[str] = set()
+        joint_groups: set[str] = set()
+        for index, assessment in enumerate(assessments):
+            if not isinstance(assessment, Mapping):
+                errors.append("source assessment %d is not an object for %s" % (index, qid))
+                continue
+            source_id = str(assessment.get("source_id", ""))
+            if not source_id:
+                errors.append("source assessment %d has no source_id for %s" % (index, qid))
+                continue
+            if source_id in seen_sources:
+                errors.append("duplicate source assessment %s for %s" % (source_id, qid))
+                continue
+            seen_sources.add(source_id)
+            source = source_registry.get(source_id)
+            if source is None:
+                errors.append("source audit references unknown source %s for %s" % (source_id, qid))
+                continue
+            role = assessment.get("role")
+            if role not in SOURCE_AUDIT_ROLES:
+                errors.append("source audit has invalid role %s for %s" % (role, qid))
+                continue
+            supports_stem = assessment.get("supports_stem")
+            supports_canonical = assessment.get("supports_canonical")
+            if not isinstance(supports_stem, bool) or not isinstance(supports_canonical, bool):
+                errors.append("source audit support flags must be boolean for %s/%s" % (qid, source_id))
+                continue
+            for field in ("publisher", "url", "access_method", "independence_group"):
+                if not str(assessment.get(field, "")).strip():
+                    errors.append("source audit is missing %s for %s/%s" % (field, qid, source_id))
+            if str(assessment.get("evidence_scope")) != str(source.get("evidence_scope")):
+                errors.append("source audit evidence scope differs for %s/%s" % (qid, source_id))
+            if str(assessment.get("independence_group")) != str(source.get("independence_group")):
+                errors.append("source audit independence group differs for %s/%s" % (qid, source_id))
+            stem_match = assessment.get("stem_match")
+            answer_match = assessment.get("answer_match")
+            if stem_match not in SOURCE_AUDIT_MATCHES:
+                errors.append("source audit has invalid stem_match for %s/%s" % (qid, source_id))
+            if answer_match not in SOURCE_AUDIT_MATCHES:
+                errors.append("source audit has invalid answer_match for %s/%s" % (qid, source_id))
+            if supports_stem:
+                if not str(assessment.get("stem_locator", "")).strip():
+                    errors.append("source audit has no stem locator for %s/%s" % (qid, source_id))
+                if not str(assessment.get("stem_excerpt", "")).strip():
+                    errors.append("source audit has no stem excerpt for %s/%s" % (qid, source_id))
+            if supports_canonical:
+                if not str(assessment.get("answer_locator", "")).strip():
+                    errors.append("source audit has no answer locator for %s/%s" % (qid, source_id))
+                if not str(assessment.get("answer_excerpt", "")).strip():
+                    errors.append("source audit has no answer excerpt for %s/%s" % (qid, source_id))
+                if not str(assessment.get("answer_value", "")).strip():
+                    errors.append("source audit has no answer value for %s/%s" % (qid, source_id))
+            if role == "stem_supporting":
+                if not supports_stem or supports_canonical:
+                    errors.append("stem-only source support flags disagree for %s/%s" % (qid, source_id))
+                if stem_match not in {"exact_stem_match", "equivalent_stem_match"}:
+                    errors.append("stem-only source does not match stem for %s/%s" % (qid, source_id))
+            elif role == "joint_supporting":
+                if not supports_stem or not supports_canonical:
+                    errors.append("joint source support flags disagree for %s/%s" % (qid, source_id))
+                if source.get("evidence_scope") != "stem_and_answer":
+                    errors.append("joint source is not registered as stem_and_answer for %s/%s" % (qid, source_id))
+                if stem_match not in {"exact_stem_match", "equivalent_stem_match"}:
+                    errors.append("joint source stem does not match for %s/%s" % (qid, source_id))
+                if answer_match not in {"exact_answer_match", "equivalent_answer_match"}:
+                    errors.append("joint source answer does not match for %s/%s" % (qid, source_id))
+                if str(assessment.get("answer_value")) != _canonical_source_value(expected_answer):
+                    errors.append("joint source answer value differs for %s/%s" % (qid, source_id))
+            elif role == "answer_only_supporting":
+                if supports_stem or not supports_canonical:
+                    errors.append("answer-only source support flags disagree for %s/%s" % (qid, source_id))
+                if source.get("evidence_scope") != "answer_only":
+                    errors.append("answer-only source has wrong evidence scope for %s/%s" % (qid, source_id))
+                if stem_match != "not_assessed":
+                    errors.append("answer-only source must not assess the stem for %s/%s" % (qid, source_id))
+            if (
+                supports_stem
+                and stem_match in {"exact_stem_match", "equivalent_stem_match"}
+            ):
+                stem_groups.add(str(assessment["independence_group"]))
+            if (
+                role == "joint_supporting"
+                and supports_stem
+                and supports_canonical
+                and source.get("evidence_scope") == "stem_and_answer"
+                and stem_match in {"exact_stem_match", "equivalent_stem_match"}
+                and answer_match in {"exact_answer_match", "equivalent_answer_match"}
+            ):
+                joint_groups.add(str(assessment["independence_group"]))
+        stem_complete = len(stem_groups) >= required_stem
+        joint_complete = len(joint_groups) >= required_joint
+        if int(row.get("stem_independent_groups") or 0) != len(stem_groups):
+            errors.append("source audit stem group count is stale for %s" % qid)
+        if int(row.get("joint_answer_independent_groups") or 0) != len(joint_groups):
+            errors.append("source audit joint-answer group count is stale for %s" % qid)
+        if row.get("stem_dual_source_complete") is not stem_complete:
+            errors.append("source audit stem completion flag is stale for %s" % qid)
+        if row.get("joint_answer_dual_source_complete") is not joint_complete:
+            errors.append("source audit joint-answer completion flag is stale for %s" % qid)
+        if row.get("gate_complete") is not (stem_complete and joint_complete):
+            errors.append("source audit gate flag is stale for %s" % qid)
+        stem_pass += int(stem_complete)
+        joint_pass += int(joint_complete)
+        gate_pass += int(stem_complete and joint_complete)
+
+    summary = {
+        "applicable": True,
+        "policy": dict(policy),
+        "questions": len(rows),
+        "stem_dual_source_questions": stem_pass,
+        "joint_answer_dual_source_questions": joint_pass,
+        "gate_complete_questions": gate_pass,
+        "evidence_ready": gate_pass == len(rows) and not errors,
+        "gate": "pass" if gate_pass == len(rows) and not errors else "blocked",
+    }
+    for field in (
+        "questions",
+        "stem_dual_source_questions",
+        "joint_answer_dual_source_questions",
+        "gate_complete_questions",
+        "evidence_ready",
+        "gate",
+    ):
+        if block.get(field) != summary[field]:
+            errors.append("manifest.source_audit.%s is stale" % field)
+    if gate_pass != len(rows):
+        errors.append(
+            "dual-source gate is incomplete: stem %d/%d, joint answer %d/%d"
+            % (stem_pass, len(rows), joint_pass, len(rows))
+        )
+    if errors:
+        raise ValueError("Gaokao-Bench source audit failed:\n- " + "\n- ".join(errors))
+    return summary
 REQUIRED_MANIFEST_FILES = {
     "answer_audit.jsonl",
     "asset_audit.jsonl",
@@ -1311,10 +1533,20 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         if isinstance(review_lineage, dict) and review_lineage.get("review_event_count") != len(review_rows):
             errors.append("review_lineage event count does not match reviews.jsonl")
 
+    try:
+        source_audit_summary = validate_source_audit(dataset)
+    except ValueError as exc:
+        errors.append(str(exc))
+        source_audit_summary = {"applicable": False, "gate": "blocked"}
+
     manifest_files = dataset.manifest.get("files")
     if not isinstance(manifest_files, dict):
         errors.append("manifest files must be an object")
     else:
+        if isinstance(dataset.manifest.get("source_audit"), Mapping) and (
+            "source_audit.jsonl" not in manifest_files
+        ):
+            errors.append("manifest.source_audit must be covered by manifest.files")
         missing_files = sorted(REQUIRED_MANIFEST_FILES - set(manifest_files))
         if missing_files:
             errors.append("manifest does not cover required files: %s" % ", ".join(missing_files))
@@ -1367,6 +1599,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         "catalog_subjective_points": catalog_subjective_points,
         "image_required_questions": len(required_assets),
         "question_audit_rows": len(question_audit) if question_audit_path.is_file() else 0,
+        "source_audit": source_audit_summary,
     }
 
 

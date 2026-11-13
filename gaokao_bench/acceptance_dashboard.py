@@ -17,9 +17,11 @@ import json
 import mimetypes
 import re
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .owner_review import OWNER_REVIEW_FIELDS
+from .scoring import validate_source_audit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,6 +74,7 @@ REVIEW_MODE_LABELS = {
     "signed": "已签收",
     "historical_candidate": "历史候选",
     "archive": "存档快照",
+    "stale_packet": "签字包已过期",
 }
 
 INTERACTIVE_STATUSES = {"acceptance_candidate", "owner_review_candidate"}
@@ -453,6 +456,19 @@ def _packet_rows(
     packet_dir = _load_packet(review_root, version)
     if packet_dir is None:
         return None, []
+    current_manifest_sha256 = _file_sha256(data_dir / "manifest.json")
+    packet_manifest_path = packet_dir / "packet_manifest.json"
+    packet_manifest = _read_json(packet_manifest_path) if packet_manifest_path.is_file() else {}
+    packet_manifest_sha256 = str(packet_manifest.get("dataset_manifest_sha256") or "")
+    binding_error = ""
+    if not packet_manifest_sha256:
+        binding_error = "签字包未记录 dataset_manifest_sha256"
+    elif packet_manifest_sha256 != current_manifest_sha256:
+        binding_error = (
+            "签字包绑定 manifest %s，当前数据包为 %s"
+            % (packet_manifest_sha256[:12], current_manifest_sha256[:12])
+        )
+    binding_ok = not binding_error
     fields, review_rows = _read_csv(packet_dir / "owner_review.csv")
     signoff_path = packet_dir / "owner_signoff.json"
     signoff = _read_json(signoff_path) if signoff_path.is_file() else {}
@@ -536,14 +552,16 @@ def _packet_rows(
             raw=raw,
         )
         rows.append(row)
-    packet_manifest_path = packet_dir / "packet_manifest.json"
-    packet_manifest = _read_json(packet_manifest_path) if packet_manifest_path.is_file() else {}
     return {
         "dir": packet_dir,
         "fields": fields,
         "signoff": signoff,
         "packet_manifest": packet_manifest,
-        "signed": bool(signoff.get("owner_attested")),
+        "signed": bool(signoff.get("owner_attested")) and binding_ok,
+        "binding_ok": binding_ok,
+        "binding_error": binding_error,
+        "manifest_sha256": current_manifest_sha256,
+        "packet_manifest_sha256": packet_manifest_sha256,
     }, rows
 
 
@@ -764,6 +782,68 @@ def _version_audits(
     return audits
 
 
+def _validated_source_audit(
+    *,
+    data_dir: Path,
+    manifest: Mapping[str, Any],
+    questions: Sequence[Mapping[str, Any]],
+    answer_keys: Mapping[str, Mapping[str, Any]],
+    catalog: Sequence[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Re-run the source gate instead of trusting a cached manifest summary."""
+
+    block = manifest.get("source_audit")
+    if not isinstance(block, Mapping):
+        if (data_dir / "source_audit.jsonl").is_file():
+            return {
+                "applicable": True,
+                "gate": "blocked",
+                "evidence_ready": False,
+                "questions": len(questions) + len(catalog),
+                "stem_dual_source_questions": 0,
+                "joint_answer_dual_source_questions": 0,
+                "gate_complete_questions": 0,
+                "failed_question_ids": [],
+                "error": "source_audit.jsonl 存在，但 manifest.source_audit 缺失",
+            }
+        return {
+            "applicable": False,
+            "gate": "not_applicable",
+            "evidence_ready": True,
+            "questions": 0,
+            "stem_dual_source_questions": 0,
+            "joint_answer_dual_source_questions": 0,
+            "gate_complete_questions": 0,
+            "failed_question_ids": [],
+            "error": "",
+        }
+
+    dataset = SimpleNamespace(
+        data_dir=data_dir,
+        manifest=dict(manifest),
+        questions=tuple(questions),
+        answer_keys=dict(answer_keys),
+        catalog_subjective=tuple(catalog),
+    )
+    try:
+        summary = validate_source_audit(dataset)
+    except Exception as exc:  # fail closed: a broken package is never signable
+        return {
+            "applicable": True,
+            "gate": "blocked",
+            "evidence_ready": False,
+            "policy": dict(block.get("policy") or {}),
+            "questions": len(questions) + len(catalog),
+            "stem_dual_source_questions": 0,
+            "joint_answer_dual_source_questions": 0,
+            "gate_complete_questions": 0,
+            "failed_question_ids": [],
+            "error": str(exc),
+        }
+    summary["error"] = ""
+    return summary
+
+
 def _version_summary(
     *,
     version: str,
@@ -773,6 +853,7 @@ def _version_summary(
     catalog: Sequence[Mapping[str, Any]],
     packet: Optional[Mapping[str, Any]],
     audits: Sequence[Mapping[str, Any]],
+    source_audit_summary: Mapping[str, Any],
     source_count: int,
     asset_count: int,
 ) -> Dict[str, Any]:
@@ -783,10 +864,14 @@ def _version_summary(
     scored_points = sum(int(row.get("points") or 0) for row in scored_rows)
     catalog_rows_points = sum(int(row.get("points") or 0) for row in catalog_rows)
     catalog_total_points = _catalog_points(catalog)
-    signed = bool(packet and packet.get("signed"))
+    packet_binding_ok = bool(packet and packet.get("binding_ok"))
+    packet_binding_error = str((packet or {}).get("binding_error") or "")
+    signed = bool(packet and packet.get("signed") and packet_binding_ok)
     packet_available = packet is not None
     status = str(manifest.get("status") or "")
-    if signed:
+    if packet_available and not packet_binding_ok:
+        mode = "stale_packet"
+    elif signed:
         mode = "signed"
     elif packet_available and status in INTERACTIVE_STATUSES:
         mode = "candidate"
@@ -795,6 +880,20 @@ def _version_summary(
     else:
         mode = "archive"
     interactive = mode == "candidate"
+    source_audit_applicable = bool(source_audit_summary.get("applicable"))
+    source_audit_questions = int(source_audit_summary.get("questions") or 0)
+    stem_dual_source_questions = int(
+        source_audit_summary.get("stem_dual_source_questions") or 0
+    )
+    joint_answer_dual_source_questions = int(
+        source_audit_summary.get("joint_answer_dual_source_questions") or 0
+    )
+    source_gate_ready = bool(
+        source_audit_summary.get("evidence_ready")
+        and source_audit_summary.get("gate") == "pass"
+    )
+    source_gate = str(source_audit_summary.get("gate") or "blocked")
+    source_gate_error = str(source_audit_summary.get("error") or "")
     if len(papers) == 1:
         coverage = str(papers[0].get("title") or version)
     else:
@@ -807,7 +906,7 @@ def _version_summary(
         "status_label": _human_status(status or mode),
         "mode": mode,
         "mode_label": REVIEW_MODE_LABELS[mode],
-        "review_enabled": packet_available,
+        "review_enabled": packet_available and packet_binding_ok,
         "decision_enabled": interactive,
         "review_scope": "full_paper" if catalog_rows else "scored_questions",
         "questions": total_questions,
@@ -824,10 +923,32 @@ def _version_summary(
             for row in rows
             if row.get("image_dependency") == "required"
         ),
-        "dual_source": sum(1 for row in rows if (row.get("secondary_source") or {}).get("id")),
+        "dual_source": joint_answer_dual_source_questions,
+        "source_audit_applicable": source_audit_applicable,
+        "source_audit_questions": source_audit_questions,
+        "stem_dual_source_questions": stem_dual_source_questions,
+        "joint_answer_dual_source_questions": joint_answer_dual_source_questions,
+        "source_gate": source_gate,
+        "source_gate_ready": source_gate_ready,
+        "source_audit": dict(source_audit_summary),
+        "source_gate_error": source_gate_error,
+        "source_gate_label": (
+            "题干 %d/%d · 答案 %d/%d"
+            % (
+                stem_dual_source_questions,
+                source_audit_questions,
+                joint_answer_dual_source_questions,
+                source_audit_questions,
+            )
+            if source_audit_applicable
+            else "历史版本未启用"
+        ),
         "source_count": source_count,
         "asset_count": asset_count,
         "manifest_sha256": _file_sha256(Path(str(manifest.get("_manifest_path")))),
+        "packet_binding_ok": packet_binding_ok,
+        "packet_binding_error": packet_binding_error,
+        "packet_manifest_sha256": str((packet or {}).get("packet_manifest_sha256") or ""),
         "audits": list(audits),
         "license": _license(manifest),
     }
@@ -877,6 +998,11 @@ def _build_workspace(
         for item in _read_jsonl(data_dir / "answer_audit.jsonl")
         if item.get("question_id")
     }
+    source_audit = {
+        str(item.get("question_id")): item
+        for item in _read_jsonl(data_dir / "source_audit.jsonl")
+        if item.get("question_id")
+    }
     question_audit = {
         str(item.get("question_id")): item
         for item in _read_jsonl(data_dir / "question_audit.jsonl")
@@ -892,6 +1018,13 @@ def _build_workspace(
         for item in _read_jsonl(data_dir / "asset_audit.jsonl")
         if item.get("question_id")
     }
+    source_audit_summary = _validated_source_audit(
+        data_dir=data_dir,
+        manifest=manifest,
+        questions=questions_list,
+        answer_keys=answer_keys,
+        catalog=catalog_list,
+    )
 
     packet, rows = _packet_rows(
         data_dir=data_dir,
@@ -922,6 +1055,8 @@ def _build_workspace(
             notes=notes,
             assets=assets,
         )
+    for row in rows:
+        row["source_audit"] = source_audit.get(str(row.get("item_id")), {})
     rows.sort(key=lambda row: (str(row.get("paper_id") or ""), int(row.get("number") or 0), str(row.get("item_id") or "")))
 
     fields = packet.get("fields") if packet else list(OWNER_REVIEW_FIELDS)
@@ -946,6 +1081,7 @@ def _build_workspace(
         catalog=catalog_list,
         packet=packet,
         audits=audits,
+        source_audit_summary=source_audit_summary,
         source_count=len(source_ids),
         asset_count=len(asset_ids),
     )
@@ -954,6 +1090,9 @@ def _build_workspace(
     summary["packet_version"] = str((packet or {}).get("packet_manifest", {}).get("packet_version") or "")
     summary["signed_reviewer"] = str((packet or {}).get("signoff", {}).get("reviewer_name") or "")
     summary["signed_at"] = str((packet or {}).get("signoff", {}).get("reviewed_at") or "")
+    summary["packet_binding_ok"] = bool((packet or {}).get("binding_ok"))
+    summary["packet_binding_error"] = str((packet or {}).get("binding_error") or "")
+    summary["packet_manifest_sha256"] = str((packet or {}).get("packet_manifest_sha256") or "")
     summary["subtitle"] = "%s · %s · %s" % (version, summary["coverage"], summary["mode_label"])
 
     by_paper: Dict[str, Dict[str, Any]] = {}
@@ -1028,7 +1167,13 @@ def _build_workspace(
                 summary["visual_required"],
                 summary["visual_points"],
             ),
-            "source_note": "主来源与独立第二来源分开展示；来源为媒体/文档交叉核验，不等同于考试院官方答案。",
+            "source_note": (
+                "每题必须同时具备至少两个独立题干来源和两个独立“题干+答案”来源；"
+                "仅有答案的页面不进入硬门槛。来源为媒体/文档交叉核验，不等同于考试院官方答案。"
+                if summary["source_audit_applicable"]
+                else "历史版本按当时的来源记录展示；来源为媒体/文档交叉核验，不等同于考试院官方答案。"
+            ),
+            "source_audit": summary["source_audit"],
             "license": summary["license"],
             "review_scope_label": "全卷复核" if summary["review_scope"] == "full_paper" else "自动评分题复核",
         }
@@ -1122,9 +1267,21 @@ def build_acceptance_payload(
                 "visual_required": meta["visual_required"],
                 "visual_points": meta["visual_points"],
                 "dual_source": meta["dual_source"],
+                "source_audit_applicable": meta["source_audit_applicable"],
+                "source_audit_questions": meta["source_audit_questions"],
+                "stem_dual_source_questions": meta["stem_dual_source_questions"],
+                "joint_answer_dual_source_questions": meta[
+                    "joint_answer_dual_source_questions"
+                ],
+                "source_gate": meta["source_gate"],
+                "source_gate_ready": meta["source_gate_ready"],
+                "source_gate_error": meta["source_gate_error"],
+                "source_gate_label": meta["source_gate_label"],
                 "source_count": meta["source_count"],
                 "asset_count": meta["asset_count"],
                 "manifest_sha256": meta["manifest_sha256"],
+                "packet_binding_ok": meta["packet_binding_ok"],
+                "packet_binding_error": meta["packet_binding_error"],
                 "audits": meta["audits"],
                 "license": meta["license"],
                 "packet_id": meta["packet_id"],

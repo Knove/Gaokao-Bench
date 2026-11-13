@@ -20,7 +20,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
-from .scoring import Dataset, load_dataset, validate_dataset
+from .scoring import Dataset, load_dataset, validate_dataset, validate_source_audit
 
 OWNER_REVIEW_VERSION = "1.3"
 REVIEW_WORKSHEET_NAME = "owner_review.csv"
@@ -108,7 +108,7 @@ def _one_line(value: Any, limit: int = 500) -> str:
 
 
 def _source_page(source: Mapping[str, Any], locator: Any) -> Optional[Mapping[str, Any]]:
-    match = re.search(r"page-(\d+)", str(locator or ""))
+    match = re.search(r"(?:page-|第)\s*(\d+)", str(locator or ""))
     if not match:
         return None
     return next(
@@ -118,6 +118,12 @@ def _source_page(source: Mapping[str, Any], locator: Any) -> Optional[Mapping[st
 
 
 def _source_page_url(source: Mapping[str, Any], locator: Any) -> str:
+    match = re.search(r"(?:page-|第)\s*(\d+)", str(locator or ""))
+    page_urls = source.get("page_urls")
+    if match and isinstance(page_urls, Mapping):
+        value = page_urls.get(match.group(1))
+        if value:
+            return str(value)
     page = _source_page(source, locator)
     pages = source.get("pages", [])
     if page is None and len(pages) == 1:
@@ -128,6 +134,12 @@ def _source_page_url(source: Mapping[str, Any], locator: Any) -> str:
 
 
 def _source_image_url(source: Mapping[str, Any], locator: Any) -> str:
+    match = re.search(r"(?:page-|第)\s*(\d+)", str(locator or ""))
+    page_urls = source.get("page_urls")
+    if match and isinstance(page_urls, Mapping):
+        value = page_urls.get(match.group(1))
+        if value:
+            return str(value)
     page = _source_page(source, locator)
     pages = source.get("pages", [])
     if page is None and len(pages) == 1:
@@ -324,6 +336,11 @@ def export_owner_review(
 
     dataset = load_dataset(data_dir)
     validate_dataset(dataset)
+    source_audit = validate_source_audit(dataset)
+    if source_audit.get("applicable") and source_audit.get("gate") != "pass":
+        raise OwnerReviewValidationError(
+            "dual-source gate is not complete; owner review export is blocked"
+        )
     destination = Path(out_dir).resolve()
     if destination.exists() and any(destination.iterdir()):
         if not force:
@@ -447,6 +464,12 @@ def export_owner_review(
         "catalog_points": catalog_points,
         "total_points": scored_points + catalog_points,
         "review_scope": "full_paper" if full_paper_review else "scored_questions",
+        "source_audit_gate": source_audit.get("gate", "not_applicable"),
+        "source_audit_questions": source_audit.get("questions", 0),
+        "stem_dual_source_questions": source_audit.get("stem_dual_source_questions", 0),
+        "joint_answer_dual_source_questions": source_audit.get(
+            "joint_answer_dual_source_questions", 0
+        ),
         "reviewer_id": "",
         "reviewer_name": "",
         "signature": "",
@@ -495,6 +518,7 @@ def export_owner_review(
             else "candidate_not_published"
         ),
         "rights": rights,
+        "source_audit": source_audit,
         "files": {
             name: {"sha256": _file_sha256(destination / name), "bytes": (destination / name).stat().st_size}
             for name in (REVIEW_WORKSHEET_NAME, SIGNOFF_NAME, "README.md", "REVIEW_NOTES.md")
@@ -549,6 +573,11 @@ def import_owner_signoff(
 
     dataset = load_dataset(data_dir)
     validate_dataset(dataset)
+    source_audit = validate_source_audit(dataset)
+    if source_audit.get("applicable") and source_audit.get("gate") != "pass":
+        raise OwnerReviewValidationError(
+            "dual-source gate is not complete; owner signoff cannot be imported"
+        )
     signoff_path = Path(signoff).resolve()
     worksheet_path = Path(review_csv).resolve()
     errors: List[str] = []
@@ -718,6 +747,7 @@ def import_owner_signoff(
         "dataset": dataset.manifest.get("dataset"),
         "dataset_version": dataset.manifest.get("dataset_version"),
         "dataset_manifest_sha256": manifest_sha,
+        "source_audit": source_audit,
         "dataset_mutated": False,
         "owner_signoff": owner_signoff,
         "human_independent_review": "pending",

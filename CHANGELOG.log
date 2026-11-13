@@ -7,6 +7,28 @@ Versioning
 - Dataset versions track questions, answers, points, assets, and manifest policy.
 - A published result must record both versions plus the dataset and protocol hashes.
 
+2026-11-13
+----------
+
+Dataset 0.1.0-alpha.2026-n1.1 / Engine 0.1.8
+
+- Add a per-question dual-source contract for the 2026 National I mathematics
+  candidate. Every catalogued question now needs at least two independent
+  question-stem groups and two independent sources that contain both the matching
+  stem and the answer. Answer-only pages are recorded separately and do not count
+  toward the hard gate.
+- Register eight independent publishers: deekur/gaokaomath, 无忧考网, 中国教育在线,
+  高考100, 人人文库, 深圳本地宝, 搜狐号「一帮N辅导」, and 自主选拔在线. The current
+  candidate has 5 stem groups, 2 joint stem+answer groups, and 3 answer-only
+  checks for all 19 questions.
+- Make the acceptance dashboard fail closed. It now re-runs the source audit for
+  every package instead of trusting cached manifest counts, blocks sign-off when
+  the gate fails, and rejects owner packets whose bound manifest hash is stale.
+- Bind release provenance to the exact builder, benchmark spec, and source-audit
+  spec hashes; refuse to build a release candidate from a dirty worktree.
+- Replace incomplete subject answer conclusions with explicit canonical results,
+  and update third-party notices to list every source and its role.
+
 2026-11-12
 ----------
 

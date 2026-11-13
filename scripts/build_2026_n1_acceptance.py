@@ -17,7 +17,7 @@ from gaokao_bench.acceptance_dashboard import DEFAULT_NOTES_PATH, build_acceptan
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="data/0.1.0-alpha.2026-n1")
+    parser.add_argument("--data-dir", default="data/0.1.0-alpha.2026-n1.1")
     parser.add_argument("--review-root", default="review_packets")
     parser.add_argument("--output", default="reports/acceptance/index.html")
     parser.add_argument("--notes", default=str(DEFAULT_NOTES_PATH))
