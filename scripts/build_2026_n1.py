@@ -1064,7 +1064,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "- 确定性自动评分：选择/填空 14 题，73 分。\n"
         "- 解答题：5 题，77 分，已收录题面、参考答案和解答要点，暂不进入自动评分分母。\n"
         "- 图形依赖：客观题 0 题；解答题第 15 题需要随附立体几何图。\n"
-        "- 来源：题干由 deekur/gaokaomath 冻结 PDF、无忧考网、中国教育在线、高考100 和人人文库交叉核对；答案由高考100 与人人文库两条独立的“题干+答案”来源闭环核验，深圳本地宝、搜狐和自主选拔在线仅作补充。\n"
+        "- 来源：题干由 deekur/gaokaomath 冻结 PDF、无忧考网、中国教育在线、高考100、人人文库和网易号／新浪财经（原文：数海漫游）交叉核对；答案由高考100、人人文库和网易号三条独立的“题干+答案”来源闭环核验，深圳本地宝、搜狐和自主选拔在线仅作补充。\n"
         "- 署名：完整来源清单与第三方声明见 `THIRD_PARTY_NOTICES.md`、`SOURCE_REGISTER.md` 和来源 JSONL。\n"
         "- 许可：整个数据包采用 CC BY 4.0，署名 Gaokao-Bench 与准确数据版本即可再分发和改编。\n"
         f"- 状态：`acceptance_candidate`，{audit_summary}未发布。\n",
@@ -1112,7 +1112,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "Full 19-question catalogue; 14 objective questions / 73 points are "
         "deterministically scored, and 5 subjective questions / 77 points are "
         "catalogued with reference answers and solution outlines. All 19 questions "
-        "pass the stem and joint-answer dual-source gate. Not published; "
+        "have six independent stem-source groups and three independent joint "
+        "stem+answer sources; the enforced gate requires at least two. Not published; "
         "owner acceptance remains pending.\n",
         encoding="utf-8",
     )
@@ -1151,7 +1152,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "python3 -m pytest -q\n"
         "```\n\n"
         "The builder verifies source PDF SHA-256 `%s`, re-renders all 19 crops from "
-        "explicit page bounding boxes, enforces the 19/19 dual-source gate, and "
+        "explicit page bounding boxes, enforces the 19/19 source gate (six stem "
+        "groups and three joint stem+answer groups per question; the policy minimum "
+        "is two of each), and "
         "writes a 73/73 objective gold result. "
         "Builder SHA-256: `%s`; spec SHA-256: `%s`; source-audit spec SHA-256: `%s`.\n"
         % (

@@ -10,6 +10,20 @@ Versioning
 2026-11-13
 ----------
 
+Dataset 0.1.0-alpha.2026-n1.2
+
+- Add a third independent full-paper “stem + answer” source: 网易号／新浪财经
+  republishing 数海漫游's “2026年全国一卷（数学）真题及全解析”. All 19
+  questions now have six independent stem-source groups and three independent
+  joint stem+answer groups; the enforced policy minimum remains two of each.
+- Replace the D19 solution outline with a fully checkable proof. The earlier
+  audit-B counterexample is invalid: its claimed D(x) sets do not satisfy
+  condition ①. The revised proof first establishes f(x)≤0 for x>0, then proves
+  every positive increment belongs to D(a).
+- Keep the existing question text, answers and assets unchanged. Rebuild the
+  candidate under a new immutable dataset version so the previous n1.1 package
+  and its audit evidence remain intact.
+
 Dataset 0.1.0-alpha.2026-n1.1 / Engine 0.1.8
 
 - Add a per-question dual-source contract for the 2026 National I mathematics

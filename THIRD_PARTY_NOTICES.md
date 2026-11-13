@@ -7,7 +7,7 @@ publisher endorses Gaokao-Bench, a benchmark result, or a public ranking.
 
 ## 2026 National I Mathematics Candidate
 
-Package version: `0.1.0-alpha.2026-n1.1`
+Package version: `0.1.0-alpha.2026-n1.2`
 
 ### Question-paper sources
 
@@ -27,12 +27,16 @@ Package version: `0.1.0-alpha.2026-n1.1`
 ### Combined stem-and-answer sources
 
 - 高考100, “2026新高考全国一卷数学答案解析”: question-paper images plus
-  complete answer and solution images; one of the two sources used for the
-  dual-source gate. <https://www.gk100.com/read_122151413.htm>
+  complete answer and solution images; one of three independent joint sources
+  used for the source gate. <https://www.gk100.com/read_122151413.htm>
 - 人人文库（上传文档 528467279）, “2026年全国新高考一卷数学试题及答案”:
   16-page document preview containing question text, answers, and worked
-  solutions; one of the two sources used for the dual-source gate.
+  solutions; one of three independent joint sources used for the source gate.
   <https://www.renrendoc.com/paper/528467279.html>
+- 网易号／新浪财经（原文：数海漫游）, “2026年全国一卷（数学）真题及全解析”:
+  15 pages of handwritten solutions plus four complete question-paper pages;
+  one of three independent joint sources used for the source gate.
+  <https://m.163.com/dy/article/KUSEQ8DV05568W0A.html>
 
 ### Answer-only checks
 
@@ -51,10 +55,12 @@ and the answer.
 
 The package records exact source identifiers, URLs, locators, image indices, and
 retrieval dates in `sources.jsonl`, `answer_sources.jsonl`, and
-`source_audit.jsonl`. Every catalogued question has at least two independent
-stem sources and at least two independent sources that contain both the matching
-stem and the answer. Answers are independently derived and then cross-checked;
-no source is represented as an official examination-authority key.
+`source_audit.jsonl`. Every catalogued question has six independent stem-source
+groups and three independent sources that contain both the matching stem and the
+answer. The hard gate requires at least two of each; the additional source is an
+independence margin, not a claim about any publisher's authority. Answers are
+independently derived and then cross-checked; no source is represented as an
+official examination-authority key.
 
 ## Attribution and corrections
 

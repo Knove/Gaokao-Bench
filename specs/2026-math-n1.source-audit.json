@@ -115,6 +115,40 @@
       }
     },
     {
+      "id": "src-netease-shuhai-2026-n1-full",
+      "publisher": "网易号／新浪财经（原文：数海漫游）",
+      "url": "https://m.163.com/dy/article/KUSEQ8DV05568W0A.html",
+      "source_type": "media_exam_and_answer_gallery",
+      "evidence_scope": "stem_and_answer",
+      "independence_group": "netease-shuhai-manyou",
+      "access_method": "下载冻结文章图片，逐页核对完整试卷、答案和手写证明",
+      "retrieved_at": "2026-11-13",
+      "notes": "文章含 15 页手写解析和 4 页完整试卷；第 11 题解析在 6–7 页，第 19 题解析在 13–15 页。作为第三组独立的题干+答案来源。",
+      "stem_image_urls": [
+        "https://dingyue.ws.126.net/2026/0608/acab2a22j00tga1za0061d000u00160c.jpg",
+        "https://dingyue.ws.126.net/2026/0608/2e0d5765j00tga1za006fd000u00160c.jpg",
+        "https://dingyue.ws.126.net/2026/0608/ba6790c0j00tga1za006wd000u00160c.jpg",
+        "https://dingyue.ws.126.net/2026/0608/94ac697dj00tga1za005nd000u00160c.jpg"
+      ],
+      "answer_image_urls": [
+        "https://dingyue.ws.126.net/2026/0608/d8737620j00tga1z9006td000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/e2b64898j00tga1za0084d000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/b3f89440j00tga1za00a6d000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/15b405abj00tga1za007od000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/6ab7d2a6j00tga1za00asd000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/31b2f88cj00tga1za00dwd000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/9c30be13j00tga1za00b3d000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/a0e27232j00tga1za00b6d000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/b93c8ee3j00tga1z9008jd000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/52f32f62j00tga1za009pd000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/5152d1e1j00tga1za008dd000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/5adbb54ej00tga1za00e0d000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/e2401cb3j00tga1za00b3d000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/83661ec4j00tga1za00dqd000u0012uc.jpg",
+        "https://dingyue.ws.126.net/2026/0608/a0883aa5j00tga1za0092d000u0012uc.jpg"
+      ]
+    },
+    {
       "id": "src-bendibao-2026-n1-answers",
       "publisher": "深圳本地宝",
       "url": "https://sz.bendibao.com/edu/202669/1005149.shtm",
@@ -228,6 +262,29 @@
         {"numbers": [17], "page_start": 13, "page_end": 13, "locator_template": "答案第13页；第17题"},
         {"numbers": [18], "page_start": 13, "page_end": 14, "locator_template": "答案第13–14页；第18题跨页"},
         {"numbers": [19], "page_start": 14, "page_end": 16, "locator_template": "答案第14–16页；第19题跨页"}
+      ]
+    },
+    "src-netease-shuhai-2026-n1-full": {
+      "stem_groups": [
+        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "完整试卷第1页；第{n}题"},
+        {"numbers": [6, 7, 8, 9, 10], "page_start": 2, "page_end": 2, "locator_template": "完整试卷第2页；第{n}题"},
+        {"numbers": [11, 12, 13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "完整试卷第3页；第{n}题"},
+        {"numbers": [17, 18, 19], "page_start": 4, "page_end": 4, "locator_template": "完整试卷第4页；第{n}题"}
+      ],
+      "joint_answer_groups": [
+        {"numbers": [1, 2, 3], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
+        {"numbers": [4, 5, 6], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第{n}题"},
+        {"numbers": [7], "page_start": 3, "page_end": 3, "locator_template": "答案解析第3页；第7题"},
+        {"numbers": [8], "page_start": 4, "page_end": 4, "locator_template": "答案解析第4页；第8题"},
+        {"numbers": [9, 10], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第{n}题"},
+        {"numbers": [11], "page_start": 6, "page_end": 7, "locator_template": "答案解析第6–7页；第11题跨页"},
+        {"numbers": [12, 13], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"},
+        {"numbers": [14], "page_start": 8, "page_end": 8, "locator_template": "答案解析第8页；第14题"},
+        {"numbers": [15], "page_start": 9, "page_end": 9, "locator_template": "答案解析第9页；第15题"},
+        {"numbers": [16], "page_start": 10, "page_end": 10, "locator_template": "答案解析第10页；第16题"},
+        {"numbers": [17], "page_start": 11, "page_end": 11, "locator_template": "答案解析第11页；第17题"},
+        {"numbers": [18], "page_start": 12, "page_end": 12, "locator_template": "答案解析第12页；第18题"},
+        {"numbers": [19], "page_start": 13, "page_end": 15, "locator_template": "答案解析第13–15页；第19题跨页"}
       ]
     },
     "src-bendibao-2026-n1-answers": {
