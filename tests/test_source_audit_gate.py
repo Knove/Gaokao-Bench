@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+import gaokao_bench.scoring as scoring
 from gaokao_bench.scoring import Dataset, validate_source_audit
 
 
@@ -70,6 +71,7 @@ def _assessment(
         "stem_excerpt": "若 1+1=？",
         "answer_value": "B" if rejected else "A",
         "answer_excerpt": "B" if rejected else "A",
+        "source_answer_text": "B" if rejected else "A",
         "rejection_reason": "来源答案写成 B，正确结论为 A。" if rejected else None,
         "access_method": "逐页核对",
         "stem_evidence": copy.deepcopy(evidence),
@@ -100,10 +102,12 @@ def _build_dataset(tmp_path: Path, *, include_rejected: bool = False) -> Dataset
             {
                 "source_id": source_id,
                 "path": relative,
+                "file": relative.removeprefix("source_pages/"),
                 "url": "https://%s.example/1" % source_id,
                 "scope": scope,
                 "page_index": 1,
                 "covered_page_starts": [1],
+                "media_type": "image/png",
                 "question_numbers": [1],
                 "sha256": _sha256(payload),
                 "bytes": len(payload),
@@ -168,6 +172,7 @@ def _build_dataset(tmp_path: Path, *, include_rejected: bool = False) -> Dataset
         item["answer_match"] = "not_assessed"
         item["answer_value"] = ""
         item["answer_excerpt"] = ""
+        item["source_answer_text"] = ""
         item["answer_evidence"] = []
         item["answer_page_url"] = ""
         item["answer_page_start"] = None
@@ -265,6 +270,95 @@ def _rewrite_evidence(dataset: Dataset, mutate) -> None:
     dataset.manifest["source_audit"]["evidence_page_count"] = len(rows)
 
 
+def _manifest_file_metadata(path: Path) -> dict:
+    payload = path.read_bytes()
+    return {"sha256": _sha256(payload), "bytes": len(payload)}
+
+
+def _enable_pinned_specs(
+    dataset: Dataset, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository = tmp_path / "repository"
+    monkeypatch.setattr(scoring, "REPOSITORY_ROOT", repository)
+
+    version = "0.0.1-test"
+    dataset.manifest["dataset_version"] = version
+    policy = copy.deepcopy(dataset.manifest["source_audit"]["policy"])
+    evidence_rows = [
+        json.loads(line)
+        for line in (tmp_path / "source_pages.jsonl").read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    pages_spec = {"schema_version": "1.0", "dataset_version": version, "sources": {}}
+    audit_spec = {
+        "schema_version": "1.0",
+        "dataset_version": version,
+        "policy": policy,
+        "sources": [
+            {"id": "src-joint-1", "independence_group": "group-1"},
+            {"id": "src-joint-2", "independence_group": "group-2"},
+            {"id": "src-stem-3", "independence_group": "group-3"},
+            {"id": "src-stem-4", "independence_group": "group-4"},
+        ],
+        "coverage": {
+            "src-joint-1": {
+                "observed_answers": {"1": {"value": "A", "excerpt": "A"}}
+            },
+            "src-joint-2": {
+                "observed_answers": {"1": {"value": "A", "excerpt": "A"}}
+            },
+            "src-stem-3": {"stem_groups": []},
+            "src-stem-4": {"stem_groups": []},
+        },
+    }
+    for row in evidence_rows:
+        pages_spec["sources"].setdefault(row["source_id"], []).append(
+            {
+                "file": row["file"],
+                "url": row["url"],
+                "scope": row["scope"],
+                "page_index": row["page_index"],
+                "covered_page_starts": row["covered_page_starts"],
+                "media_type": row["media_type"],
+                "sha256": row["sha256"],
+                "bytes": row["bytes"],
+                "question_numbers": row["question_numbers"],
+            }
+        )
+
+    package_pages = tmp_path / "audit" / "specs" / "source-pages.json"
+    package_audit = tmp_path / "audit" / "specs" / "source-audit.json"
+    repo_pages = repository / "specs" / "source-pages.json"
+    repo_audit = repository / "specs" / "source-audit.json"
+    _write_json(package_pages, pages_spec)
+    _write_json(package_audit, audit_spec)
+    _write_json(repo_pages, pages_spec)
+    _write_json(repo_audit, audit_spec)
+
+    block = dataset.manifest["source_audit"]
+    block.update(
+        {
+            "require_pinned_specs": True,
+            "pinned_pages_spec": "audit/specs/source-pages.json",
+            "pinned_pages_spec_sha256": _manifest_file_metadata(package_pages)["sha256"],
+            "pinned_audit_spec": "audit/specs/source-audit.json",
+            "pinned_audit_spec_sha256": _manifest_file_metadata(package_audit)["sha256"],
+        }
+    )
+    dataset.manifest["files"]["audit/specs/source-pages.json"] = _manifest_file_metadata(
+        package_pages
+    )
+    dataset.manifest["files"]["audit/specs/source-audit.json"] = _manifest_file_metadata(
+        package_audit
+    )
+    dataset.manifest["build_provenance"] = {
+        "source_pages_spec_path": "specs/source-pages.json",
+        "source_pages_spec_sha256": _manifest_file_metadata(repo_pages)["sha256"],
+        "source_audit_spec_path": "specs/source-audit.json",
+        "source_audit_spec_sha256": _manifest_file_metadata(repo_audit)["sha256"],
+    }
+
+
 def test_rejected_wrong_answer_source_counts_for_stem_but_not_answer(tmp_path):
     dataset = _build_dataset(tmp_path, include_rejected=True)
     summary = validate_source_audit(dataset)
@@ -317,4 +411,47 @@ def test_evidence_must_name_the_question_number(tmp_path):
 
     _rewrite_evidence(dataset, mutate)
     with pytest.raises(ValueError, match="does not name question 1"):
+        validate_source_audit(dataset)
+
+
+def test_pinned_page_relabel_is_rejected(tmp_path, monkeypatch):
+    dataset = _build_dataset(tmp_path)
+    _enable_pinned_specs(dataset, tmp_path, monkeypatch)
+
+    def mutate(rows):
+        rows[0]["page_index"] = 2
+        rows[0]["covered_page_starts"] = [2]
+
+    _rewrite_evidence(dataset, mutate)
+    with pytest.raises(ValueError, match="differs at (page_index|covered_page_starts)"):
+        validate_source_audit(dataset)
+
+
+def test_missing_pinned_spec_is_rejected(tmp_path, monkeypatch):
+    dataset = _build_dataset(tmp_path)
+    _enable_pinned_specs(dataset, tmp_path, monkeypatch)
+    (tmp_path / "audit" / "specs" / "source-pages.json").unlink()
+
+    with pytest.raises(ValueError, match="pinned source pages spec is missing"):
+        validate_source_audit(dataset)
+
+
+def test_source_observation_cannot_be_replaced_in_pinned_spec(tmp_path, monkeypatch):
+    dataset = _build_dataset(tmp_path)
+    _enable_pinned_specs(dataset, tmp_path, monkeypatch)
+    audit_path = tmp_path / "audit" / "specs" / "source-audit.json"
+    audit_spec = json.loads(audit_path.read_text(encoding="utf-8"))
+    audit_spec["coverage"]["src-joint-1"]["observed_answers"]["1"] = {
+        "value": "B",
+        "excerpt": "B",
+    }
+    _write_json(audit_path, audit_spec)
+    dataset.manifest["files"]["audit/specs/source-audit.json"] = _manifest_file_metadata(
+        audit_path
+    )
+    dataset.manifest["source_audit"]["pinned_audit_spec_sha256"] = (
+        _manifest_file_metadata(audit_path)["sha256"]
+    )
+
+    with pytest.raises(ValueError, match="source observation value is not pinned"):
         validate_source_audit(dataset)

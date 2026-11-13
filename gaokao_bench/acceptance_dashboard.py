@@ -1044,6 +1044,17 @@ def _version_summary(
     )
     source_gate = str(source_audit_summary.get("gate") or "blocked")
     source_gate_error = str(source_audit_summary.get("error") or "")
+    source_policy = (
+        source_audit_summary.get("policy")
+        if isinstance(source_audit_summary.get("policy"), Mapping)
+        else {}
+    )
+    required_stem_groups = int(
+        source_policy.get("required_stem_independent_groups") or 2
+    )
+    required_joint_groups = int(
+        source_policy.get("required_joint_answer_independent_groups") or 2
+    )
     if len(papers) == 1:
         coverage = str(papers[0].get("title") or version)
     else:
@@ -1080,6 +1091,8 @@ def _version_summary(
         "joint_answer_dual_source_questions": joint_answer_dual_source_questions,
         "source_gate": source_gate,
         "source_gate_ready": source_gate_ready,
+        "required_stem_independent_groups": required_stem_groups,
+        "required_joint_answer_independent_groups": required_joint_groups,
         "source_audit": dict(source_audit_summary),
         "source_gate_error": source_gate_error,
         "source_gate_label": (
@@ -1428,6 +1441,12 @@ def build_acceptance_payload(
                 ],
                 "source_gate": meta["source_gate"],
                 "source_gate_ready": meta["source_gate_ready"],
+                "required_stem_independent_groups": meta[
+                    "required_stem_independent_groups"
+                ],
+                "required_joint_answer_independent_groups": meta[
+                    "required_joint_answer_independent_groups"
+                ],
                 "source_gate_error": meta["source_gate_error"],
                 "source_gate_label": meta["source_gate_label"],
                 "source_count": meta["source_count"],

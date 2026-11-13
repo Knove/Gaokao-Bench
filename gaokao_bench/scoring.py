@@ -43,6 +43,7 @@ from .version import (
 # produce a new immutable patch version without editing the scorer.
 DATASET_VERSION = DEFAULT_DATASET_VERSION
 SCHEMA_VERSION = DATA_SCHEMA_VERSION
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ANSWER_AUDIT_STATUSES = {
     "match",
     "source_and_derivation_confirmed",
@@ -374,6 +375,229 @@ def _canonical_source_value(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
+def _pinned_json_file(
+    dataset: Dataset,
+    relative: Any,
+    expected_sha256: Any,
+    *,
+    label: str,
+    errors: List[str],
+) -> Optional[Mapping[str, Any]]:
+    name = str(relative or "").strip()
+    if not name:
+        errors.append("%s path is missing" % label)
+        return None
+    path = dataset.data_dir / name
+    if Path(name).is_absolute() or ".." in Path(name).parts:
+        errors.append("%s path is unsafe" % label)
+        return None
+    if not path.is_file():
+        errors.append("%s is missing" % label)
+        return None
+    digest = file_sha256(path)
+    if str(expected_sha256 or "") != digest:
+        errors.append("%s SHA-256 is stale" % label)
+    files = dataset.manifest.get("files")
+    if not isinstance(files, Mapping) or name not in files:
+        errors.append("%s is not covered by manifest.files" % label)
+    else:
+        metadata = files[name]
+        if not isinstance(metadata, Mapping):
+            errors.append("%s manifest metadata is invalid" % label)
+        elif metadata.get("sha256") != digest or metadata.get("bytes") != path.stat().st_size:
+            errors.append("%s manifest hash or size is stale" % label)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append("%s is not valid JSON: %s" % (label, exc))
+        return None
+    if not isinstance(value, Mapping):
+        errors.append("%s must contain a JSON object" % label)
+        return None
+    return value
+
+
+def _validate_pinned_source_specs(
+    dataset: Dataset,
+    block: Mapping[str, Any],
+    rows: Sequence[Mapping[str, Any]],
+    evidence_rows: Sequence[Mapping[str, Any]],
+    expected_items: Mapping[str, Mapping[str, Any]],
+    errors: List[str],
+) -> None:
+    """Anchor page labels and answer observations to frozen, versioned specs.
+
+    A package can otherwise relabel two pages, update its own manifest and pass
+    every local self-consistency check.  This verifier compares the packaged
+    evidence rows with the copied specs and, when the source checkout is
+    available, checks those specs against the original repository paths and
+    hashes recorded in build provenance.
+    """
+
+    if block.get("require_pinned_specs") is not True:
+        return
+    pages_spec = _pinned_json_file(
+        dataset,
+        block.get("pinned_pages_spec"),
+        block.get("pinned_pages_spec_sha256"),
+        label="pinned source pages spec",
+        errors=errors,
+    )
+    audit_spec = _pinned_json_file(
+        dataset,
+        block.get("pinned_audit_spec"),
+        block.get("pinned_audit_spec_sha256"),
+        label="pinned source audit spec",
+        errors=errors,
+    )
+    provenance = dataset.manifest.get("build_provenance")
+    if not isinstance(provenance, Mapping):
+        errors.append("source audit requires build_provenance for pinned specs")
+    else:
+        for spec_label, path_key, hash_key, expected_value in (
+            (
+                "source pages spec",
+                "source_pages_spec_path",
+                "source_pages_spec_sha256",
+                pages_spec,
+            ),
+            (
+                "source audit spec",
+                "source_audit_spec_path",
+                "source_audit_spec_sha256",
+                audit_spec,
+            ),
+        ):
+            relative = str(provenance.get(path_key) or "")
+            repo_path = REPOSITORY_ROOT / relative
+            recorded_sha = str(provenance.get(hash_key) or "")
+            if not relative or not repo_path.is_file():
+                errors.append("%s repository copy cannot be verified" % spec_label)
+                continue
+            if file_sha256(repo_path) != recorded_sha:
+                errors.append("%s build provenance SHA-256 is stale" % spec_label)
+            if expected_value is not None:
+                packaged_sha = (
+                    block.get(
+                        "pinned_pages_spec_sha256"
+                        if path_key == "source_pages_spec_path"
+                        else "pinned_audit_spec_sha256"
+                    )
+                )
+                if packaged_sha != recorded_sha:
+                    errors.append("%s package and build provenance differ" % spec_label)
+    if pages_spec is None:
+        return
+    if pages_spec.get("dataset_version") != dataset.manifest.get("dataset_version"):
+        errors.append("pinned source pages spec version is stale")
+    expected_rows: Dict[str, Dict[str, Any]] = {}
+    sources = pages_spec.get("sources")
+    if not isinstance(sources, Mapping):
+        errors.append("pinned source pages spec has no sources object")
+    else:
+        for source_id, entries in sources.items():
+            if not isinstance(entries, list):
+                errors.append("pinned source pages spec has invalid entries for %s" % source_id)
+                continue
+            for entry in entries:
+                if not isinstance(entry, Mapping):
+                    errors.append("pinned source pages spec has a non-object entry for %s" % source_id)
+                    continue
+                relative = "source_pages/%s" % str(entry.get("file") or "")
+                expected_rows[relative] = {
+                    "source_id": str(source_id),
+                    "path": relative,
+                    "file": str(entry.get("file") or ""),
+                    "url": str(entry.get("url") or ""),
+                    "scope": str(entry.get("scope") or ""),
+                    "page_index": int(entry.get("page_index") or 0),
+                    "covered_page_starts": sorted(
+                        int(value) for value in entry.get("covered_page_starts") or []
+                    ),
+                    "media_type": str(entry.get("media_type") or ""),
+                    "sha256": str(entry.get("sha256") or ""),
+                    "bytes": int(entry.get("bytes") or 0),
+                    "question_numbers": sorted(
+                        int(value) for value in entry.get("question_numbers") or []
+                    ),
+                }
+    actual_rows = {str(row.get("path") or ""): dict(row) for row in evidence_rows}
+    if set(actual_rows) != set(expected_rows):
+        missing = sorted(set(expected_rows) - set(actual_rows))
+        extra = sorted(set(actual_rows) - set(expected_rows))
+        errors.append(
+            "source page evidence does not match pinned spec; missing=%s extra=%s"
+            % (missing, extra)
+        )
+    for path in sorted(set(actual_rows) & set(expected_rows)):
+        actual = actual_rows[path]
+        expected = expected_rows[path]
+        for field in (
+            "source_id",
+            "file",
+            "url",
+            "scope",
+            "page_index",
+            "covered_page_starts",
+            "media_type",
+            "sha256",
+            "bytes",
+            "question_numbers",
+        ):
+            if actual.get(field) != expected[field]:
+                errors.append("source page evidence %s differs at %s" % (path, field))
+
+    if audit_spec is None:
+        return
+    if audit_spec.get("dataset_version") != dataset.manifest.get("dataset_version"):
+        errors.append("pinned source audit spec version is stale")
+    if audit_spec.get("policy") != block.get("policy"):
+        errors.append("pinned source audit policy differs from manifest")
+    coverage = audit_spec.get("coverage")
+    if not isinstance(coverage, Mapping):
+        errors.append("pinned source audit spec has no coverage object")
+        return
+    for row in rows:
+        qid = str(row.get("question_id") or "")
+        item = expected_items.get(qid)
+        if item is None:
+            continue
+        number = int(item.get("number") or 0)
+        for assessment in row.get("assessments") or []:
+            if not isinstance(assessment, Mapping):
+                continue
+            source_id = str(assessment.get("source_id") or "")
+            source_coverage = coverage.get(source_id)
+            if not isinstance(source_coverage, Mapping):
+                errors.append("pinned source audit has no coverage for %s" % source_id)
+                continue
+            override = (source_coverage.get("question_overrides") or {}).get(str(number))
+            observation = (source_coverage.get("observed_answers") or {}).get(str(number))
+            if isinstance(override, Mapping):
+                expected_value = str(override.get("observed_answer") or "")
+                expected_excerpt = str(override.get("observed_excerpt") or expected_value)
+            elif assessment.get("role") in {"joint_supporting", "answer_only_supporting"}:
+                if not isinstance(observation, Mapping):
+                    errors.append(
+                        "pinned source audit has no answer observation for %s/%s"
+                        % (qid, source_id)
+                    )
+                    continue
+                expected_value = str(observation.get("value") or "")
+                expected_excerpt = str(observation.get("excerpt") or expected_value)
+            else:
+                continue
+            if str(assessment.get("answer_value") or "") != expected_value:
+                errors.append("source observation value is not pinned for %s/%s" % (qid, source_id))
+            actual_excerpt = (
+                assessment.get("source_answer_text")
+                if assessment.get("role") in {"joint_supporting", "answer_only_supporting"}
+                else assessment.get("answer_excerpt")
+            )
+            if str(actual_excerpt or "") != expected_excerpt:
+                errors.append("source observation excerpt is not pinned for %s/%s" % (qid, source_id))
+
+
 def _validate_source_page_evidence(
     dataset: Dataset,
     block: Mapping[str, Any],
@@ -643,6 +867,16 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
     joint_pass = 0
     gate_pass = 0
     _validate_source_page_evidence(dataset, block, policy, rows, errors)
+    evidence_path = dataset.data_dir / str(block.get("evidence_pages") or "source_pages.jsonl")
+    evidence_rows = _read_jsonl(evidence_path) if evidence_path.is_file() else []
+    _validate_pinned_source_specs(
+        dataset,
+        block,
+        rows,
+        evidence_rows,
+        expected_items,
+        errors,
+    )
     for row in rows:
         qid = str(row.get("question_id", ""))
         item = expected_items[qid]

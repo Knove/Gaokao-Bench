@@ -10,6 +10,27 @@ Versioning
 2026-11-13
 ----------
 
+Dataset 0.1.0-alpha.2026-n1.5
+
+- Raise the per-question source floor to nine independent stem groups and five
+  independent joint stem+answer groups. Add the eleven-page teacher edition at
+  `renrendoc.com/paper/530208383.html`; every question now has five to seven
+  independent joint sources, and all 19 questions pass the strengthened gate.
+- Correct page-local source mappings exposed by audit A. GK100 continuation
+  pages no longer count as stems, Netease and Zizzs pages now name only the
+  questions visible on that page, and Book118 page 9 records the Q12
+  continuation alongside Q13/Q14.
+- Stop deriving source observations from the canonical answer. Joint and
+  answer-only sources must carry an explicit observed value and excerpt; the
+  builder fails when either is missing or disagrees with the canonical answer.
+- Keep the normalized canonical answer and the source excerpt as separate fields
+  so both checks remain meaningful, and show every stem-only, joint, answer-only
+  and rejected source in the acceptance dashboard.
+- Pin both source specs into every data package and verify their hashes, manifest
+  coverage, provenance paths, page labels and observed answers at validation
+  time. Add negative tests for page relabeling, deleted specs and replaced
+  observations.
+
 Dataset 0.1.0-alpha.2026-n1.4
 
 - Supersede the failed n1.3 candidate without reusing its version or manifest.

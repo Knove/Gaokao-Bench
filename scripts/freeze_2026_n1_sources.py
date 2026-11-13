@@ -137,13 +137,22 @@ def _page_urls_for_source(
     ]
 
 
-def _question_numbers_by_page(coverage: Mapping[str, Any]) -> Dict[int, set[int]]:
+def _question_numbers_by_page(
+    coverage: Mapping[str, Any], *, scope: str
+) -> Dict[int, set[int]]:
+    if scope == "stem":
+        groups = list(coverage.get("stem_groups") or [])
+    elif scope in {"answer", "stem_and_answer"}:
+        groups = list(coverage.get("joint_answer_groups") or []) + list(
+            coverage.get("answer_groups") or []
+        )
+    else:
+        groups = (
+            list(coverage.get("stem_groups") or [])
+            + list(coverage.get("joint_answer_groups") or [])
+            + list(coverage.get("answer_groups") or [])
+        )
     by_page: Dict[int, set[int]] = {}
-    groups = (
-        list(coverage.get("stem_groups") or [])
-        + list(coverage.get("joint_answer_groups") or [])
-        + list(coverage.get("answer_groups") or [])
-    )
     for group in groups:
         if not isinstance(group, Mapping):
             continue
@@ -162,15 +171,29 @@ def _attach_question_numbers(
     source_id: str,
     fallback_numbers: Sequence[int],
 ) -> None:
-    by_page = _question_numbers_by_page(coverage)
+    stem_by_page = _question_numbers_by_page(coverage, scope="stem")
+    answer_by_page = _question_numbers_by_page(coverage, scope="answer")
+    page_sequence_by_page = _question_numbers_by_page(coverage, scope="all")
     all_numbers = sorted(
-        {number for values in by_page.values() for number in values}
+        {
+            number
+            for values in page_sequence_by_page.values()
+            for number in values
+        }
         or {int(number) for number in fallback_numbers}
     )
+    page_overrides = coverage.get("page_question_numbers")
     for entry in entries:
         if entry.get("scope") == "document":
             numbers = all_numbers
         else:
+            scope = str(entry.get("scope"))
+            if scope == "stem":
+                by_page = stem_by_page
+            elif scope == "answer":
+                by_page = answer_by_page
+            else:
+                by_page = page_sequence_by_page
             numbers = sorted(
                 {
                     number
@@ -178,6 +201,14 @@ def _attach_question_numbers(
                     for number in by_page.get(int(page), set())
                 }
             )
+            if isinstance(page_overrides, Mapping):
+                overridden: set[int] = set()
+                for page in entry.get("covered_page_starts", []):
+                    values = page_overrides.get(str(int(page)))
+                    if isinstance(values, list):
+                        overridden.update(int(number) for number in values)
+                if overridden:
+                    numbers = sorted(overridden)
         if not numbers:
             raise ValueError(
                 "source page evidence is not mapped to any question number: %s/%s"
@@ -275,11 +306,7 @@ def build_source_page_spec(
                 coverage.get("answer_groups") or []
             )
             pages = _group_pages(groups) or [1]
-            answer_scope = (
-                "stem_and_answer"
-                if source.get("answer_pages_include_stems") is True
-                else "answer"
-            )
+            stem_pages = set(_group_pages(coverage.get("stem_groups") or []))
             for index, url in enumerate(answer_urls, 1):
                 covered = pages if len(answer_urls) == 1 else [page for page in pages if page == index]
                 if not covered:
@@ -295,7 +322,12 @@ def build_source_page_spec(
                         url=url,
                         referer=str(source.get("url") or ""),
                         data=None,
-                        scope=answer_scope,
+                        scope=(
+                            "stem_and_answer"
+                            if source.get("answer_pages_include_stems") is True
+                            and index in stem_pages
+                            else "answer"
+                        ),
                         page_index=index,
                         covered_pages=covered,
                     )

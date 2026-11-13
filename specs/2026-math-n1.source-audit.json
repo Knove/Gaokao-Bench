@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
-  "dataset_version": "0.1.0-alpha.2026-n1.4",
+  "dataset_version": "0.1.0-alpha.2026-n1.5",
   "policy": {
-    "version": "dual_source_v2",
+    "version": "dual_source_v3",
     "scope": "all_catalogued_questions",
-    "required_stem_independent_groups": 8,
-    "required_joint_answer_independent_groups": 4,
+    "required_stem_independent_groups": 9,
+    "required_joint_answer_independent_groups": 5,
     "answer_only_sources_count_for_gate": false,
     "owner_signoff_requires_gate": true,
     "joint_answer_source_must_match_stem": true,
@@ -77,7 +77,8 @@
         "5": "https://www.eol.cn/m/gaokao/202606/W020260608340022959910.png",
         "6": "https://www.eol.cn/m/gaokao/202606/W020260608340022954681.png",
         "7": "https://www.eol.cn/m/gaokao/202606/W020260608340022965378.png"
-      }
+      },
+      "observation_method": "逐页答案解析图 OCR 与原图核对；有误题目走 rejected 记录，不进入联合来源"
     },
     {
       "id": "src-gk100-2026-n1-answers",
@@ -88,7 +89,7 @@
       "independence_group": "gk100",
       "access_method": "浏览器打开专题页，逐页核对 12 页答案图；每页均同时包含题面与答案解析",
       "retrieved_at": "2026-11-12",
-      "notes": "同一专题提供 12 页答案图，每页同时包含题面、答案与解析；第 19 题结论与证明见答案第 11–12 页。跨 6 页的真题长图不作为题干证据，避免一张长图自报覆盖多页。",
+      "notes": "12 页答案图；按每页实际内容分别登记题面起始页与答案续页。第 10、11、13、17、18、19 题的解答跨页，不把纯续页当作独立题面。",
       "answer_pages_include_stems": true,
       "answer_image_urls": [
         "https://p1.gk100.com/article/20260608/58065c99ad88b76c.png",
@@ -103,7 +104,8 @@
         "https://p1.gk100.com/article/20260608/03e985c3b10d1439.png",
         "https://p1.gk100.com/article/20260608/16cc600ab0b011ec.png",
         "https://p1.gk100.com/article/20260608/d6beefcaecad6851.png"
-      ]
+      ],
+      "observation_method": "逐页 OCR 与答案图原图核对最终选项/数值"
     },
     {
       "id": "src-book118-2026-n1-full",
@@ -114,7 +116,7 @@
       "independence_group": "book118-preview-7162100005011121",
       "access_method": "浏览器打开 17 页 PDF 预览；公开预览 1–11 页，逐页核对题面、答案与解析",
       "retrieved_at": "2026-11-13",
-      "notes": "原始文档 17 页，公开预览前 11 页。第 1–4 页完整题面；第 5–11 页覆盖第 1–14 题、第 15 题完整解答和第 16 题完整解答，第 17 题从第 11 页开始但被预览截断，因此不声称覆盖第 17–19 题。",
+      "notes": "11 页文档；第 1–4 页为题面，第 5–11 页为答案解析。第 11 页同时含第 15 题末段、第 16 题完整答案和第 17 题题面/解答开头；第 17–19 题没有完整答案，因此只作题干来源。",
       "page_urls": {
         "1": "https://view-cache.book118.com/view43/M00/0B/21/wKh2CmonnOaAQ7UZAACP4wW2EMw263.png",
         "2": "https://view-cache.book118.com/view43/M00/0B/24/wKh2AmonnOaABwJ0AACVkw3Qepw612.png",
@@ -127,7 +129,8 @@
         "9": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAMTNkAADGqwOyJdw368.png",
         "10": "https://view-cache.book118.com/view43/M02/0B/24/wKh2AmonnOaAYIiHAACnZC7YGZg985.png",
         "11": "https://view-cache.book118.com/view43/M03/0B/24/wKh2AmonnOaAO8cIAACT-YSAG-8025.png"
-      }
+      },
+      "observation_method": "逐页 OCR 与文档原图核对 Q1–Q16 最终答案"
     },
     {
       "id": "src-rendoc-2026-n1-full",
@@ -156,7 +159,8 @@
         "14": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25814.jpg",
         "15": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25815.jpg",
         "16": "https://file4.renrendoc.com/view20/M01/2B/0C/wKhkHWpGg06AOAspAAGWFzrQwlc25816.jpg"
-      }
+      },
+      "observation_method": "逐页 OCR 与 DOCX 预览图核对题面及最终答案"
     },
     {
       "id": "src-netease-shuhai-2026-n1-full",
@@ -190,7 +194,33 @@
         "https://dingyue.ws.126.net/2026/0608/e2401cb3j00tga1za00b3d000u0012uc.jpg",
         "https://dingyue.ws.126.net/2026/0608/83661ec4j00tga1za00dqd000u0012uc.jpg",
         "https://dingyue.ws.126.net/2026/0608/a0883aa5j00tga1za0092d000u0012uc.jpg"
-      ]
+      ],
+      "observation_method": "逐页手写解析图核对最终答案，题干另取完整试卷页"
+    },
+    {
+      "id": "src-rendoc-teacher-530208383",
+      "publisher": "人人文库（上传文档 530208383）",
+      "url": "https://www.renrendoc.com/paper/530208383.html",
+      "source_type": "document_preview_with_answers",
+      "evidence_scope": "stem_and_answer",
+      "independence_group": "rendoc-uploader-530208383",
+      "access_method": "浏览器打开 11 页教师版 DOCX 预览，逐页核对题面、答案和证明",
+      "retrieved_at": "2026-11-13",
+      "notes": "11 页教师版：第 1–4 页完整题面，第 5–7 页客观题和解答题答案，第 7–11 页第 19 题证明。与文档 528467279 为不同上传文档。",
+      "observation_method": "逐页 OCR 与 11 张原图核对最终答案",
+      "page_urls": {
+        "1": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man8395.jpg",
+        "2": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83952.jpg",
+        "3": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83953.jpg",
+        "4": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83954.jpg",
+        "5": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83955.jpg",
+        "6": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83956.jpg",
+        "7": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83957.jpg",
+        "8": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83958.jpg",
+        "9": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man83959.jpg",
+        "10": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man839510.jpg",
+        "11": "https://file4.renrendoc.com/view20/M02/1B/3C/wKhkHWpYfS-AcZbpAAGtqH9Man839511.jpg"
+      }
     },
     {
       "id": "src-bendibao-2026-n1-answers",
@@ -202,7 +232,8 @@
       "access_method": "浏览器打开网页答案列表，逐题核对答案文字",
       "retrieved_at": "2026-11-12",
       "notes": "答案覆盖 1–19；部分公式被网页省略，只作答案补充，不计入双来源硬门槛。页面含动态推荐位，在线复核只检查可访问性；离线冻结证据仍按哈希固定。",
-      "live_hash_stable": false
+      "live_hash_stable": false,
+      "observation_method": "网页答案区逐题核对；动态页面仅作补充证据"
     },
     {
       "id": "src-sohu-2026-n1-answers",
@@ -220,7 +251,8 @@
         "https://q6.itc.cn/q_70/images03/20260611/b4c9c0bdc71148579cb38705fc814def.png",
         "https://q4.itc.cn/q_70/images03/20260611/5fe41b5c026f418aa2694958b22d2e6e.png",
         "https://q3.itc.cn/q_70/images03/20260611/2e412002154e4c9694d6145832c0281f.png"
-      ]
+      ],
+      "observation_method": "五页教师版答案图逐题核对；只作补充证据"
     },
     {
       "id": "src-zizzs-2026-n1-answers",
@@ -269,50 +301,339 @@
         "https://cdn.zizzs.com/zixunzhan/_1781149811009_00321781149810909.png",
         "https://cdn.zizzs.com/zixunzhan/_1781149811010_00331781149810915.png",
         "https://cdn.zizzs.com/zixunzhan/_1781149811012_00341781149810905.png"
-      ]
+      ],
+      "observation_method": "逐页答案解析图核对最终答案，续页不并入无关题号"
     }
   ],
   "coverage": {
+    "src-deekur-gaokaomath-2026-n1": {
+      "stem_groups": [
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "冻结 PDF 第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "冻结 PDF 第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            18,
+            19
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "冻结 PDF 第3页；第{n}题"
+        }
+      ]
+    },
     "src-51test-2026-n1-paper": {
       "stem_groups": [
-        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "题面预览第1页；第{n}题"},
-        {"numbers": [6], "page_start": 1, "page_end": 2, "locator_template": "题面预览第1–2页；第6题跨页"},
-        {"numbers": [7, 8, 9, 10], "page_start": 2, "page_end": 2, "locator_template": "题面预览第2页；第{n}题"},
-        {"numbers": [11], "page_start": 2, "page_end": 3, "locator_template": "题面预览第2–3页；第11题跨页"},
-        {"numbers": [12], "page_start": 3, "page_end": 3, "locator_template": "题面预览第3页；第12题"},
-        {"numbers": [13, 14, 15], "page_start": 3, "page_end": 3, "locator_template": "题面预览第3页；第{n}题"},
-        {"numbers": [16], "page_start": 3, "page_end": 4, "locator_template": "题面预览第3–4页；第16题跨页"},
-        {"numbers": [17], "page_start": 4, "page_end": 4, "locator_template": "题面预览第4页；第17题"},
-        {"numbers": [18], "page_start": 4, "page_end": 4, "locator_template": "题面预览第4页；第18题"},
-        {"numbers": [19], "page_start": 4, "page_end": 5, "locator_template": "题面预览第4–5页；第19题跨页"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "题面预览第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 1,
+          "page_end": 2,
+          "locator_template": "题面预览第1–2页；第6题跨页"
+        },
+        {
+          "numbers": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "题面预览第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            11
+          ],
+          "page_start": 2,
+          "page_end": 3,
+          "locator_template": "题面预览第2–3页；第11题跨页"
+        },
+        {
+          "numbers": [
+            12
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "题面预览第3页；第12题"
+        },
+        {
+          "numbers": [
+            13,
+            14,
+            15
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "题面预览第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            16
+          ],
+          "page_start": 3,
+          "page_end": 4,
+          "locator_template": "题面预览第3–4页；第16题跨页"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "题面预览第4页；第17题"
+        },
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "题面预览第4页；第18题"
+        },
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 4,
+          "page_end": 5,
+          "locator_template": "题面预览第4–5页；第19题跨页"
+        }
       ]
     },
     "src-eol-2026-n1-paper": {
       "stem_groups": [
-        {"numbers": [1, 2, 3, 4, 5, 6, 7, 8], "page_start": 1, "page_end": 1, "locator_template": "题面第1页；第{n}题"},
-        {"numbers": [9, 10, 11, 12, 13, 14, 15], "page_start": 2, "page_end": 2, "locator_template": "题面第2页；第{n}题"},
-        {"numbers": [16, 17], "page_start": 3, "page_end": 3, "locator_template": "题面第3页；第{n}题"},
-        {"numbers": [18, 19], "page_start": 4, "page_end": 4, "locator_template": "题面第4页；第{n}题"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "题面第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "题面第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            16,
+            17
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "题面第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            18,
+            19
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "题面第4页；第{n}题"
+        }
       ]
     },
     "src-eol-2026-n1-answers": {
       "stem_groups": [
-        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
-        {"numbers": [6, 7, 8], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第{n}题"},
-        {"numbers": [9, 10, 11], "page_start": 3, "page_end": 3, "locator_template": "答案解析第3页；第{n}题"},
-        {"numbers": [12, 13, 14], "page_start": 4, "page_end": 4, "locator_template": "答案解析第4页；第{n}题"},
-        {"numbers": [15], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第15题"},
-        {"numbers": [16, 17], "page_start": 6, "page_end": 6, "locator_template": "答案解析第6页；第{n}题"},
-        {"numbers": [18, 19], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "答案解析第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            6,
+            7,
+            8
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案解析第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            9,
+            10,
+            11
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案解析第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            12,
+            13,
+            14
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "答案解析第4页；第{n}题"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案解析第5页；第15题"
+        },
+        {
+          "numbers": [
+            16,
+            17
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案解析第6页；第{n}题"
+        },
+        {
+          "numbers": [
+            18,
+            19
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案解析第7页；第{n}题"
+        }
       ],
       "joint_answer_groups": [
-        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
-        {"numbers": [6, 7, 8], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第{n}题"},
-        {"numbers": [9, 10, 11], "page_start": 3, "page_end": 3, "locator_template": "答案解析第3页；第{n}题"},
-        {"numbers": [12, 13, 14], "page_start": 4, "page_end": 4, "locator_template": "答案解析第4页；第{n}题"},
-        {"numbers": [15], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第15题"},
-        {"numbers": [16, 17], "page_start": 6, "page_end": 6, "locator_template": "答案解析第6页；第{n}题"},
-        {"numbers": [18, 19], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "答案解析第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            6,
+            7,
+            8
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案解析第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            9,
+            10,
+            11
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案解析第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            12,
+            13,
+            14
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "答案解析第4页；第{n}题"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案解析第5页；第15题"
+        },
+        {
+          "numbers": [
+            16,
+            17
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案解析第6页；第{n}题"
+        },
+        {
+          "numbers": [
+            18,
+            19
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案解析第7页；第{n}题"
+        }
       ],
       "question_overrides": {
         "13": {
@@ -345,151 +666,2125 @@
           "observed_answer": "D(-1)=(-1, 3/2)",
           "rejection_reason": "来源第 (1) 问给出 D(-1)=(-1,3/2)；逐段解不等式得 D(-1)=(0,3/2)。"
         }
+      },
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        }
       }
     },
     "src-gk100-2026-n1-answers": {
       "stem_groups": [
-        {"numbers": [1, 2, 3, 4], "page_start": 1, "page_end": 1, "locator_template": "答案图第1页题面；第{n}题"},
-        {"numbers": [5, 6, 7], "page_start": 2, "page_end": 2, "locator_template": "答案图第2页题面；第{n}题"},
-        {"numbers": [8, 9], "page_start": 3, "page_end": 3, "locator_template": "答案图第3页题面；第{n}题"},
-        {"numbers": [10], "page_start": 4, "page_end": 4, "locator_template": "答案图第4页题面；第10题"},
-        {"numbers": [11], "page_start": 4, "page_end": 5, "locator_template": "答案图第4–5页题面；第11题跨页"},
-        {"numbers": [12], "page_start": 5, "page_end": 5, "locator_template": "答案图第5页题面；第12题"},
-        {"numbers": [13], "page_start": 5, "page_end": 6, "locator_template": "答案图第5–6页题面；第13题跨页"},
-        {"numbers": [14], "page_start": 6, "page_end": 6, "locator_template": "答案图第6页题面；第14题"},
-        {"numbers": [15], "page_start": 7, "page_end": 8, "locator_template": "答案图第7–8页题面；第15题跨页"},
-        {"numbers": [16], "page_start": 8, "page_end": 8, "locator_template": "答案图第8页题面；第16题"},
-        {"numbers": [17], "page_start": 8, "page_end": 9, "locator_template": "答案图第8–9页题面；第17题跨页"},
-        {"numbers": [18], "page_start": 9, "page_end": 10, "locator_template": "答案图第9–10页题面；第18题跨页"},
-        {"numbers": [19], "page_start": 11, "page_end": 12, "locator_template": "答案图第11–12页题面；第19题跨页"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "答案图第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            5
+          ],
+          "page_start": 1,
+          "page_end": 2,
+          "locator_template": "答案图第1–2页；第5题跨页"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案图第2页；第6题"
+        },
+        {
+          "numbers": [
+            7
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案图第2页；第7题"
+        },
+        {
+          "numbers": [
+            8
+          ],
+          "page_start": 2,
+          "page_end": 3,
+          "locator_template": "答案图第2–3页；第8题跨页"
+        },
+        {
+          "numbers": [
+            9
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案图第3页；第9题"
+        },
+        {
+          "numbers": [
+            10
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案图第3页；第10题"
+        },
+        {
+          "numbers": [
+            11
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "答案图第4页；第11题"
+        },
+        {
+          "numbers": [
+            12
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案图第5页；第12题"
+        },
+        {
+          "numbers": [
+            13
+          ],
+          "page_start": 5,
+          "page_end": 6,
+          "locator_template": "答案图第5–6页；第13题跨页"
+        },
+        {
+          "numbers": [
+            14
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案图第6页；第14题"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案图第6页；第15题"
+        },
+        {
+          "numbers": [
+            16
+          ],
+          "page_start": 8,
+          "page_end": 8,
+          "locator_template": "答案图第8页；第16题"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 8,
+          "page_end": 8,
+          "locator_template": "答案图第8页；第17题"
+        },
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 9,
+          "page_end": 9,
+          "locator_template": "答案图第9页；第18题"
+        },
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 11,
+          "page_end": 11,
+          "locator_template": "答案图第11页；第19题"
+        }
       ],
       "joint_answer_groups": [
-        {"numbers": [1, 2, 3, 4], "page_start": 1, "page_end": 1, "locator_template": "答案图第1页；第{n}题"},
-        {"numbers": [5, 6, 7], "page_start": 2, "page_end": 2, "locator_template": "答案图第2页；第{n}题"},
-        {"numbers": [8, 9], "page_start": 3, "page_end": 3, "locator_template": "答案图第3页；第{n}题"},
-        {"numbers": [10], "page_start": 4, "page_end": 4, "locator_template": "答案图第4页；第{n}题"},
-        {"numbers": [11], "page_start": 4, "page_end": 5, "locator_template": "答案图第4–5页；第11题跨页"},
-        {"numbers": [12], "page_start": 5, "page_end": 5, "locator_template": "答案图第5页；第12题"},
-        {"numbers": [13], "page_start": 5, "page_end": 6, "locator_template": "答案图第5–6页；第13题跨页"},
-        {"numbers": [14], "page_start": 6, "page_end": 6, "locator_template": "答案图第6页；第14题"},
-        {"numbers": [15], "page_start": 7, "page_end": 8, "locator_template": "答案图第7–8页；第15题跨页"},
-        {"numbers": [16], "page_start": 8, "page_end": 8, "locator_template": "答案图第8页；第16题"},
-        {"numbers": [17], "page_start": 8, "page_end": 9, "locator_template": "答案图第8–9页；第17题跨页"},
-        {"numbers": [18], "page_start": 9, "page_end": 10, "locator_template": "答案图第9–10页；第18题跨页"},
-        {"numbers": [19], "page_start": 11, "page_end": 12, "locator_template": "答案图第11–12页；第19题跨页"}
-      ]
-    },
-    "src-rendoc-2026-n1-full": {
-      "stem_groups": [
-        {"numbers": [1, 2, 3, 4, 5, 6, 7], "page_start": 1, "page_end": 1, "locator_template": "题面第1页；第{n}题"},
-        {"numbers": [8, 9, 10, 11, 12], "page_start": 2, "page_end": 2, "locator_template": "题面第2页；第{n}题"},
-        {"numbers": [13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "题面第3页；第{n}题"},
-        {"numbers": [17], "page_start": 3, "page_end": 4, "locator_template": "题面第3–4页；第17题跨页"},
-        {"numbers": [18, 19], "page_start": 4, "page_end": 4, "locator_template": "题面第4页；第{n}题"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "答案图第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            5
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案图第2页；第5题"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案图第2页；第6题"
+        },
+        {
+          "numbers": [
+            7
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案图第2页；第7题"
+        },
+        {
+          "numbers": [
+            8
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案图第3页；第8题"
+        },
+        {
+          "numbers": [
+            9
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案图第3页；第9题"
+        },
+        {
+          "numbers": [
+            10
+          ],
+          "page_start": 3,
+          "page_end": 4,
+          "locator_template": "答案图第3–4页；第10题跨页"
+        },
+        {
+          "numbers": [
+            11
+          ],
+          "page_start": 4,
+          "page_end": 5,
+          "locator_template": "答案图第4–5页；第11题跨页"
+        },
+        {
+          "numbers": [
+            12
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案图第5页；第12题"
+        },
+        {
+          "numbers": [
+            13
+          ],
+          "page_start": 5,
+          "page_end": 6,
+          "locator_template": "答案图第5–6页；第13题跨页"
+        },
+        {
+          "numbers": [
+            14
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案图第6页；第14题"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案图第7页；第15题"
+        },
+        {
+          "numbers": [
+            16
+          ],
+          "page_start": 8,
+          "page_end": 8,
+          "locator_template": "答案图第8页；第16题"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 8,
+          "page_end": 9,
+          "locator_template": "答案图第8–9页；第17题跨页"
+        },
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 9,
+          "page_end": 10,
+          "locator_template": "答案图第9–10页；第18题跨页"
+        },
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 11,
+          "page_end": 12,
+          "locator_template": "答案图第11–12页；第19题跨页"
+        }
       ],
-      "joint_answer_groups": [
-        {"numbers": [1, 2, 3, 4, 5], "page_start": 6, "page_end": 6, "locator_template": "答案第6页；第{n}题"},
-        {"numbers": [6], "page_start": 6, "page_end": 7, "locator_template": "答案第6–7页；第6题跨页"},
-        {"numbers": [7], "page_start": 7, "page_end": 7, "locator_template": "答案第7页；第7题"},
-        {"numbers": [8], "page_start": 7, "page_end": 8, "locator_template": "答案第7–8页；第8题跨页"},
-        {"numbers": [9], "page_start": 8, "page_end": 8, "locator_template": "答案第8页；第9题"},
-        {"numbers": [10], "page_start": 8, "page_end": 9, "locator_template": "答案第8–9页；第10题跨页"},
-        {"numbers": [11], "page_start": 9, "page_end": 10, "locator_template": "答案第9–10页；第11题跨页"},
-        {"numbers": [12], "page_start": 10, "page_end": 10, "locator_template": "答案第10页；第12题"},
-        {"numbers": [13], "page_start": 10, "page_end": 11, "locator_template": "答案第10–11页；第13题跨页"},
-        {"numbers": [14], "page_start": 11, "page_end": 11, "locator_template": "答案第11页；第14题"},
-        {"numbers": [15], "page_start": 11, "page_end": 12, "locator_template": "答案第11–12页；第15题跨页"},
-        {"numbers": [16], "page_start": 12, "page_end": 13, "locator_template": "答案第12–13页；第16题跨页"},
-        {"numbers": [17], "page_start": 13, "page_end": 13, "locator_template": "答案第13页；第17题"},
-        {"numbers": [18], "page_start": 13, "page_end": 14, "locator_template": "答案第13–14页；第18题跨页"},
-        {"numbers": [19], "page_start": 14, "page_end": 16, "locator_template": "答案第14–16页；第19题跨页"}
-      ]
+      "page_question_numbers": {
+        "1": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "2": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "3": [
+          8,
+          9,
+          10
+        ],
+        "4": [
+          10,
+          11
+        ],
+        "5": [
+          11,
+          12,
+          13
+        ],
+        "6": [
+          13,
+          14,
+          15
+        ],
+        "7": [
+          15
+        ],
+        "8": [
+          16,
+          17
+        ],
+        "9": [
+          17,
+          18
+        ],
+        "10": [
+          18
+        ],
+        "11": [
+          19
+        ],
+        "12": [
+          19
+        ]
+      },
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        }
+      }
     },
     "src-book118-2026-n1-full": {
       "stem_groups": [
-        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "题面第1页；第{n}题"},
-        {"numbers": [6, 7, 8, 9, 10], "page_start": 2, "page_end": 2, "locator_template": "题面第2页；第{n}题"},
-        {"numbers": [11, 12, 13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "题面第3页；第{n}题"},
-        {"numbers": [17, 18, 19], "page_start": 4, "page_end": 4, "locator_template": "题面第4页；第{n}题"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "题面第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "题面第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "题面第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            17,
+            18,
+            19
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "题面第4页；第{n}题"
+        }
       ],
       "joint_answer_groups": [
-        {"numbers": [1, 2, 3, 4], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第{n}题"},
-        {"numbers": [5], "page_start": 5, "page_end": 6, "locator_template": "答案解析第5–6页；第5题跨页"},
-        {"numbers": [6, 7, 8], "page_start": 6, "page_end": 6, "locator_template": "答案解析第6页；第{n}题"},
-        {"numbers": [9, 10], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"},
-        {"numbers": [11], "page_start": 8, "page_end": 8, "locator_template": "答案解析第8页；第11题"},
-        {"numbers": [12], "page_start": 8, "page_end": 9, "locator_template": "答案解析第8–9页；第12题跨页"},
-        {"numbers": [13, 14], "page_start": 9, "page_end": 9, "locator_template": "答案解析第9页；第{n}题"},
-        {"numbers": [15], "page_start": 10, "page_end": 11, "locator_template": "答案解析第10–11页；第15题跨页"},
-        {"numbers": [16], "page_start": 11, "page_end": 11, "locator_template": "答案解析第11页；第16题"}
-      ]
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案解析第5页；第{n}题"
+        },
+        {
+          "numbers": [
+            5
+          ],
+          "page_start": 5,
+          "page_end": 6,
+          "locator_template": "答案解析第5–6页；第5题跨页"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案解析第6页；第6题"
+        },
+        {
+          "numbers": [
+            7
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案解析第6页；第7题"
+        },
+        {
+          "numbers": [
+            8
+          ],
+          "page_start": 6,
+          "page_end": 7,
+          "locator_template": "答案解析第6–7页；第8题跨页"
+        },
+        {
+          "numbers": [
+            9
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案解析第7页；第9题"
+        },
+        {
+          "numbers": [
+            10
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案解析第7页；第10题"
+        },
+        {
+          "numbers": [
+            11
+          ],
+          "page_start": 8,
+          "page_end": 8,
+          "locator_template": "答案解析第8页；第11题"
+        },
+        {
+          "numbers": [
+            12
+          ],
+          "page_start": 8,
+          "page_end": 9,
+          "locator_template": "答案解析第8–9页；第12题跨页"
+        },
+        {
+          "numbers": [
+            13
+          ],
+          "page_start": 9,
+          "page_end": 9,
+          "locator_template": "答案解析第9页；第13题"
+        },
+        {
+          "numbers": [
+            14
+          ],
+          "page_start": 9,
+          "page_end": 9,
+          "locator_template": "答案解析第9页；第14题"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 10,
+          "page_end": 11,
+          "locator_template": "答案解析第10–11页；第15题跨页"
+        },
+        {
+          "numbers": [
+            16
+          ],
+          "page_start": 11,
+          "page_end": 11,
+          "locator_template": "答案解析第11页；第16题"
+        }
+      ],
+      "page_question_numbers": {
+        "1": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "2": [
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "3": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "4": [
+          17,
+          18,
+          19
+        ],
+        "5": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "6": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "7": [
+          8,
+          9,
+          10
+        ],
+        "8": [
+          11,
+          12
+        ],
+        "9": [
+          13,
+          14
+        ],
+        "10": [
+          15
+        ],
+        "11": [
+          15,
+          16,
+          17
+        ]
+      },
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        }
+      }
+    },
+    "src-rendoc-2026-n1-full": {
+      "stem_groups": [
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "题面第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "题面第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            13,
+            14,
+            15,
+            16
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "题面第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 3,
+          "page_end": 4,
+          "locator_template": "题面第3–4页；第17题跨页"
+        },
+        {
+          "numbers": [
+            18,
+            19
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "题面第4页；第{n}题"
+        }
+      ],
+      "joint_answer_groups": [
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案第6页；第{n}题"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 6,
+          "page_end": 7,
+          "locator_template": "答案第6–7页；第6题跨页"
+        },
+        {
+          "numbers": [
+            7
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案第7页；第7题"
+        },
+        {
+          "numbers": [
+            8
+          ],
+          "page_start": 7,
+          "page_end": 8,
+          "locator_template": "答案第7–8页；第8题跨页"
+        },
+        {
+          "numbers": [
+            9
+          ],
+          "page_start": 8,
+          "page_end": 8,
+          "locator_template": "答案第8页；第9题"
+        },
+        {
+          "numbers": [
+            10
+          ],
+          "page_start": 8,
+          "page_end": 9,
+          "locator_template": "答案第8–9页；第10题跨页"
+        },
+        {
+          "numbers": [
+            11
+          ],
+          "page_start": 9,
+          "page_end": 10,
+          "locator_template": "答案第9–10页；第11题跨页"
+        },
+        {
+          "numbers": [
+            12
+          ],
+          "page_start": 10,
+          "page_end": 10,
+          "locator_template": "答案第10页；第12题"
+        },
+        {
+          "numbers": [
+            13
+          ],
+          "page_start": 10,
+          "page_end": 11,
+          "locator_template": "答案第10–11页；第13题跨页"
+        },
+        {
+          "numbers": [
+            14
+          ],
+          "page_start": 11,
+          "page_end": 11,
+          "locator_template": "答案第11页；第14题"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 11,
+          "page_end": 12,
+          "locator_template": "答案第11–12页；第15题跨页"
+        },
+        {
+          "numbers": [
+            16
+          ],
+          "page_start": 12,
+          "page_end": 13,
+          "locator_template": "答案第12–13页；第16题跨页"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 13,
+          "page_end": 13,
+          "locator_template": "答案第13页；第17题"
+        },
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 13,
+          "page_end": 14,
+          "locator_template": "答案第13–14页；第18题跨页"
+        },
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 14,
+          "page_end": 16,
+          "locator_template": "答案第14–16页；第19题跨页"
+        }
+      ],
+      "page_question_numbers": {
+        "1": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "2": [
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "3": [
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "4": [
+          17,
+          18,
+          19
+        ],
+        "6": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "7": [
+          6,
+          7,
+          8
+        ],
+        "8": [
+          8,
+          9,
+          10
+        ],
+        "9": [
+          10,
+          11
+        ],
+        "10": [
+          11,
+          12,
+          13
+        ],
+        "11": [
+          13,
+          14,
+          15
+        ],
+        "12": [
+          15,
+          16
+        ],
+        "13": [
+          16,
+          17,
+          18
+        ],
+        "14": [
+          18,
+          19
+        ],
+        "15": [
+          19
+        ],
+        "16": [
+          19
+        ]
+      },
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        }
+      }
     },
     "src-netease-shuhai-2026-n1-full": {
       "stem_groups": [
-        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "完整试卷第1页；第{n}题"},
-        {"numbers": [6, 7, 8, 9, 10], "page_start": 2, "page_end": 2, "locator_template": "完整试卷第2页；第{n}题"},
-        {"numbers": [11, 12, 13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "完整试卷第3页；第{n}题"},
-        {"numbers": [17, 18, 19], "page_start": 4, "page_end": 4, "locator_template": "完整试卷第4页；第{n}题"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "完整试卷第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "完整试卷第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "完整试卷第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            17,
+            18,
+            19
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "完整试卷第4页；第{n}题"
+        }
       ],
       "joint_answer_groups": [
-        {"numbers": [1, 2, 3], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
-        {"numbers": [4, 5, 6], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第{n}题"},
-        {"numbers": [7], "page_start": 3, "page_end": 3, "locator_template": "答案解析第3页；第7题"},
-        {"numbers": [8], "page_start": 4, "page_end": 4, "locator_template": "答案解析第4页；第8题"},
-        {"numbers": [9, 10], "page_start": 5, "page_end": 5, "locator_template": "答案解析第5页；第{n}题"},
-        {"numbers": [11], "page_start": 6, "page_end": 7, "locator_template": "答案解析第6–7页；第11题跨页"},
-        {"numbers": [12, 13], "page_start": 7, "page_end": 7, "locator_template": "答案解析第7页；第{n}题"},
-        {"numbers": [14], "page_start": 8, "page_end": 8, "locator_template": "答案解析第8页；第14题"},
-        {"numbers": [15], "page_start": 9, "page_end": 9, "locator_template": "答案解析第9页；第15题"},
-        {"numbers": [16], "page_start": 10, "page_end": 10, "locator_template": "答案解析第10页；第16题"},
-        {"numbers": [17], "page_start": 11, "page_end": 11, "locator_template": "答案解析第11页；第17题"},
-        {"numbers": [18], "page_start": 12, "page_end": 12, "locator_template": "答案解析第12页；第18题"},
-        {"numbers": [19], "page_start": 13, "page_end": 15, "locator_template": "答案解析第13–15页；第19题跨页"}
-      ]
+        {
+          "numbers": [
+            1,
+            2,
+            3
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "答案解析第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            4,
+            5,
+            6
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案解析第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            7
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案解析第3页；第7题"
+        },
+        {
+          "numbers": [
+            8
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "答案解析第4页；第8题"
+        },
+        {
+          "numbers": [
+            9,
+            10
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案解析第5页；第{n}题"
+        },
+        {
+          "numbers": [
+            11
+          ],
+          "page_start": 6,
+          "page_end": 7,
+          "locator_template": "答案解析第6–7页；第11题跨页"
+        },
+        {
+          "numbers": [
+            12,
+            13
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案解析第7页；第{n}题"
+        },
+        {
+          "numbers": [
+            14
+          ],
+          "page_start": 8,
+          "page_end": 8,
+          "locator_template": "答案解析第8页；第14题"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 9,
+          "page_end": 9,
+          "locator_template": "答案解析第9页；第15题"
+        },
+        {
+          "numbers": [
+            16
+          ],
+          "page_start": 10,
+          "page_end": 10,
+          "locator_template": "答案解析第10页；第16题"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 11,
+          "page_end": 11,
+          "locator_template": "答案解析第11页；第17题"
+        },
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 12,
+          "page_end": 12,
+          "locator_template": "答案解析第12页；第18题"
+        },
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 13,
+          "page_end": 15,
+          "locator_template": "答案解析第13–15页；第19题跨页"
+        }
+      ],
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        }
+      }
+    },
+    "src-rendoc-teacher-530208383": {
+      "stem_groups": [
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "题面第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 1,
+          "page_end": 2,
+          "locator_template": "题面第1–2页；第6题跨页"
+        },
+        {
+          "numbers": [
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "题面第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "题面第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            18,
+            19
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "题面第4页；第{n}题"
+        }
+      ],
+      "joint_answer_groups": [
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案第5页；第{n}题"
+        },
+        {
+          "numbers": [
+            9
+          ],
+          "page_start": 5,
+          "page_end": 6,
+          "locator_template": "答案第5–6页；第9题跨页"
+        },
+        {
+          "numbers": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "page_start": 6,
+          "page_end": 6,
+          "locator_template": "答案第6页；第{n}题"
+        },
+        {
+          "numbers": [
+            16,
+            17,
+            18
+          ],
+          "page_start": 7,
+          "page_end": 7,
+          "locator_template": "答案第7页；第{n}题"
+        },
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 7,
+          "page_end": 11,
+          "locator_template": "答案第7–11页；第19题跨页"
+        }
+      ],
+      "page_question_numbers": {
+        "1": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "2": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "3": [
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "4": [
+          18,
+          19
+        ],
+        "5": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "6": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "7": [
+          16,
+          17,
+          18,
+          19
+        ],
+        "8": [
+          19
+        ],
+        "9": [
+          19
+        ],
+        "10": [
+          19
+        ],
+        "11": [
+          19
+        ]
+      },
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        }
+      }
     },
     "src-bendibao-2026-n1-answers": {
       "answer_groups": [
-        {"numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], "locator_template": "网页答案区；第{n}题"}
-      ]
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "locator_template": "网页答案区；第{n}题"
+        }
+      ],
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        }
+      }
     },
     "src-sohu-2026-n1-answers": {
       "answer_groups": [
-        {"numbers": [1, 2, 3, 4, 5, 6, 7], "page_start": 1, "page_end": 1, "locator_template": "答案图第1页；第{n}题"},
-        {"numbers": [8, 9, 10], "page_start": 2, "page_end": 2, "locator_template": "答案图第2页；第{n}题"},
-        {"numbers": [11, 12], "page_start": 3, "page_end": 3, "locator_template": "答案图第3页；第{n}题"},
-        {"numbers": [13, 14, 15], "page_start": 4, "page_end": 4, "locator_template": "答案图第4页；第{n}题"},
-        {"numbers": [16, 17, 18], "page_start": 5, "page_end": 5, "locator_template": "答案图第5页；第{n}题"}
-      ]
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "答案图第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            8,
+            9,
+            10
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案图第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            11,
+            12
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "答案图第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            13,
+            14,
+            15
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "答案图第4页；第{n}题"
+        },
+        {
+          "numbers": [
+            16,
+            17,
+            18
+          ],
+          "page_start": 5,
+          "page_end": 5,
+          "locator_template": "答案图第5页；第{n}题"
+        }
+      ],
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        }
+      }
     },
     "src-zizzs-2026-n1-answers": {
       "stem_groups": [
-        {"numbers": [1, 2, 3, 4, 5], "page_start": 1, "page_end": 1, "locator_template": "原卷图第1页；第{n}题"},
-        {"numbers": [6], "page_start": 1, "page_end": 2, "locator_template": "原卷图第1–2页；第6题跨页"},
-        {"numbers": [7, 8, 9, 10, 11], "page_start": 2, "page_end": 2, "locator_template": "原卷图第2页；第{n}题"},
-        {"numbers": [12, 13, 14, 15, 16], "page_start": 3, "page_end": 3, "locator_template": "原卷图第3页；第{n}题"},
-        {"numbers": [17], "page_start": 3, "page_end": 4, "locator_template": "原卷图第3–4页；第17题跨页"},
-        {"numbers": [18, 19], "page_start": 4, "page_end": 4, "locator_template": "原卷图第4页；第{n}题"}
+        {
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "原卷图第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 1,
+          "page_end": 2,
+          "locator_template": "原卷图第1–2页；第6题跨页"
+        },
+        {
+          "numbers": [
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "原卷图第2页；第{n}题"
+        },
+        {
+          "numbers": [
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "page_start": 3,
+          "page_end": 3,
+          "locator_template": "原卷图第3页；第{n}题"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 3,
+          "page_end": 4,
+          "locator_template": "原卷图第3–4页；第17题跨页"
+        },
+        {
+          "numbers": [
+            18,
+            19
+          ],
+          "page_start": 4,
+          "page_end": 4,
+          "locator_template": "原卷图第4页；第{n}题"
+        }
       ],
       "joint_answer_groups": [
-        {"numbers": [1, 2], "page_start": 1, "page_end": 1, "locator_template": "答案解析第1页；第{n}题"},
-        {"numbers": [3], "page_start": 1, "page_end": 2, "locator_template": "答案解析第1–2页；第3题跨页"},
-        {"numbers": [4], "page_start": 2, "page_end": 2, "locator_template": "答案解析第2页；第4题"},
-        {"numbers": [5], "page_start": 2, "page_end": 3, "locator_template": "答案解析第2–3页；第5题跨页"},
-        {"numbers": [6], "page_start": 3, "page_end": 4, "locator_template": "答案解析第3–4页；第6题跨页"},
-        {"numbers": [7], "page_start": 5, "page_end": 6, "locator_template": "答案解析第5–6页；第7题跨页"},
-        {"numbers": [8], "page_start": 6, "page_end": 7, "locator_template": "答案解析第6–7页；第8题跨页"},
-        {"numbers": [9], "page_start": 7, "page_end": 8, "locator_template": "答案解析第7–8页；第9题跨页"},
-        {"numbers": [10], "page_start": 8, "page_end": 9, "locator_template": "答案解析第8–9页；第10题跨页"},
-        {"numbers": [11], "page_start": 9, "page_end": 11, "locator_template": "答案解析第9–11页；第11题跨页"},
-        {"numbers": [12], "page_start": 12, "page_end": 12, "locator_template": "答案解析第12页；第12题"},
-        {"numbers": [13], "page_start": 12, "page_end": 13, "locator_template": "答案解析第12–13页；第13题跨页"},
-        {"numbers": [14], "page_start": 13, "page_end": 15, "locator_template": "答案解析第13–15页；第14题跨页"},
-        {"numbers": [15], "page_start": 15, "page_end": 17, "locator_template": "答案解析第15–17页；第15题跨页"},
-        {"numbers": [16], "page_start": 18, "page_end": 19, "locator_template": "答案解析第18–19页；第16题跨页"},
-        {"numbers": [17], "page_start": 19, "page_end": 21, "locator_template": "答案解析第19–21页；第17题跨页"},
-        {"numbers": [18], "page_start": 21, "page_end": 25, "locator_template": "答案解析第21–25页；第18题跨页"},
-        {"numbers": [19], "page_start": 25, "page_end": 30, "locator_template": "答案解析第25–30页；第19题跨页"}
-      ]
+        {
+          "numbers": [
+            1,
+            2
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "答案解析第1页；第{n}题"
+        },
+        {
+          "numbers": [
+            3
+          ],
+          "page_start": 1,
+          "page_end": 2,
+          "locator_template": "答案解析第1–2页；第3题跨页"
+        },
+        {
+          "numbers": [
+            4
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "答案解析第2页；第4题"
+        },
+        {
+          "numbers": [
+            5
+          ],
+          "page_start": 2,
+          "page_end": 3,
+          "locator_template": "答案解析第2–3页；第5题跨页"
+        },
+        {
+          "numbers": [
+            6
+          ],
+          "page_start": 3,
+          "page_end": 4,
+          "locator_template": "答案解析第3–4页；第6题跨页"
+        },
+        {
+          "numbers": [
+            7
+          ],
+          "page_start": 5,
+          "page_end": 6,
+          "locator_template": "答案解析第5–6页；第7题跨页"
+        },
+        {
+          "numbers": [
+            8
+          ],
+          "page_start": 6,
+          "page_end": 7,
+          "locator_template": "答案解析第6–7页；第8题跨页"
+        },
+        {
+          "numbers": [
+            9
+          ],
+          "page_start": 7,
+          "page_end": 8,
+          "locator_template": "答案解析第7–8页；第9题跨页"
+        },
+        {
+          "numbers": [
+            10
+          ],
+          "page_start": 8,
+          "page_end": 9,
+          "locator_template": "答案解析第8–9页；第10题跨页"
+        },
+        {
+          "numbers": [
+            11
+          ],
+          "page_start": 9,
+          "page_end": 11,
+          "locator_template": "答案解析第9–11页；第11题跨页"
+        },
+        {
+          "numbers": [
+            12
+          ],
+          "page_start": 12,
+          "page_end": 12,
+          "locator_template": "答案解析第12页；第12题"
+        },
+        {
+          "numbers": [
+            13
+          ],
+          "page_start": 12,
+          "page_end": 13,
+          "locator_template": "答案解析第12–13页；第13题跨页"
+        },
+        {
+          "numbers": [
+            14
+          ],
+          "page_start": 13,
+          "page_end": 15,
+          "locator_template": "答案解析第13–15页；第14题跨页"
+        },
+        {
+          "numbers": [
+            15
+          ],
+          "page_start": 15,
+          "page_end": 17,
+          "locator_template": "答案解析第15–17页；第15题跨页"
+        },
+        {
+          "numbers": [
+            16
+          ],
+          "page_start": 18,
+          "page_end": 19,
+          "locator_template": "答案解析第18–19页；第16题跨页"
+        },
+        {
+          "numbers": [
+            17
+          ],
+          "page_start": 19,
+          "page_end": 21,
+          "locator_template": "答案解析第19–21页；第17题跨页"
+        },
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 21,
+          "page_end": 25,
+          "locator_template": "答案解析第21–25页；第18题跨页"
+        },
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 25,
+          "page_end": 30,
+          "locator_template": "答案解析第25–30页；第19题跨页"
+        }
+      ],
+      "observed_answers": {
+        "1": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "2": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "3": {
+          "value": "C",
+          "excerpt": "【答案】C"
+        },
+        "4": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "5": {
+          "value": "D",
+          "excerpt": "【答案】D"
+        },
+        "6": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "7": {
+          "value": "B",
+          "excerpt": "【答案】B"
+        },
+        "8": {
+          "value": "A",
+          "excerpt": "【答案】A"
+        },
+        "9": {
+          "value": "ACD",
+          "excerpt": "【答案】ACD"
+        },
+        "10": {
+          "value": "BC",
+          "excerpt": "【答案】BC"
+        },
+        "11": {
+          "value": "BCD",
+          "excerpt": "【答案】BCD"
+        },
+        "12": {
+          "value": "√66/6",
+          "excerpt": "【答案】√66/6"
+        },
+        "13": {
+          "value": "[\"3π/2\", \"1\"]",
+          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "value": "∛(3/2)",
+          "excerpt": "【答案】∛(3/2)"
+        },
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        }
+      }
     }
   }
 }

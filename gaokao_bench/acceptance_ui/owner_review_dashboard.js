@@ -511,18 +511,6 @@
 
         ${sourceAuditHtml(row)}
 
-        <section class="evidence-section">
-          <div class="section-heading"><h3>答案与来源</h3><span>主来源与独立第二来源分开展示，非官方来源</span></div>
-          <div class="evidence-grid">
-            ${sourceCardHtml(row, row.answer_source, "主来源", "primary")}
-            ${secondaryHtml}
-          </div>
-          ${sourceAssessmentHtml(row)}
-          <div class="evidence-foot">
-            <div class="evidence-mini"><span>答案审计状态</span><strong><span class="tag ${statusTagClass}">${escapeHtml(row.answer_status_label)}</span></strong></div>
-            <div class="evidence-mini"><span>分值依据</span><strong>试卷结构对账 · ${row.points} 分</strong></div>
-          </div>
-        </section>
       </div>`;
 
     const zoomFrame = $(".crop-frame", center);
@@ -536,9 +524,12 @@
     const audit = row.source_audit || {};
     const assessments = Array.isArray(audit.assessments) ? audit.assessments : [];
     if (!assessments.length) return "";
-    const stemSources = assessments.filter((item) => item.supports_stem);
+    const stemSources = assessments.filter((item) => item.role === "stem_supporting");
     const jointSources = assessments.filter((item) => item.role === "joint_supporting");
     const answerOnly = assessments.filter((item) => item.role === "answer_only_supporting");
+    const rejected = assessments.filter((item) => item.role === "rejected");
+    const requiredStem = Number(META.required_stem_independent_groups || 2);
+    const requiredJoint = Number(META.required_joint_answer_independent_groups || 2);
     const gateClass = audit.gate_complete ? "pass" : "blocked";
     const gateLabel = audit.gate_complete ? "通过" : "未通过";
     const itemHtml = (item, includeAnswer) => {
@@ -546,8 +537,11 @@
         ? "题干+答案"
         : item.role === "answer_only_supporting"
           ? "答案补充"
-          : "题干";
-      const tagClass = item.role === "joint_supporting" ? "green" : item.role === "answer_only_supporting" ? "amber" : "blue";
+          : item.role === "rejected"
+            ? "错误来源 · 不计入"
+            : "仅题干";
+      const tagClass = item.role === "joint_supporting" ? "green" : item.role === "answer_only_supporting" ? "amber" : item.role === "rejected" ? "red" : "blue";
+      const sourceAnswer = item.source_answer_text || item.answer_excerpt || "";
       const stemUrl = item.stem_page_url && item.stem_page_url !== item.url
         ? `<a href="${escapeHtml(item.stem_page_url)}" target="_blank" rel="noopener noreferrer">打开题干页 ↗</a>`
         : "";
@@ -564,7 +558,9 @@
             ${item.stem_locator ? `<p><b>题干定位：</b>${escapeHtml(item.stem_locator)}</p>` : ""}
             ${includeAnswer && item.answer_locator ? `<p><b>答案定位：</b>${escapeHtml(item.answer_locator)}</p>` : ""}
             ${item.stem_excerpt ? `<p><b>题干摘录：</b>${escapeHtml(item.stem_excerpt)}</p>` : ""}
-            ${includeAnswer && item.answer_excerpt ? `<p><b>答案摘录：</b>${escapeHtml(item.answer_excerpt)}</p>` : ""}
+            ${includeAnswer && sourceAnswer ? `<p><b>来源答案摘录：</b>${escapeHtml(sourceAnswer)}</p>` : ""}
+            ${includeAnswer && item.answer_value && item.answer_value !== sourceAnswer ? `<p><b>规范化答案：</b>${escapeHtml(item.answer_value)}</p>` : ""}
+            ${item.role === "rejected" && item.rejection_reason ? `<p class="assessment-reject"><b>拒绝原因：</b>${escapeHtml(item.rejection_reason)}</p>` : ""}
             <div class="mono">${escapeHtml(item.source_id)} · ${escapeHtml(item.independence_group || "")}</div>
             <div class="source-audit-links">${stemUrl}${answerUrl}${sourceUrl}</div>
           </div>
@@ -572,22 +568,23 @@
     };
     return `
       <section class="evidence-section">
-        <div class="section-heading"><h3>双来源硬门槛</h3><span>题干与答案分别要求独立来源；仅有答案的页面不计入硬门槛</span></div>
+        <div class="section-heading"><h3>来源与双源校验</h3><span>题干与答案分别要求独立来源；仅有答案的页面不计入硬门槛</span></div>
         <div class="source-audit-panel">
           <div class="source-audit-gate-row">
-            <div class="source-audit-gate ${audit.stem_dual_source_complete ? "pass" : "blocked"}"><span>STEM SOURCES</span><strong>${audit.stem_independent_groups} 组</strong><p>题干独立来源；要求至少 2 组</p></div>
-            <div class="source-audit-gate ${audit.joint_answer_dual_source_complete ? "pass" : "blocked"}"><span>JOINT ANSWER SOURCES</span><strong>${audit.joint_answer_independent_groups} 组</strong><p>同一来源同时核对题干与答案；要求至少 2 组</p></div>
+            <div class="source-audit-gate ${audit.stem_dual_source_complete ? "pass" : "blocked"}"><span>STEM SOURCES</span><strong>${audit.stem_independent_groups} 组</strong><p>题干独立来源；当前门槛至少 ${requiredStem} 组</p></div>
+            <div class="source-audit-gate ${audit.joint_answer_dual_source_complete ? "pass" : "blocked"}"><span>JOINT ANSWER SOURCES</span><strong>${audit.joint_answer_independent_groups} 组</strong><p>同一来源同时核对题干与答案；当前门槛至少 ${requiredJoint} 组</p></div>
             <div class="source-audit-gate ${gateClass}"><span>QUESTION GATE</span><strong>${gateLabel}</strong><p>${answerOnly.length} 个答案补充来源不计入门槛</p></div>
           </div>
           <div class="source-audit-columns">
             <article class="source-audit-column">
-              <h4>题干来源 · ${stemSources.length}</h4>
+              <h4>仅题干来源 · ${stemSources.length}</h4>
               ${stemSources.map((item) => itemHtml(item, false)).join("")}
             </article>
             <article class="source-audit-column">
               <h4>题干 + 答案联合来源 · ${jointSources.length}</h4>
               ${jointSources.map((item) => itemHtml(item, true)).join("")}
               ${answerOnly.length ? `<div class="source-audit-extra"><h4 style="margin-top:10px">答案补充 · 不计入门槛</h4>${answerOnly.map((item) => itemHtml(item, true)).join("")}</div>` : ""}
+              ${rejected.length ? `<div class="source-audit-extra"><h4 style="margin-top:10px">已拒绝来源 · 保留原错答与原因</h4>${rejected.map((item) => itemHtml(item, true)).join("")}</div>` : ""}
             </article>
           </div>
         </div>

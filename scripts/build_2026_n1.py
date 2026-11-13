@@ -353,6 +353,7 @@ def _source_assessment(
     answer_group: Optional[Mapping[str, Any]],
     canonical_text: str,
     source_pages: Sequence[Mapping[str, Any]],
+    observation: Optional[Mapping[str, Any]] = None,
     override: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     number = int(item["number"])
@@ -361,8 +362,44 @@ def _source_assessment(
     answer_only = role == "answer_only_supporting"
     rejected = role == "rejected"
     stem = str(item.get("stem") or item.get("content") or "").strip()
-    observed_answer = str((override or {}).get("observed_answer") or "").strip()
-    answer_note = observed_answer if rejected else canonical_text
+    requires_answer_observation = joint or answer_only
+    if rejected:
+        observed_answer = str((override or {}).get("observed_answer") or "").strip()
+        observed_excerpt = str(
+            (override or {}).get("observed_excerpt") or observed_answer
+        ).strip()
+    elif requires_answer_observation:
+        if not isinstance(observation, Mapping):
+            raise ValueError(
+                "source %s has no explicit answer observation for question %d"
+                % (source["id"], number)
+            )
+        observed_answer = str(observation.get("value") or "").strip()
+        observed_excerpt = str(observation.get("excerpt") or observed_answer).strip()
+        if not observed_answer or not observed_excerpt:
+            raise ValueError(
+                "source %s has an empty answer observation for question %d"
+                % (source["id"], number)
+            )
+        if observed_answer != canonical_text:
+            raise ValueError(
+                "source %s answer observation differs from canonical answer for question %d: %s != %s"
+                % (source["id"], number, observed_answer, canonical_text)
+            )
+    else:
+        observed_answer = ""
+        observed_excerpt = ""
+    answer_note = observed_answer if (rejected or requires_answer_observation) else ""
+    answer_excerpt = (
+        observed_excerpt
+        if rejected
+        else canonical_text
+        if requires_answer_observation
+        else ""
+    )
+    source_answer_text = (
+        observed_excerpt if (rejected or requires_answer_observation) else ""
+    )
     rejection_reason = (
         str((override or {}).get("rejection_reason") or "").strip() if rejected else ""
     )
@@ -423,10 +460,16 @@ def _source_assessment(
             else "exact_answer_match"
         ),
         "stem_locator": _locator(stem_group, number) if stem_group is not None else "",
-        "answer_locator": _locator(answer_group, number) if answer_group is not None else "",
+        "answer_locator": (
+            str((observation or {}).get("locator") or "").strip()
+            or _locator(answer_group, number)
+            if answer_group is not None
+            else ""
+        ),
         "stem_excerpt": stem,
         "answer_value": answer_note,
-        "answer_excerpt": answer_note,
+        "answer_excerpt": answer_excerpt,
+        "source_answer_text": source_answer_text,
         "rejection_reason": rejection_reason or None,
     }
 
@@ -491,6 +534,8 @@ def build_source_audit(
         for source_id, source_coverage in coverage.items():
             if source_id not in sources:
                 raise ValueError("coverage references unknown source: %s" % source_id)
+            if source_id == primary_id:
+                continue
             source = sources[source_id]
             stem_group = _group_for_number(
                 source_coverage.get("stem_groups"), number, source_id=source_id, kind="stem"
@@ -510,6 +555,12 @@ def build_source_audit(
             overrides = source_coverage.get("question_overrides")
             override = (
                 overrides.get(str(number)) if isinstance(overrides, Mapping) else None
+            )
+            observations = source_coverage.get("observed_answers")
+            observation = (
+                observations.get(str(number))
+                if isinstance(observations, Mapping)
+                else None
             )
             if override is not None:
                 if not isinstance(override, Mapping) or override.get("role") != "rejected":
@@ -565,6 +616,7 @@ def build_source_audit(
                     answer_group=selected_answer,
                     canonical_text=canonical_text,
                     source_pages=source_pages.get(source_id, ()),
+                    observation=observation if isinstance(observation, Mapping) else None,
                     override=override if isinstance(override, Mapping) else None,
                 )
             )
@@ -958,8 +1010,11 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     assets_dir = temporary / "assets" / paper_spec["id"]
     catalog_dir = temporary / "catalog"
     examples_dir = temporary / "examples"
-    for directory in (assets_dir, catalog_dir, examples_dir):
+    pinned_spec_dir = temporary / "audit" / "specs"
+    for directory in (assets_dir, catalog_dir, examples_dir, pinned_spec_dir):
         directory.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source_audit_spec_path, pinned_spec_dir / "source-audit.json")
+    shutil.copyfile(source_pages_spec_path, pinned_spec_dir / "source-pages.json")
     if audit_reports:
         audit_report_dir = temporary / "audit_reports"
         audit_report_dir.mkdir(parents=True)
@@ -1139,7 +1194,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                 "external_canonical": item["canonical"],
                 "external_source_id": primary_assessment["source_id"],
                 "external_locator": primary_assessment["answer_locator"],
-                "external_excerpt": primary_assessment["answer_excerpt"],
+                "external_excerpt": primary_assessment.get("source_answer_text")
+                or primary_assessment["answer_excerpt"],
                 "secondary_source_id": secondary_assessment["source_id"],
                 "secondary_external_canonical": item["canonical"],
                 "secondary_source_locator": secondary_assessment["answer_locator"],
@@ -1591,6 +1647,11 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "evidence_pages": "source_pages.jsonl",
             "evidence_pages_sha256": sha256(temporary / "source_pages.jsonl"),
             "evidence_page_count": len(source_pages_rows),
+            "require_pinned_specs": True,
+            "pinned_audit_spec": "audit/specs/source-audit.json",
+            "pinned_audit_spec_sha256": sha256(source_audit_spec_path),
+            "pinned_pages_spec": "audit/specs/source-pages.json",
+            "pinned_pages_spec_sha256": sha256(source_pages_spec_path),
             **source_audit_summary,
         },
         "quality": {
@@ -1689,6 +1750,8 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
         "REPRODUCE.md",
     ] + [row["path"] for row in assets]
     audit_names = [
+        "audit/specs/source-audit.json",
+        "audit/specs/source-pages.json",
         "source_audit.jsonl",
         "source_pages.jsonl",
         "sources.jsonl",
