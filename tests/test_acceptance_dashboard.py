@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from gaokao_bench import cli
 from gaokao_bench.acceptance_dashboard import build_acceptance_page, build_acceptance_payload
 from gaokao_bench.owner_review import (
@@ -29,6 +31,34 @@ def _write_jsonl(path, rows):
         "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows),
         encoding="utf-8",
     )
+
+
+def _add_subjective_catalog(data_dir, rows):
+    catalog = []
+    for index, (points, reference_answer) in enumerate(rows, start=15):
+        catalog.append(
+            {
+                "id": "GB26-N1-D%02d" % index,
+                "paper_id": "paper-test",
+                "display_number": "第%d题" % index,
+                "number": index,
+                "type": "catalog_subjective",
+                "points": points,
+                "content": "主观题 %d：请写出完整解答。" % index,
+                "reference_answer": reference_answer,
+                "reference_answer_status": "source_and_derivation_confirmed",
+                "solution_outline": "由题意逐步推导，得到规范答案。",
+                "answer_source_id": "src-primary",
+                "answer_locator": "答案解析第1页；第%d题" % index,
+                "secondary_answer_source_id": "src-secondary",
+                "secondary_answer_locator": "答案解析第2页；第%d题" % index,
+                "point_evidence_status": "full_paper_section_and_points_crosschecked",
+                "point_locator": "试卷结构；第%d题，%d分" % (index, points),
+                "asset_dependency": "none",
+                "deferred_reason": "主观题当前只入目录，不计入确定性评分。",
+            }
+        )
+    _write_jsonl(data_dir / "catalog" / "subjective_catalog.jsonl", catalog)
 
 
 def _make_dataset(
@@ -177,6 +207,119 @@ def _make_dataset(
         ],
     )
     return data_dir, item_id
+
+
+def test_archive_fallback_includes_catalog_subjective_questions(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-full-paper",
+        created_at="2026-06-01T00:00:00+08:00",
+        status="archived",
+    )
+    _add_subjective_catalog(
+        data_dir,
+        [(13, "(1) 证明成立；(2) 距离为 1。"), (15, "(1) cos A = 1/3；(2) CE = 3√5。")],
+    )
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    dataset = payload["datasets"]["v-full-paper"]
+    rows = dataset["rows"]
+    meta = dataset["meta"]
+
+    assert {row["item_id"] for row in rows} == {item_id, "GB26-N1-D15", "GB26-N1-D16"}
+    assert meta["mode"] == "archive"
+    assert meta["total_questions"] == 3
+    assert meta["total_points"] == 33
+    assert meta["scored_questions"] == 1
+    assert meta["scored_points"] == 5
+    assert meta["catalog_questions_in_review"] == 2
+    assert meta["catalog_points_in_review"] == 28
+    subjective = {row["item_id"]: row for row in rows if row["item_id"].startswith("GB26-N1-D")}
+    assert set(subjective) == {"GB26-N1-D15", "GB26-N1-D16"}
+    assert all(row["included_in_scoring"] is False for row in subjective.values())
+    assert all(row["review_scope"] == "catalog_reference_only" for row in subjective.values())
+    assert subjective["GB26-N1-D16"]["canonical"] == "(1) cos A = 1/3；(2) CE = 3√5。"
+    assert subjective["GB26-N1-D16"]["answer_source"]["page_url"]
+    assert subjective["GB26-N1-D16"]["independent_audit"]["derivation"]
+
+
+def test_stale_packet_falls_back_to_complete_paper_without_ghost_rows(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-stale-full-paper",
+        created_at="2026-06-02T00:00:00+08:00",
+        status="acceptance_candidate",
+    )
+    _add_subjective_catalog(data_dir, [(13, "距离为 1。"), (15, "CE = 3√5。")])
+    packet = _make_packet(review_root, data_dir, item_id, signed=False)
+    worksheet = packet / REVIEW_WORKSHEET_NAME
+    with worksheet.open("a", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=OWNER_REVIEW_FIELDS, lineterminator="\n")
+        ghost = {field: "" for field in OWNER_REVIEW_FIELDS}
+        ghost.update({"item_id": "GHOST-D99", "points": "99", "stem": "伪造题"})
+        writer.writerow(ghost)
+
+    manifest_path = data_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["created_at"] = "2026-06-03T00:00:00+08:00"
+    _write_json(manifest_path, manifest)
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    dataset = payload["datasets"]["v-stale-full-paper"]
+    meta = dataset["meta"]
+    rows = dataset["rows"]
+
+    assert meta["mode"] == "stale_packet"
+    assert meta["review_enabled"] is False
+    assert meta["total_questions"] == 3
+    assert meta["total_points"] == 33
+    assert {row["item_id"] for row in rows} == {item_id, "GB26-N1-D15", "GB26-N1-D16"}
+    assert "GHOST-D99" not in {row["item_id"] for row in rows}
+
+
+def test_current_2026_candidate_archive_shows_all_19_questions():
+    data_dir = Path(__file__).resolve().parents[1] / "data" / "0.1.0-alpha.2026-n1.5"
+    if not (data_dir / "manifest.json").is_file():
+        pytest.skip("the local 2026 National I candidate package is not present")
+    version = json.loads((data_dir / "manifest.json").read_text(encoding="utf-8"))["dataset_version"]
+
+    payload = build_acceptance_payload(
+        data_root=data_dir.parent,
+        review_root=Path(__file__).resolve().parents[1] / "review_packets",
+        versions=[version],
+        default_version=version,
+        notes_path=None,
+    )
+    dataset = payload["datasets"][version]
+    meta = dataset["meta"]
+    rows = dataset["rows"]
+
+    assert meta["total_questions"] == 19
+    assert meta["total_points"] == 150
+    assert meta["scored_questions"] == 14
+    assert meta["scored_points"] == 73
+    assert meta["catalog_questions_in_review"] == 5
+    assert meta["catalog_points_in_review"] == 77
+    assert {"GB26-N1-D15", "GB26-N1-D16", "GB26-N1-D17", "GB26-N1-D18", "GB26-N1-D19"} <= {
+        row["item_id"] for row in rows
+    }
+    assert all(
+        row["included_in_scoring"] is False
+        for row in rows
+        if row["item_id"].startswith("GB26-N1-D")
+    )
 
 
 def _make_packet(review_root, data_dir, item_id, *, signed):

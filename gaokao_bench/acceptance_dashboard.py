@@ -277,6 +277,35 @@ def _audit_source(
     }
 
 
+def _catalog_source(
+    item: Mapping[str, Any],
+    sources: Mapping[str, Mapping[str, Any]],
+    secondary: bool = False,
+) -> Dict[str, str]:
+    prefix = "secondary_" if secondary else ""
+    source_id = str(item.get(prefix + "answer_source_id") or "")
+    locator = str(
+        item.get(prefix + "answer_locator")
+        or item.get("answer_locator")
+        or ("完整答案；第%s题" % item.get("number"))
+    )
+    excerpt = str(
+        item.get(prefix + "reference_answer")
+        or item.get("reference_answer")
+        or ""
+    )
+    source = sources.get(source_id, {}) if source_id else {}
+    return {
+        "id": source_id,
+        "publisher": str(source.get("publisher") or source_id or "未记录来源"),
+        "url": str(source.get("url") or ""),
+        "page_url": _source_page_url(source, locator),
+        "image_url": _source_image_url(source, locator),
+        "locator": locator,
+        "excerpt": excerpt,
+    }
+
+
 def _load_notes(path: Optional[Path]) -> Dict[str, Dict[str, str]]:
     if path is None or not path.is_file():
         return {}
@@ -772,6 +801,7 @@ def _data_rows(
     *,
     data_dir: Path,
     questions: Sequence[Mapping[str, Any]],
+    catalog: Sequence[Mapping[str, Any]],
     answer_keys: Mapping[str, Mapping[str, Any]],
     papers: Mapping[str, Mapping[str, Any]],
     answer_sources: Mapping[str, Mapping[str, Any]],
@@ -779,6 +809,7 @@ def _data_rows(
     question_audit: Mapping[str, Mapping[str, Any]],
     point_audit: Mapping[str, Mapping[str, Any]],
     asset_audit: Mapping[str, Mapping[str, Any]],
+    source_audit: Mapping[str, Mapping[str, Any]],
     notes: Mapping[str, Mapping[str, str]],
     assets: Dict[str, str],
 ) -> List[Dict[str, Any]]:
@@ -860,6 +891,82 @@ def _data_rows(
                 point_evidence=str((point_audit.get(item_id) or {}).get("status") or ""),
                 point_locator=str((point_audit.get(item_id) or {}).get("locator") or ""),
                 image_dependency=str(question.get("asset_dependency") or "none"),
+            ),
+        )
+        rows.append(row)
+
+    question_ids = {str(question.get("id") or "") for question in questions}
+    for item in catalog:
+        item_id = str(item.get("id") or "")
+        if not item_id or item_id in question_ids:
+            continue
+        paper_id, paper_title, paper_region = _paper_meta(item, papers, "")
+        points = int(item.get("points") or 0)
+        source = _catalog_source(item, answer_sources, False)
+        secondary = _catalog_source(item, answer_sources, True)
+        source_audit_row = source_audit.get(item_id, {})
+        stem = str(item.get("content") or item.get("stem") or "")
+        canonical = item.get("reference_answer") or item.get("reference_answer_seed")
+        status = str(item.get("reference_answer_status") or "catalogued")
+        scope = "catalog_reference_only"
+        row = _row_base(
+            item_id=item_id,
+            paper_id=paper_id,
+            paper_title=paper_title,
+            paper_region=paper_region,
+            display_number=str(item.get("display_number") or ""),
+            number=item.get("number"),
+            kind="catalog_subjective",
+            points=points,
+            included_in_scoring=False,
+            review_scope=scope,
+            stem=stem,
+            options=[],
+            canonical=canonical,
+            answer_slot_count=1,
+            image_dependency=str(item.get("asset_dependency") or "none"),
+            image_path=str(item.get("image_path") or ""),
+            image_sha256=str(item.get("image_sha256") or ""),
+            image_asset=_asset_data_uri(
+                data_dir, item.get("image_path"), assets
+            ),
+            answer_source=source,
+            secondary_source=secondary,
+            point_evidence=str(item.get("point_evidence_status") or ""),
+            point_locator=str(item.get("point_locator") or ""),
+            answer_status=status,
+            independent_audit={
+                "derivation": str(item.get("solution_outline") or ""),
+                "answer_verdict": "catalogued",
+                "stem_verdict": str(item.get("review_status") or ""),
+                "option_verdict": "",
+                "asset_verdict": "",
+                "reviewer": "",
+                "reviewed_at": str(item.get("reviewed_at") or ""),
+                "notes": str(item.get("deferred_reason") or ""),
+            },
+            asset=_asset_meta(data_dir, item, asset_audit.get(item_id, {})),
+            source_assessments=source_audit_row.get("assessments", []),
+            rejected_source_ids=source_audit_row.get("rejected_source_ids", []),
+            priority=notes.get(item_id),
+            answer_conclusion=str((notes.get(item_id) or {}).get("answer_conclusion") or ""),
+            raw=_fallback_raw(
+                item_id=item_id,
+                paper_id=paper_id,
+                display_number=str(item.get("display_number") or ""),
+                kind="catalog_subjective",
+                points=points,
+                included=False,
+                scope=scope,
+                stem=stem,
+                options=[],
+                canonical=canonical,
+                answer_evidence=status,
+                source=source,
+                secondary=secondary,
+                point_evidence=str(item.get("point_evidence_status") or ""),
+                point_locator=str(item.get("point_locator") or ""),
+                image_dependency=str(item.get("asset_dependency") or "none"),
             ),
         )
         rows.append(row)
@@ -1208,6 +1315,7 @@ def _build_workspace(
         rows = _data_rows(
             data_dir=data_dir,
             questions=questions_list,
+            catalog=catalog_list,
             answer_keys=answer_keys,
             papers=papers,
             answer_sources=answer_sources,
@@ -1215,6 +1323,7 @@ def _build_workspace(
             question_audit=question_audit,
             point_audit=point_audit,
             asset_audit=asset_audit,
+            source_audit=source_audit,
             notes=notes,
             assets=assets,
         )
