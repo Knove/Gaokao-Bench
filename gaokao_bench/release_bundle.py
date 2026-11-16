@@ -97,6 +97,18 @@ def _target_for_profile(profile: str) -> str:
     return "internal"
 
 
+def _public_evidence_pdf(rel: str) -> bool:
+    """Only frozen source-page PDFs may enter the full public candidate."""
+
+    parts = PurePosixPath(rel).parts
+    return (
+        len(parts) >= 5
+        and parts[0] == "data"
+        and parts[2] == "source_pages"
+        and rel.lower().endswith(".pdf")
+    )
+
+
 def _public_code_files(project_root: Path) -> List[Tuple[Path, str]]:
     files: List[Tuple[Path, str]] = []
     for relative in sorted(PUBLIC_CODE_EXACT_FILES):
@@ -183,7 +195,7 @@ def _bundle_manifest(
         "files": file_rows,
         "gate": gate,
         "notes": [
-            "Internal candidate bundles include local assets; public candidate bundles exclude assets.",
+            "Internal candidate bundles include local assets; a passing public candidate includes the assets and frozen source-page PDFs covered by the public release decision.",
             "A blocked bundle is evidence for review only and must never be presented as a released benchmark.",
         ],
     }
@@ -261,7 +273,11 @@ def build_release_bundle(
     if target == "public":
         if gate["status"] == "pass" and not include_assets:
             raise ReleaseBundleError("a passing public bundle must include assets covered by the rights attestation")
-        forbidden = [rel for _, rel in files if rel.lower().endswith(".pdf")]
+        forbidden = [
+            rel
+            for _, rel in files
+            if rel.lower().endswith(".pdf") and not _public_evidence_pdf(rel)
+        ]
         if forbidden:
             raise ReleaseBundleError("public bundle contains excluded PDFs: %s" % ", ".join(forbidden[:5]))
 
@@ -404,7 +420,11 @@ def verify_release_bundle(path: Path | str, *, sidecar: Optional[Path | str] = N
     if target == "public":
         if manifest.get("release_status") == "pass" and manifest.get("includes_assets") is not True:
             raise ReleaseBundleError("a passing public bundle must include assets covered by the rights attestation")
-        forbidden = [rel for rel in declared_rows if rel.lower().endswith(".pdf")]
+        forbidden = [
+            rel
+            for rel in declared_rows
+            if rel.lower().endswith(".pdf") and not _public_evidence_pdf(rel)
+        ]
         if forbidden:
             raise ReleaseBundleError("public bundle contains excluded PDFs: %s" % ", ".join(forbidden[:5]))
 

@@ -39,6 +39,9 @@ Dataset 0.1.0-alpha.2026-n1.5.1
   remain required when available but do not block data-only consumers.
 - Fix the Hugging Face uploader so the default commit message follows the
   resolved dataset version instead of the repository default `0.0.4`.
+- Allow the passing full-data candidate ZIP to include frozen source-page PDFs
+  under `data/<version>/source_pages/`; the code-only artifact continues to
+  reject all PDFs, images, question data, and evidence.
 - Let the acceptance dashboard verify a materialised package's own
   `owner_signoff.json`, `review_protocol.json`, review events and declared input
   hashes when no separate mutable review packet exists.
