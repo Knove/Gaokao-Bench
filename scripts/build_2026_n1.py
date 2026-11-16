@@ -391,11 +391,7 @@ def _source_assessment(
         observed_excerpt = ""
     answer_note = observed_answer if (rejected or requires_answer_observation) else ""
     answer_excerpt = (
-        observed_excerpt
-        if rejected
-        else canonical_text
-        if requires_answer_observation
-        else ""
+        observed_excerpt if (rejected or requires_answer_observation) else ""
     )
     source_answer_text = (
         observed_excerpt if (rejected or requires_answer_observation) else ""

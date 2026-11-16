@@ -2,10 +2,10 @@
   "schema_version": "1.0",
   "dataset_version": "0.1.0-alpha.2026-n1.5",
   "policy": {
-    "version": "dual_source_v3",
+    "version": "dual_source_v4",
     "scope": "all_catalogued_questions",
     "required_stem_independent_groups": 9,
-    "required_joint_answer_independent_groups": 5,
+    "required_joint_answer_independent_groups": 6,
     "answer_only_sources_count_for_gate": false,
     "owner_signoff_requires_gate": true,
     "joint_answer_source_must_match_stem": true,
@@ -68,7 +68,7 @@
       "independence_group": "eol-gkst",
       "access_method": "浏览器打开七页答案解析图，逐页核对题干、答案与解析",
       "retrieved_at": "2026-11-13",
-      "notes": "七页完整题面与答案解析。第 13、14、15、18、19 题存在可复现的答案错误，逐题登记为 rejected，不进入联合答案门禁；第 1–12、16、17 题可计入联合来源。",
+      "notes": "七页完整题面与答案解析。第 13、14、15、16、18、19 题存在可复现的答案错误，逐题登记为 rejected，不进入联合答案门禁；第 1–12、17 题可计入联合来源。",
       "page_urls": {
         "1": "https://www.eol.cn/m/gaokao/202606/W020260608340022926714.png",
         "2": "https://www.eol.cn/m/gaokao/202606/W020260608340022937932.png",
@@ -231,7 +231,7 @@
       "independence_group": "bendibao",
       "access_method": "浏览器打开网页答案列表，逐题核对答案文字",
       "retrieved_at": "2026-11-12",
-      "notes": "答案覆盖 1–19；部分公式被网页省略，只作答案补充，不计入双来源硬门槛。页面含动态推荐位，在线复核只检查可访问性；离线冻结证据仍按哈希固定。",
+      "notes": "仅保留网页可核对的第 1–15 题答案；第 16–19 题公式被网页省略，未计入本来源，避免用规范答案回填。该来源不计入双来源硬门槛。",
       "live_hash_stable": false,
       "observation_method": "网页答案区逐题核对；动态页面仅作补充证据"
     },
@@ -253,6 +253,22 @@
         "https://q3.itc.cn/q_70/images03/20260611/2e412002154e4c9694d6145832c0281f.png"
       ],
       "observation_method": "五页教师版答案图逐题核对；只作补充证据"
+    },
+    {
+      "id": "src-woaigaokao-2026-n1-full",
+      "publisher": "我爱高考",
+      "url": "https://www.woaigaokao.com/shuxue/6722.html",
+      "source_type": "independent_complete_answer_page",
+      "evidence_scope": "stem_and_answer",
+      "independence_group": "woaigaokao",
+      "access_method": "浏览器打开试卷页与参考答案页，逐题核对题干、答案与解析",
+      "retrieved_at": "2026-11-16",
+      "notes": "第 1 页为试卷，第 2 页为参考答案及解析；只将逐题复核正确的第 15–19 题纳入联合来源。该站第 2、13 题解析存在内部错误，因此不用于客观题门禁。",
+      "page_urls": {
+        "1": "https://www.woaigaokao.com/shuxue/6722.html",
+        "2": "https://www.woaigaokao.com/shuxue/6722.html/2/"
+      },
+      "observation_method": "逐题阅读网页原文并核对公式；只登记可复核的最终结论"
     },
     {
       "id": "src-zizzs-2026-n1-answers",
@@ -671,6 +687,13 @@
           "answer_match": "external_answer_error",
           "observed_answer": "D(-1)=(-1, 3/2)",
           "rejection_reason": "来源第 (1) 问给出 D(-1)=(-1,3/2)；逐段解不等式得 D(-1)=(0,3/2)。"
+        },
+        "16": {
+          "role": "rejected",
+          "answer_match": "external_answer_error",
+          "observed_answer": "（1）cos A = √7/3；（2）CE = √6。",
+          "observed_excerpt": "（1）cos A = √7/3；（2）CE = √6。",
+          "rejection_reason": "来源第 (1) 问由正弦定理误得 cos A=√7/3，第 (2) 问得 CE=√6；由余弦定理得 cos A=1/3，坐标法得 CE=3√5。"
         }
       },
       "observed_answers": {
@@ -722,13 +745,9 @@
           "value": "√66/6",
           "excerpt": "【答案】√66/6"
         },
-        "16": {
-          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
-        },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+          "excerpt": "P(X>k+m|X>k)=(1-p)^(k+m)/(1-p)^k=(1-p)^m=P(X>m)，证毕。"
         }
       }
     },
@@ -1112,23 +1131,23 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+          "excerpt": "因为直线DE平行于平面BCC1B1，所以所求距离为1。"
         },
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+          "excerpt": "cos A=1/3；CE=√(3^2+6^2)=3√5。"
         },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。"
         },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+          "excerpt": "l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。"
         },
         "19": {
           "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
-          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。"
         }
       }
     },
@@ -1413,11 +1432,11 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+          "excerpt": "因为直线DE平行于平面BCC1B1，所以所求距离为1。"
         },
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+          "excerpt": "cos A=1/3；CE=√(3^2+6^2)=3√5。"
         }
       }
     },
@@ -1744,23 +1763,23 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+          "excerpt": "所以直线DE到平面BCC1B1的距离为1。"
         },
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+          "excerpt": "cos A=1/3；在Rt△ACE中，CE=√(AE^2+AC^2)=3√5。"
         },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。"
         },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+          "excerpt": "C: x^2/4+y^2/3=1；l: √5x-2y+√5=0；tan∠PQR 的最小值为4√3。"
         },
         "19": {
           "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
-          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+          "excerpt": "D(-1)={d∈R | 0<d<3/2}；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。"
         }
       }
     },
@@ -1985,23 +2004,23 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+          "excerpt": "DE到平面BCC1B1的距离 d=EM=1/2 AC=1。"
         },
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+          "excerpt": "cos A=1/3；CE=3√5。"
         },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。"
         },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。"
         },
         "19": {
           "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
-          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。"
         }
       }
     },
@@ -2245,23 +2264,23 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+          "excerpt": "（2）距离为1。"
         },
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+          "excerpt": "（1）1/3；（2）3√5。"
         },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+          "excerpt": "X的分布列为P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=(1-p)^m=P(X>m)。"
         },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+          "excerpt": "（1）x^2/4+y^2/3=1；（2）(i) y=(√5/2)(x+1)；(ii) 4√3。"
         },
         "19": {
           "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
-          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。"
         }
       }
     },
@@ -2283,11 +2302,7 @@
             12,
             13,
             14,
-            15,
-            16,
-            17,
-            18,
-            19
+            15
           ],
           "locator_template": "网页答案区；第{n}题"
         }
@@ -2351,23 +2366,7 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
-        },
-        "16": {
-          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
-        },
-        "17": {
-          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
-        },
-        "18": {
-          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
-        },
-        "19": {
-          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
-          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+          "excerpt": "【答案】(1)见解析(2)1"
         }
       }
     },
@@ -2486,19 +2485,19 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+          "excerpt": "所以直线DE到平面BCC1B1的距离为1。"
         },
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+          "excerpt": "cos A=1/3；CE=3√5。"
         },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。"
         },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。"
         }
       }
     },
@@ -2772,23 +2771,75 @@
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
-          "excerpt": "来源解答结论：(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+          "excerpt": "由几何知识得，DE到面BCC1B1的距离为DF=1。"
         },
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
-          "excerpt": "来源解答结论：(1) cos A = 1/3；(2) CE = 3√5。"
+          "excerpt": "（1）1/3；（2）3√5。"
         },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "来源解答结论：(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。"
         },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "来源解答结论：(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。"
         },
         "19": {
           "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
-          "excerpt": "来源解答结论：(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。"
+        }
+      }
+    },
+    "src-woaigaokao-2026-n1-full": {
+      "stem_groups": [
+        {
+          "numbers": [
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "试卷页；第{n}题"
+        }
+      ],
+      "joint_answer_groups": [
+        {
+          "numbers": [
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "page_start": 2,
+          "page_end": 2,
+          "locator_template": "参考答案页；第{n}题"
+        }
+      ],
+      "observed_answers": {
+        "15": {
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "excerpt": "所以DG=1/2 AC=1，故直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "excerpt": "cos A=1/3；CE=3√5。"
+        },
+        "17": {
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "C: x^2/4+y^2/3=1；l: √5x-2y+√5=0；tan∠PQR 的最小值为4√3。"
+        },
+        "19": {
+          "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。"
         }
       }
     }

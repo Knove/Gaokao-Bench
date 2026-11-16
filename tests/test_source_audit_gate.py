@@ -381,14 +381,40 @@ def test_prefix_stem_excerpt_is_rejected(tmp_path):
         validate_source_audit(dataset)
 
 
-def test_answer_excerpt_cannot_append_free_text(tmp_path):
+def test_answer_excerpt_cannot_be_canonical_backfill_placeholder(tmp_path):
     dataset = _build_dataset(tmp_path)
 
     def mutate(rows):
-        rows[0]["assessments"][0]["answer_excerpt"] = "A；来源页含完整证明或解答过程。"
+        assessment = rows[0]["assessments"][0]
+        assessment["answer_excerpt"] = "来源解答结论：A"
+        assessment["source_answer_text"] = "来源解答结论：A"
 
     _rewrite_source_audit(dataset, mutate)
-    with pytest.raises(ValueError, match="exact canonical answer"):
+    with pytest.raises(ValueError, match="placeholder rather than a source transcription"):
+        validate_source_audit(dataset)
+
+
+def test_answer_excerpt_may_quote_source_instead_of_echoing_canonical(tmp_path):
+    dataset = _build_dataset(tmp_path)
+
+    def mutate(rows):
+        assessment = rows[0]["assessments"][0]
+        assessment["answer_excerpt"] = "【答案】A"
+        assessment["source_answer_text"] = "【答案】A"
+
+    _rewrite_source_audit(dataset, mutate)
+    summary = validate_source_audit(dataset)
+    assert summary["gate"] == "pass"
+
+
+def test_source_answer_text_must_match_visible_excerpt(tmp_path):
+    dataset = _build_dataset(tmp_path)
+
+    def mutate(rows):
+        rows[0]["assessments"][0]["source_answer_text"] = "另一段来源文字"
+
+    _rewrite_source_audit(dataset, mutate)
+    with pytest.raises(ValueError, match="answer excerpt and source_answer_text differ"):
         validate_source_audit(dataset)
 
 

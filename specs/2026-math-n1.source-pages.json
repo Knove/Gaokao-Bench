@@ -2163,6 +2163,46 @@
         "sha256": "15b1bfb0b96c519046a8909584bfa581f233b6ebc24c50a2ed63cf9bf960958f",
         "url": "https://cdn.zizzs.com/zixunzhan/_1781149811012_00341781149810905.png"
       }
+    ],
+    "src-woaigaokao-2026-n1-full": [
+      {
+        "bytes": 68377,
+        "covered_page_starts": [
+          1
+        ],
+        "file": "src-woaigaokao-2026-n1-full/page-01.html",
+        "media_type": "text/html",
+        "page_index": 1,
+        "question_numbers": [
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "scope": "stem",
+        "sha256": "abc5609c19bc6d36f4658716e96d50c1cfe2b2ae6e6766a25b70404b57e97500",
+        "url": "https://www.woaigaokao.com/shuxue/6722.html"
+      },
+      {
+        "bytes": 51959,
+        "covered_page_starts": [
+          2
+        ],
+        "file": "src-woaigaokao-2026-n1-full/page-02.html",
+        "media_type": "text/html",
+        "page_index": 2,
+        "question_numbers": [
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "scope": "answer",
+        "sha256": "b24c8b9a1a3119e74debd420f83370494a9caaaf72e8604a5204966737ef9fb8",
+        "url": "https://www.woaigaokao.com/shuxue/6722.html/2/"
+      }
     ]
   }
 }

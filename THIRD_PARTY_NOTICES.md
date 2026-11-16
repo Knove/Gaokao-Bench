@@ -7,7 +7,7 @@ publisher endorses Gaokao-Bench, a benchmark result, or a public ranking.
 
 ## 2026 National I Mathematics Candidate
 
-Package version: `0.1.0-alpha.2026-n1.4`
+Package version: `0.1.0-alpha.2026-n1.5`
 
 ### Question-paper sources
 
@@ -32,10 +32,15 @@ Package version: `0.1.0-alpha.2026-n1.4`
   removed six-page long image is not used as page evidence.
   <https://www.gk100.com/read_122151413.htm>
 - 中国教育在线, “2026年新高考一卷数学答案及解析”: seven answer-and-solution
-  pages that also reproduce the question stems. Questions 13, 14, 15, 18 and 19
+  pages that also reproduce the question stems. Questions 13, 14, 15, 16, 18 and 19
   contain reproducible answer errors, so those rows are recorded as rejected and
   do not count as joint-answer evidence.
   <https://www.eol.cn/m/gaokao/202606/t20260608_2742417.shtml>
+- 我爱高考, “2026年全国新高考一卷数学试题及参考答案”: a complete question
+  page and a separate answer-and-solution page. Questions 15–19 are used as
+  joint stem-and-answer evidence; the paper's questions 2 and 13 are not used
+  because that site's published solutions contain reproducible errors.
+  <https://www.woaigaokao.com/shuxue/6722.html>
 - 原创力文档（文档 7162100005011121）, “2026年全国新高考一卷数学试题及答案”:
   a 17-page document whose public preview exposes pages 1-11. Pages 1-4 contain
   the complete paper and pages 5-11 contain complete solutions for questions
@@ -63,16 +68,17 @@ toward the joint stem-and-answer gate.
   answer-only check. The article states that its answers are for reference only.
   <https://news.sohu.com/a/1034912500_121124035>
 
-The package records exact source identifiers, URLs, locators, image indices, and
-retrieval dates in `sources.jsonl`, `answer_sources.jsonl`, and
-`source_audit.jsonl`. Every catalogued question has at least eight independent
-stem-source groups and at least four independent sources that contain both the
-matching stem and the correct answer. Those are the enforced n1.4 thresholds,
-not decorative counts. Chinese Education Online and the other China Education
-Online paper page share one independence group even though they are separate
-URLs. Wrong-answer rows remain visible with their observed answer and rejection
-reason. Answers are independently derived and then cross-checked; no source is
-represented as an official examination-authority key.
+The package records exact source identifiers, URLs, locators, page indices,
+retrieval dates, and frozen page hashes in `sources.jsonl`,
+`answer_sources.jsonl`, and `source_audit.jsonl`. Every catalogued question has
+at least nine independent stem-source groups and at least six independent
+sources that contain both the matching stem and the correct answer. Those are
+the enforced n1.5 thresholds, not decorative counts. Chinese Education Online
+and the other China Education Online paper page share one independence group
+even though they are separate URLs. Wrong-answer rows remain visible with their
+observed answer and rejection reason. Answers are independently derived and
+then cross-checked; no source is represented as an official
+examination-authority key.
 
 ## Attribution and corrections
 

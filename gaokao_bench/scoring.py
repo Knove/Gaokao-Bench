@@ -85,6 +85,11 @@ SOURCE_AUDIT_REJECTED_ANSWER_MATCHES = {
     "external_answer_error",
     "external_source_self_conflict",
 }
+SOURCE_ANSWER_EXCERPT_PLACEHOLDERS = (
+    "来源解答结论",
+    "规范答案回填",
+    "canonical answer",
+)
 POINT_AUDIT_STATUSES = {
     "source_points_crosschecked_pending_owner_signoff",
     "owner_and_two_independent_reviewers_complete",
@@ -801,18 +806,40 @@ def _validate_source_page_evidence(
                 value = str(assessment.get("answer_value") or "")
                 if value != canonical:
                     errors.append("source audit answer value differs for %s/%s" % (qid, source_id))
-                excerpt = str(assessment.get("answer_excerpt") or "")
-                if excerpt != canonical:
-                    errors.append("source audit answer excerpt is not the exact canonical answer for %s/%s" % (qid, source_id))
+                excerpt = str(assessment.get("answer_excerpt") or "").strip()
+                source_text = str(assessment.get("source_answer_text") or "").strip()
+                if not excerpt:
+                    errors.append("source audit has no answer excerpt for %s/%s" % (qid, source_id))
+                elif any(marker in excerpt for marker in SOURCE_ANSWER_EXCERPT_PLACEHOLDERS):
+                    errors.append(
+                        "source audit answer excerpt is a placeholder rather than a source transcription for %s/%s"
+                        % (qid, source_id)
+                    )
+                if excerpt != source_text:
+                    errors.append(
+                        "source audit answer excerpt and source_answer_text differ for %s/%s"
+                        % (qid, source_id)
+                    )
             elif role == "rejected":
                 value = str(assessment.get("answer_value") or "").strip()
                 excerpt = str(assessment.get("answer_excerpt") or "").strip()
+                source_text = str(assessment.get("source_answer_text") or "").strip()
                 if assessment.get("answer_match") not in SOURCE_AUDIT_REJECTED_ANSWER_MATCHES:
                     errors.append("rejected source has no explicit answer-error classification for %s/%s" % (qid, source_id))
                 if not value or value != excerpt:
                     errors.append("rejected source does not preserve its observed answer for %s/%s" % (qid, source_id))
+                if excerpt != source_text:
+                    errors.append(
+                        "rejected source answer excerpt and source_answer_text differ for %s/%s"
+                        % (qid, source_id)
+                    )
                 if value == canonical:
                     errors.append("rejected source repeats the canonical answer for %s/%s" % (qid, source_id))
+                if any(marker in excerpt for marker in SOURCE_ANSWER_EXCERPT_PLACEHOLDERS):
+                    errors.append(
+                        "rejected source answer excerpt is a placeholder for %s/%s"
+                        % (qid, source_id)
+                    )
                 if not str(assessment.get("rejection_reason") or "").strip():
                     errors.append("rejected source has no rejection reason for %s/%s" % (qid, source_id))
 

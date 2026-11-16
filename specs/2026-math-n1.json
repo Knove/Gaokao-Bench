@@ -15,10 +15,10 @@
     "stem_access_method": "下载冻结 PDF 并核对文字层、题号与裁图 SHA-256"
   },
   "source_audit_policy": {
-    "version": "dual_source_v3",
+    "version": "dual_source_v4",
     "scope": "all_catalogued_questions",
     "required_stem_independent_groups": 9,
-    "required_joint_answer_independent_groups": 5,
+    "required_joint_answer_independent_groups": 6,
     "answer_only_sources_count_for_gate": false,
     "owner_signoff_requires_gate": true,
     "joint_answer_source_must_match_stem": true,
