@@ -120,6 +120,7 @@ PUBLIC_CATALOG_FIELDS = (
     "points",
     "included_in_scoring",
     "deferred_reason",
+    "reference_answer",
     "reference_answer_seed",
     "source_id",
     "schema_version",
@@ -142,6 +143,10 @@ def _write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> None:
 def _copy_audit_evidence(source: Path, output: Path) -> Dict[str, Any]:
     """Publish the audited evidence bundle instead of only a pass/fail flag."""
 
+    source_manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    has_source_audit = isinstance(source_manifest.get("source_audit"), Mapping)
+    source_quality = source_manifest.get("quality") if isinstance(source_manifest.get("quality"), Mapping) else {}
+    has_audit_reports = bool(source_quality.get("audits"))
     destination = output / "audit"
     destination.mkdir()
     copied = (
@@ -160,17 +165,38 @@ def _copy_audit_evidence(source: Path, output: Path) -> Dict[str, Any]:
         if not source_path.is_file():
             raise ValueError("audited package is missing review evidence: %s" % name)
         shutil.copy2(source_path, destination / name)
+    if has_source_audit:
+        for name in ("source_audit.jsonl", "source_pages.jsonl"):
+            source_path = source / name
+            if not source_path.is_file():
+                raise ValueError("audited package is missing source evidence: %s" % name)
+            shutil.copy2(source_path, output / name)
+        source_pages_source = source / "source_pages"
+        if not source_pages_source.is_dir():
+            raise ValueError("audited package is missing source page evidence directory")
+        shutil.copytree(source_pages_source, output / "source_pages")
+        specs_source = source / "audit" / "specs"
+        if not specs_source.is_dir():
+            raise ValueError("audited package is missing pinned source specs: audit/specs")
+        shutil.copytree(specs_source, destination / "specs")
+    if has_audit_reports:
+        reports_source = source / "audit_reports"
+        if not reports_source.is_dir():
+            raise ValueError("audited package is missing independent audit reports")
+        shutil.copytree(reports_source, output / "audit_reports")
     counts = {
         "answer_audit": len(_read_jsonl(destination / "answer_audit.jsonl")),
         "asset_audit": len(_read_jsonl(destination / "asset_audit.jsonl")),
         "point_audit": len(_read_jsonl(destination / "point_audit.jsonl")),
         "question_audit": len(_read_jsonl(destination / "question_audit.jsonl")),
         "reviews": len(_read_jsonl(destination / "reviews.jsonl")),
+        "source_audit": len(_read_jsonl(output / "source_audit.jsonl")) if has_source_audit else 0,
+        "source_pages": len(_read_jsonl(output / "source_pages.jsonl")) if has_source_audit else 0,
     }
     source_signoff_path = source / "owner_signoff.json"
     source_signoff = json.loads(source_signoff_path.read_text(encoding="utf-8"))
     public_questions = _read_jsonl(output / "questions.jsonl")
-    public_signoff_inputs = (
+    public_signoff_inputs = [
         "questions.jsonl",
         "answer_keys.jsonl",
         "benchmark_spec.json",
@@ -180,7 +206,24 @@ def _copy_audit_evidence(source: Path, output: Path) -> Dict[str, Any]:
         "audit/asset_audit.jsonl",
         "audit/reviews.jsonl",
         "audit/review_protocol.json",
-    )
+    ]
+    if has_source_audit:
+        public_signoff_inputs.extend(
+            (
+                "audit/specs/source-audit.json",
+                "audit/specs/source-pages.json",
+                "source_audit.jsonl",
+                "source_pages.jsonl",
+            )
+        )
+    if has_audit_reports:
+        public_signoff_inputs.extend(
+            (
+                "audit_reports/audit-a.json",
+                "audit_reports/audit-b.json",
+                "audit_reports/audit-c.json",
+            )
+        )
     public_signoff = {
         "schema_version": "1.0",
         "dataset": "Gaokao-Bench",
@@ -231,6 +274,8 @@ def _copy_audit_evidence(source: Path, output: Path) -> Dict[str, Any]:
         "owner_signoff": "audited_passed",
         "review_status": "audited_passed",
         "counts": counts,
+        "source_evidence": has_source_audit,
+        "audit_reports": has_audit_reports,
         "rows": counts,
         "notes": (
             "The %s closure records an explicit owner attestation over every scored item. "
@@ -245,9 +290,17 @@ def _copy_audit_evidence(source: Path, output: Path) -> Dict[str, Any]:
     )
     (destination / "README.md").write_text(
         "# Audit Evidence\n\n"
-        "This directory contains the row-level answer, question, points, asset, and review ledgers. "
-        "`owner_signoff.json` records the owner's attestation; `review_protocol.json` states the "
-        "closure protocol. Counts and status are repeated in `summary.json` and `manifest.json`.\n",
+        "This directory contains the row-level answer, question, points, asset, and review "
+        "ledgers. `owner_signoff.json` records the owner's attestation; `review_protocol.json` "
+        "states the closure protocol. Counts and status are repeated in `summary.json` and "
+        "`manifest.json`."
+        + (
+            " The package root also carries `source_audit.jsonl`, `source_pages.jsonl`, the "
+            "frozen `source_pages/` evidence, and the independent `audit_reports/`."
+            if has_source_audit
+            else ""
+        )
+        + "\n",
         encoding="utf-8",
     )
     return summary
@@ -405,6 +458,28 @@ def _dataset_card(
         if catalog_questions
         else "`catalog/`：本数据包没有编目主观题；"
     )
+    has_source_evidence = bool(audit.get("source_evidence"))
+    source_evidence_block = (
+        "- `source_audit.jsonl`、`source_pages.jsonl` 与 `source_pages/`：逐题双来源判定、"
+        "冻结证据索引及原始页面字节；\n"
+        "- `audit_reports/`：独立审计 A / B / C 的结构化报告和可读报告；\n"
+        if has_source_evidence
+        else ""
+    )
+    source_evidence_rows = (
+        "| `source_audit.jsonl` | `question_id`、`assessments`、`gate_complete` | "
+        "逐题题干双来源与题干+答案联合双来源判定 |\n"
+        "| `source_pages.jsonl` | `path`、`url`、`sha256`、`question_numbers` | "
+        "冻结页面证据的链接、哈希和题号归属 |\n"
+        if has_source_evidence
+        else ""
+    )
+    source_evidence_note = (
+        "`source_audit.jsonl`、`source_pages.jsonl` 和 `source_pages/` 提供可复查的双来源门禁"
+        "与冻结页面证据；`audit_reports/` 保存 A / B / C 三路独立审计报告。"
+        if has_source_evidence
+        else ""
+    )
     ranking_policy = (
         "整个数据包，包括题面、答案、题图、编排、schema 和评分元数据，均按 CC BY 4.0 提供。"
         "公开榜单、模型对比、厂商宣传和商业使用均无需额外授权；使用时按 CC BY 4.0 署名，"
@@ -510,7 +585,7 @@ gaokao-bench validate --data-dir data/{version}
 - `assets.jsonl` 与 `assets/`：{image_questions} 道图形必需题的裁图、字节数与哈希；
 - {catalog_file_line}
 - `audit/`：{audit_rows} 行逐题审计、{review_records} 条验收记录、owner 签字和复核协议；
-- `examples/`：空提交、标准答案和非法提交示例。
+{source_evidence_block}- `examples/`：空提交、标准答案和非法提交示例。
 - `CITATION.cff`：与数据版本绑定的引用信息。
 
 ## 字段说明
@@ -524,6 +599,7 @@ gaokao-bench validate --data-dir data/{version}
 | `catalog/subjective_catalog.jsonl` | `id`、`type`、`content`、`points`、`included_in_scoring` | 主观题目录，仅作后续扩展记录 |
 | `audit/question_audit.jsonl` | `question_id`、`stem_verdict`、`answer_verdict`、`review_status` | {audit_rows} 道题的题面、答案、图形和分值审计 |
 | `audit/reviews.jsonl` | `target_id`、`decision`、`reviewed_at` | {review_records} 条 owner 验收事件 |
+{source_evidence_rows}
 
 Dataset Viewer 使用单一 `questions` config 展示 {questions} 道计分题；其他 JSONL 保留为直接下载文件，避免不同字段结构混表。评分答案键 `answer_keys.jsonl` 供 Harness 读取，其中 `canonical` 同时包含单值和多空数组，不交给 Viewer 自动推断。
 
@@ -560,7 +636,7 @@ $$
 
 ## 审计与复核
 
-本版本已完成逐题审计收口：`review_status=audited_passed`，`owner_signoff={owner_signoff}`，`review_protocol=owner_attested_single_review`。`audit/` 提供 {audit_rows} 行逐题审计证据和 {review_records} 条验收记录。该表述是 owner 对全部计分项的责任性 attestation，不虚构两名外部独立审阅人。
+本版本已完成逐题审计收口：`review_status=audited_passed`，`owner_signoff={owner_signoff}`，`review_protocol=owner_attested_single_review`。`audit/` 提供 {audit_rows} 行逐题审计证据和 {review_records} 条验收记录。{source_evidence_note}该表述是 owner 对全部计分项的责任性 attestation，不虚构两名外部独立审阅人。
 
 ## 许可与来源
 
@@ -607,6 +683,9 @@ $$
         paper_count=paper_count,
         spec_file_line=spec_file_line,
         catalog_file_line=catalog_file_line,
+        source_evidence_block=source_evidence_block,
+        source_evidence_rows=source_evidence_rows,
+        source_evidence_note=source_evidence_note,
         subject_tag=subject_tag,
         year_tags=year_tags,
         citation_title=citation_title,
@@ -781,6 +860,74 @@ def _build_manifest(
             "sources.jsonl",
         )
     }
+    source_audit = source_manifest.get("source_audit")
+    source_lineage = (
+        source_manifest.get("content_lineage")
+        if isinstance(source_manifest.get("content_lineage"), Mapping)
+        else {}
+    )
+    content_paths = [
+        relative
+        for relative in file_map
+        if relative in {
+            "questions.jsonl",
+            "answer_keys.jsonl",
+            "assets.jsonl",
+            "papers.jsonl",
+            "benchmark_spec.json",
+        }
+        or relative.startswith("assets/")
+        or relative.startswith("catalog/")
+    ]
+    audit_paths = [
+        relative
+        for relative in file_map
+        if relative.startswith(("audit/", "audit_reports/", "source_pages/"))
+        or relative in {"source_audit.jsonl", "source_pages.jsonl"}
+    ]
+    public_lineage = {
+        "source_dataset_version": source_lineage.get("source_dataset_version"),
+        "source_manifest_sha256": source_lineage.get("source_manifest_sha256"),
+        "content_changed": False,
+        "comparison_basis": "public projection of reviewed questions, answers, points, assets, and audit evidence",
+        "content_files": {
+            relative: file_map[relative]["sha256"]
+            for relative in content_paths
+            if file_map[relative].get("sha256")
+        },
+        "audit_files": {
+            relative: file_map[relative]["sha256"]
+            for relative in audit_paths
+            if file_map[relative].get("sha256")
+        },
+    }
+    if source_audit is not None:
+        audit_block["files"].update(
+            {
+                "source_audit.jsonl": "source_audit.jsonl",
+                "source_pages.jsonl": "source_pages.jsonl",
+                "source-audit-spec.json": "audit/specs/source-audit.json",
+                "source-pages-spec.json": "audit/specs/source-pages.json",
+            }
+        )
+    quality = json.loads(json.dumps(source_manifest.get("quality") or {}))
+    if isinstance(quality.get("audits"), list):
+        for audit_row in quality["audits"]:
+            if not isinstance(audit_row, dict):
+                continue
+            declared = str(audit_row.get("report_path") or "").strip()
+            if not declared:
+                continue
+            relative = Path(declared)
+            parent = output / relative.parent
+            actual = None
+            if parent.is_dir():
+                actual = next(
+                    (path.name for path in parent.iterdir() if path.name.lower() == relative.name.lower()),
+                    None,
+                )
+            if actual is not None:
+                audit_row["report_path"] = (relative.parent / actual).as_posix()
     manifest = {
         "dataset": "Gaokao-Bench",
         "dataset_version": output.name,
@@ -815,8 +962,11 @@ def _build_manifest(
         "points": source_manifest.get("points"),
         "scoring": scoring,
         "benchmark_spec": benchmark_spec_ref,
-        "quality": source_manifest.get("quality"),
+        "quality": quality,
         "audit": audit_block,
+        "source_audit": source_audit,
+        "content_lineage": public_lineage,
+        "build_provenance": source_manifest.get("build_provenance"),
         "review_evidence": {
             "status": "audited_passed",
             "protocol": "owner_attested_single_review",
@@ -986,6 +1136,8 @@ def _build_public_data_package_at(
         shutil.copy2(source / relative_path, destination)
     shutil.copytree(source / "examples", output / "examples")
     audit_evidence = _copy_audit_evidence(source, output)
+    audit["source_evidence"] = bool(audit_evidence.get("source_evidence"))
+    audit["audit_reports"] = bool(audit_evidence.get("audit_reports"))
     shutil.copy2(project_root / "LICENSE-DATA", output / "LICENSE-DATA")
     (output / "brand").mkdir()
     shutil.copy2(

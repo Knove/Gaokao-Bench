@@ -503,8 +503,10 @@ def _validate_pinned_source_specs(
             relative = str(provenance.get(path_key) or "")
             repo_path = REPOSITORY_ROOT / relative
             recorded_sha = str(provenance.get(hash_key) or "")
+            public_projection = dataset.manifest.get("package_profile") == PUBLIC_PACKAGE_PROFILE
             if not relative or not repo_path.is_file():
-                errors.append("%s repository copy cannot be verified" % spec_label)
+                if not public_projection:
+                    errors.append("%s repository copy cannot be verified" % spec_label)
                 continue
             if file_sha256(repo_path) != recorded_sha:
                 errors.append("%s build provenance SHA-256 is stale" % spec_label)
@@ -916,9 +918,15 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
         )
 
     source_registry: Dict[str, Mapping[str, Any]] = {}
+    manifest_audit = manifest.get("audit") if isinstance(manifest.get("audit"), Mapping) else {}
+    audit_files = manifest_audit.get("files") if isinstance(manifest_audit.get("files"), Mapping) else {}
     for name in ("sources.jsonl", "answer_sources.jsonl"):
-        source_path = dataset.data_dir / name
-        if not source_path.is_file():
+        candidates = [dataset.data_dir / name]
+        declared = audit_files.get(name)
+        if isinstance(declared, str):
+            candidates.append(dataset.data_dir / declared)
+        source_path = next((candidate for candidate in candidates if candidate.is_file()), None)
+        if source_path is None:
             continue
         for source in _read_jsonl(source_path):
             source_id = str(source.get("id", ""))
@@ -1811,6 +1819,7 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
         if errors:
             raise ValueError("Gaokao-Bench dataset validation failed:\n- " + "\n- ".join(errors))
         _validate_public_manifest(dataset)
+        source_audit_summary = validate_source_audit(dataset)
         return {
             "dataset_version": dataset.manifest.get("dataset_version", DATASET_VERSION),
             "benchmark_spec_id": spec.id,
@@ -1831,9 +1840,10 @@ def validate_dataset(dataset: Dataset) -> Dict[str, Any]:
             "catalog_subjective_questions": len(dataset.catalog_subjective),
             "catalog_subjective_points": catalog_subjective_points,
             "image_required_questions": len(required_assets),
-        "question_audit_rows": int(
-            (dataset.manifest.get("counts") or {}).get("question_audit_rows", 0)
-        ),
+            "question_audit_rows": int(
+                (dataset.manifest.get("counts") or {}).get("question_audit_rows", 0)
+            ),
+            "source_audit": source_audit_summary,
         }
 
     questions_by_id = {question["id"]: question for question in dataset.questions}

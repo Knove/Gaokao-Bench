@@ -21,6 +21,10 @@ from gaokao_bench.scoring import PUBLIC_PACKAGE_PROFILE, load_dataset, validate_
 from gaokao_bench.version import DEFAULT_DATASET_VERSION  # noqa: E402
 
 
+def default_commit_message(version: str) -> str:
+    return "Publish Gaokao-Bench %s public data" % version
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -107,7 +111,7 @@ def main() -> int:
     parser.add_argument("--replace", action="store_true", help="delete stale files on the main branch")
     parser.add_argument(
         "--commit-message",
-        default="Publish Gaokao-Bench %s public data" % DEFAULT_DATASET_VERSION,
+        help="commit message; defaults to the resolved dataset version",
     )
     parser.add_argument(
         "--execute",
@@ -132,6 +136,7 @@ def main() -> int:
 
     version = str(summary["dataset_version"])
     tag = args.tag or ("v%s" % version)
+    commit_message = args.commit_message or default_commit_message(version)
     planned = {
         "dry_run": not args.execute,
         **summary,
@@ -139,7 +144,7 @@ def main() -> int:
             "repo_type": "dataset",
             "repo_id": args.repo_id,
             "replace": args.replace,
-            "commit_message": args.commit_message,
+            "commit_message": commit_message,
         },
         "tag": None if args.skip_tag else tag,
     }
@@ -173,7 +178,7 @@ def main() -> int:
             repo_id=args.repo_id,
             repo_type="dataset",
             folder_path=str(data_dir),
-            commit_message=args.commit_message,
+            commit_message=commit_message,
             ignore_patterns=[".cache/**", ".git/**", "**/__pycache__/**", "**/*.pyc"],
             delete_patterns=["*"] if args.replace else None,
         )

@@ -28,6 +28,17 @@ Dataset 0.1.0-alpha.2026-n1.5.1
   stem groups, six independent joint stem+answer groups, 19/19 stem dual-source
   coverage, 19/19 joint answer dual-source coverage, and 138 frozen evidence
   pages. Future questions must meet the same gate before owner acceptance.
+- Ship the same evidence in the Hugging Face public projection: `source_audit.jsonl`,
+  `source_pages.jsonl`, all 138 frozen source pages, the pinned source specs, and
+  the independent A/B/C audit reports. The public package now has 179 payload
+  files and validates the dual-source gate directly; its manifest SHA-256 is
+  `63fc423a866646dce96c394bb79b11ee3480e81e43a48e9165cba532b45c849a`.
+- Make public-package validation run the dual-source gate, resolve source ledgers
+  from `audit/`, preserve subjective reference answers needed by that gate, and
+  verify the public projection's own content lineage. Pinned repository specs
+  remain required when available but do not block data-only consumers.
+- Fix the Hugging Face uploader so the default commit message follows the
+  resolved dataset version instead of the repository default `0.0.4`.
 - Let the acceptance dashboard verify a materialised package's own
   `owner_signoff.json`, `review_protocol.json`, review events and declared input
   hashes when no separate mutable review packet exists.
