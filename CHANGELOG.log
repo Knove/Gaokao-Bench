@@ -12,6 +12,10 @@ Versioning
 
 Dataset 0.1.0-alpha.2026-n1.5
 
+- Complete the three-way independent audit. Audits A, B and C all pass with no
+  issues and are bound to candidate manifest SHA-256
+  `098d76f034c9495bbb2767b7ec38804b821a8ba51595078a38d6b2d89569903e`.
+  Owner signoff remains pending; this is not a publication approval.
 - Raise the per-question source floor to nine independent stem groups and six
   independent joint stem+answer groups. Add a complete seven-image solution
   article for question 19 and retain only the verified questions 15 and 16
