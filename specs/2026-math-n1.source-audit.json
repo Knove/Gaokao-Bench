@@ -695,9 +695,10 @@
         },
         "15": {
           "role": "rejected",
-          "answer_match": "external_answer_error",
+          "stem_match": "mismatched_stem",
+          "answer_match": "external_source_self_conflict",
           "observed_answer": "距离为 √2/2",
-          "rejection_reason": "来源给出距离 √2/2；独立坐标推导得 a=2，距离 a/2=1。"
+          "rejection_reason": "来源把题面中的 AC1 写成 AC，且据此给出的距离 √2/2 与规范题面下独立坐标推导的 a=2、距离 a/2=1 冲突；题干和答案均不计入门禁。"
         },
         "18": {
           "role": "rejected",

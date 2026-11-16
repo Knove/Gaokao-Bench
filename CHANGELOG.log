@@ -45,6 +45,10 @@ Dataset 0.1.0-alpha.2026-n1.5
   excerpt while keeping the normalized observed answer separate. This fixes the
   false rejection of the frozen China Education Online `（BC）；故选 B、C` row
   without weakening the required source transcription checks.
+- Mark China Education Online's question 15 page as `mismatched_stem`: the page
+  prints `AC` where the canonical stem says `AC1`, and its distance answer is
+  also wrong. Preserve the frozen evidence for review without counting that
+  source toward either the stem or joint-answer gate.
 
 Dataset 0.1.0-alpha.2026-n1.4
 

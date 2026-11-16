@@ -387,6 +387,24 @@ def test_rejected_source_may_preserve_contextual_excerpt(tmp_path):
     assert summary["gate"] == "pass"
 
 
+def test_rejected_source_can_explicitly_not_support_a_mismatched_stem(tmp_path):
+    dataset = _build_dataset(tmp_path, include_rejected=True)
+
+    def mutate(rows):
+        rejected = next(
+            item
+            for item in rows[0]["assessments"]
+            if item["source_id"] == "src-rejected-5"
+        )
+        rejected["supports_stem"] = False
+        rejected["stem_match"] = "mismatched_stem"
+        rows[0]["stem_independent_groups"] = 4
+
+    _rewrite_source_audit(dataset, mutate)
+    summary = validate_source_audit(dataset)
+    assert summary["gate"] == "pass"
+
+
 def test_prefix_stem_excerpt_is_rejected(tmp_path):
     dataset = _build_dataset(tmp_path)
 

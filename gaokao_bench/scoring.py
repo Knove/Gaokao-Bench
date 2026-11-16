@@ -75,6 +75,7 @@ SOURCE_AUDIT_ROLES = {
 SOURCE_AUDIT_MATCHES = {
     "exact_stem_match",
     "equivalent_stem_match",
+    "mismatched_stem",
     "exact_answer_match",
     "equivalent_answer_match",
     "external_answer_error",
@@ -732,7 +733,12 @@ def _validate_source_page_evidence(
             for kind, support_field in (("stem", "supports_stem"), ("answer", "supports_canonical")):
                 supports = assessment.get(support_field) is True
                 rejection_evidence = role == "rejected" and kind == "answer"
-                requires_evidence = supports or rejection_evidence
+                mismatched_stem_evidence = (
+                    role == "rejected"
+                    and kind == "stem"
+                    and assessment.get("stem_match") == "mismatched_stem"
+                )
+                requires_evidence = supports or rejection_evidence or mismatched_stem_evidence
                 evidence_value = assessment.get(kind + "_evidence")
                 evidence_list = evidence_value if isinstance(evidence_value, list) else []
                 if requires_evidence and not evidence_list:
@@ -1004,8 +1010,11 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                 if supports_stem:
                     if stem_match not in {"exact_stem_match", "equivalent_stem_match"}:
                         errors.append("rejected source stem does not match for %s/%s" % (qid, source_id))
-                elif stem_match != "not_assessed":
-                    errors.append("rejected source without stem support must use not_assessed for %s/%s" % (qid, source_id))
+                elif stem_match not in {"not_assessed", "mismatched_stem"}:
+                    errors.append(
+                        "rejected source without stem support must use not_assessed or mismatched_stem for %s/%s"
+                        % (qid, source_id)
+                    )
                 if answer_match not in SOURCE_AUDIT_REJECTED_ANSWER_MATCHES:
                     errors.append("rejected source has no answer-error classification for %s/%s" % (qid, source_id))
                 for field in ("answer_locator", "answer_value", "answer_excerpt", "rejection_reason"):

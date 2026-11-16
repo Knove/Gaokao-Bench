@@ -399,6 +399,15 @@ def _source_assessment(
     rejection_reason = (
         str((override or {}).get("rejection_reason") or "").strip() if rejected else ""
     )
+    rejected_stem_match = (
+        str((override or {}).get("stem_match") or "exact_stem_match").strip()
+        if rejected
+        else "exact_stem_match"
+    )
+    supports_stem = bool(stem_group is not None) and rejected_stem_match not in {
+        "mismatched_stem",
+        "not_assessed",
+    }
     stem_evidence = _evidence_for_group(source_pages, stem_group, stem=True)
     answer_evidence = _evidence_for_group(source_pages, answer_group, stem=False)
     stem_page_start = (
@@ -445,9 +454,15 @@ def _source_assessment(
         "independence_group": source["independence_group"],
         "evidence_scope": source["evidence_scope"],
         "role": role,
-        "supports_stem": bool(stem_group is not None),
+        "supports_stem": supports_stem,
         "supports_canonical": bool(joint or answer_only),
-        "stem_match": "exact_stem_match" if stem_group is not None else "not_assessed",
+        "stem_match": (
+            rejected_stem_match
+            if rejected
+            else "exact_stem_match"
+            if stem_group is not None
+            else "not_assessed"
+        ),
         "answer_match": (
             str((override or {}).get("answer_match") or "external_answer_error")
             if rejected
