@@ -264,6 +264,7 @@
       "access_method": "浏览器打开试卷页与参考答案页，逐题核对题干、答案与解析",
       "retrieved_at": "2026-11-16",
       "notes": "第 1 页为试卷，第 2 页为参考答案及解析；只将逐题复核正确的第 15–19 题纳入联合来源。该站第 2、13 题解析存在内部错误，因此不用于客观题门禁。",
+      "live_hash_stable": false,
       "page_urls": {
         "1": "https://www.woaigaokao.com/shuxue/6722.html",
         "2": "https://www.woaigaokao.com/shuxue/6722.html/2/"
