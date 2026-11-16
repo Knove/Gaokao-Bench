@@ -263,7 +263,7 @@
       "independence_group": "woaigaokao",
       "access_method": "浏览器打开试卷页与参考答案页，逐题核对题干、答案与解析",
       "retrieved_at": "2026-11-16",
-      "notes": "第 1 页为试卷，第 2 页为参考答案及解析；只将逐题复核正确的第 15、16、18 题纳入联合来源。第 17 题网页题面缺失关系符号，第 19 题解析在证明中途截断，均不作为联合支持；该站第 2、13 题解析也存在内部错误，因此不用于客观题门禁。",
+      "notes": "第 1 页为试卷，第 2 页为参考答案及解析；只将逐题复核正确的第 15、16 题纳入联合来源。第 17 题网页题面缺失关系符号，第 18 题题面漏掉字母 Q，第 19 题解析在证明中途截断，均不作为联合支持；该站第 2、13 题解析也存在内部错误，因此不用于客观题门禁。",
       "live_hash_stable": false,
       "page_urls": {
         "1": "https://www.woaigaokao.com/shuxue/6722.html",
@@ -352,7 +352,7 @@
       "independence_group": "wechat-miaojie",
       "access_method": "打开文章，逐页核对第18题题面图与三页完整解答图",
       "retrieved_at": "2026-11-16",
-      "notes": "独立作者关于 2026 全国一卷第 18 题的完整题面与解答。第 1 页为题面，第 2–4 页依次给出椭圆方程、直线方程和 tan∠PQR 最小值 4√3；只用于 D18 联合来源。",
+      "notes": "独立作者关于 2026 全国一卷第 18 题的完整题面与解答。第 1 页为题面；第 2 页给出椭圆方程，第 3 页以 x=(2√5/5)y−1 给出直线方程，第 4 页给出 tan∠PQR 最小值 4√3；只用于 D18 联合来源。",
       "page_urls": {
         "1": "https://mmbiz.qpic.cn/mmbiz_png/zyOavtVNXiaBIqAz3Jick8mafAsuibIXdXwo8nwOQLkibm31Lk2CiaGcCc63WCW1XXIZNwAibhBXR8Zs7c5n9O1DLZgPaGL5Q7UExBMkiaG2EOLrok/640?wx_fmt=png&from=appmsg",
         "2": "https://mmbiz.qpic.cn/sz_mmbiz_png/zyOavtVNXiaDIg1Aw2nm8b209zee3CdDO0pzRH6Fa3SNRQaGSQE2NcTqBAYDhhxX6KxDwjCb3tg4ZGlRsicWQGDz0F3ubLqtF7weDnMBPibosI/640?wx_fmt=png&from=appmsg",
@@ -2544,7 +2544,7 @@
         },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。"
+          "excerpt": "C: x^2/4+y^2/3=1；则l的方程为x=(2√5/5)y−1；tan∠PQR的最小值为4√3。"
         }
       }
     },
