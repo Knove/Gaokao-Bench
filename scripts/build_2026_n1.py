@@ -404,6 +404,14 @@ def _source_assessment(
         if rejected
         else "exact_stem_match"
     )
+    observed_stem = (
+        str((override or {}).get("observed_stem") or "").strip() if rejected else ""
+    )
+    if rejected_stem_match == "mismatched_stem" and not observed_stem:
+        raise ValueError(
+            "source %s has a mismatched stem for question %d but no observed stem text"
+            % (source["id"], number)
+        )
     supports_stem = bool(stem_group is not None) and rejected_stem_match not in {
         "mismatched_stem",
         "not_assessed",
@@ -477,7 +485,7 @@ def _source_assessment(
             if answer_group is not None
             else ""
         ),
-        "stem_excerpt": stem,
+        "stem_excerpt": observed_stem or stem,
         "answer_value": answer_note,
         "answer_excerpt": answer_excerpt,
         "source_answer_text": source_answer_text,

@@ -342,6 +342,25 @@
       },
       "live_hash_stable": false,
       "observation_method": "逐页查看原图；题面与规范题面逐项对照，解答终点核对第 7 页"
+    },
+    {
+      "id": "src-wechat-miaojie-2026-n1-d18",
+      "publisher": "微信公众号「妙解之慧」",
+      "url": "https://mp.weixin.qq.com/s?__biz=MzU5NjA2OTM2OA==&mid=2248070750&idx=1&sn=3f87a8001729f0ddcb86efdca95fd75b&chksm=ffd7a89049a81288a56278ebf2e4a39d9ead0f7799d2e6122a9a7f696c3d3ac30f873e3581cd&scene=27",
+      "source_type": "independent_solution_article",
+      "evidence_scope": "stem_and_answer",
+      "independence_group": "wechat-miaojie",
+      "access_method": "打开文章，逐页核对第18题题面图与三页完整解答图",
+      "retrieved_at": "2026-11-16",
+      "notes": "独立作者关于 2026 全国一卷第 18 题的完整题面与解答。第 1 页为题面，第 2–4 页依次给出椭圆方程、直线方程和 tan∠PQR 最小值 4√3；只用于 D18 联合来源。",
+      "page_urls": {
+        "1": "https://mmbiz.qpic.cn/mmbiz_png/zyOavtVNXiaBIqAz3Jick8mafAsuibIXdXwo8nwOQLkibm31Lk2CiaGcCc63WCW1XXIZNwAibhBXR8Zs7c5n9O1DLZgPaGL5Q7UExBMkiaG2EOLrok/640?wx_fmt=png&from=appmsg",
+        "2": "https://mmbiz.qpic.cn/sz_mmbiz_png/zyOavtVNXiaDIg1Aw2nm8b209zee3CdDO0pzRH6Fa3SNRQaGSQE2NcTqBAYDhhxX6KxDwjCb3tg4ZGlRsicWQGDz0F3ubLqtF7weDnMBPibosI/640?wx_fmt=png&from=appmsg",
+        "3": "https://mmbiz.qpic.cn/mmbiz_png/zyOavtVNXiaDwumyxDvgU9ENiby0HB3YRFoZv70ogdTibo2HViab7zTegYnnRln8EROepDYIibN1nDVktNFR4JIttEQqmTjR2PD1COQ9iayISUQRY/640?wx_fmt=png&from=appmsg",
+        "4": "https://mmbiz.qpic.cn/mmbiz_png/zyOavtVNXiaAvzyTCqaX2soPp1c6gt6M22eue4eGv6Zo1bXUVw3fMZRq8BmvNQXaaVFb9ic3ROTdVKdIubE8C6Mv0pVXr36WTwRqsQEVGcCKE/640?wx_fmt=png&from=appmsg"
+      },
+      "live_hash_stable": false,
+      "observation_method": "逐页查看原图；题面逐项对照，三段解答结论分别核对"
     }
   ],
   "coverage": {
@@ -697,6 +716,7 @@
           "role": "rejected",
           "stem_match": "mismatched_stem",
           "answer_match": "external_source_self_conflict",
+          "observed_stem": "如图，在直三棱柱ABC-A1B1C1中，∠ACB=90°，AC=BC，D，E分别为AB，AC的中点。\n(1) 证明：DE∥平面BCC1B1；\n(2) 设CC1=2，直线DE与平面ACC1A1所成的角为45°，求直线DE到平面BCC1B1的距离。",
           "observed_answer": "距离为 √2/2",
           "rejection_reason": "来源把题面中的 AC1 写成 AC，且据此给出的距离 √2/2 与规范题面下独立坐标推导的 a=2、距离 a/2=1 冲突；题干和答案均不计入门禁。"
         },
@@ -2823,8 +2843,7 @@
         {
           "numbers": [
             15,
-            16,
-            18
+            16
           ],
           "page_start": 1,
           "page_end": 1,
@@ -2835,8 +2854,7 @@
         {
           "numbers": [
             15,
-            16,
-            18
+            16
           ],
           "page_start": 2,
           "page_end": 2,
@@ -2851,10 +2869,6 @@
         "16": {
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
           "excerpt": "cos A=1/3；CE=3√5。"
-        },
-        "18": {
-          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
-          "excerpt": "C: x^2/4+y^2/3=1；l: √5x-2y+√5=0；tan∠PQR 的最小值为4√3。"
         }
       }
     },
@@ -2883,6 +2897,34 @@
         "19": {
           "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
           "excerpt": "所以 f(x)在区间(0,+∞)单调递增。"
+        }
+      }
+    },
+    "src-wechat-miaojie-2026-n1-d18": {
+      "stem_groups": [
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "文章题面图；第{n}题"
+        }
+      ],
+      "joint_answer_groups": [
+        {
+          "numbers": [
+            18
+          ],
+          "page_start": 2,
+          "page_end": 4,
+          "locator_template": "文章解答图第2–4页；第{n}题"
+        }
+      ],
+      "observed_answers": {
+        "18": {
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。"
         }
       }
     }

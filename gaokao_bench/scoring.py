@@ -582,6 +582,7 @@ def _validate_pinned_source_specs(
             if isinstance(override, Mapping):
                 expected_value = str(override.get("observed_answer") or "")
                 expected_excerpt = str(override.get("observed_excerpt") or expected_value)
+                expected_stem = str(override.get("observed_stem") or "")
             elif assessment.get("role") in {"joint_supporting", "answer_only_supporting"}:
                 if not isinstance(observation, Mapping):
                     errors.append(
@@ -591,8 +592,11 @@ def _validate_pinned_source_specs(
                     continue
                 expected_value = str(observation.get("value") or "")
                 expected_excerpt = str(observation.get("excerpt") or expected_value)
+                expected_stem = ""
             else:
                 continue
+            if expected_stem and str(assessment.get("stem_excerpt") or "") != expected_stem:
+                errors.append("source observed stem is not pinned for %s/%s" % (qid, source_id))
             if str(assessment.get("answer_value") or "") != expected_value:
                 errors.append("source observation value is not pinned for %s/%s" % (qid, source_id))
             actual_excerpt = (

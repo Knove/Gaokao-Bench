@@ -398,6 +398,7 @@ def test_rejected_source_can_explicitly_not_support_a_mismatched_stem(tmp_path):
         )
         rejected["supports_stem"] = False
         rejected["stem_match"] = "mismatched_stem"
+        rejected["stem_excerpt"] = "若 1+1=？"
         rows[0]["stem_independent_groups"] = 4
 
     _rewrite_source_audit(dataset, mutate)

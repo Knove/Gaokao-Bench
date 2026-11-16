@@ -2306,6 +2306,68 @@
         "sha256": "c21b9943f2263bfee1ba7daf0aaad5d14c539b97617a80de53419c3bd469e88f",
         "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/a64c01c4c1c74a9eb03ce94693a708a4~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=RPFPNVG3OTB8AqrZZBacetiL54E%3D"
       }
+    ],
+    "src-wechat-miaojie-2026-n1-d18": [
+      {
+        "bytes": 79939,
+        "covered_page_starts": [
+          1
+        ],
+        "file": "src-wechat-miaojie-2026-n1-d18/page-01.png",
+        "media_type": "image/png",
+        "page_index": 1,
+        "question_numbers": [
+          18
+        ],
+        "scope": "stem",
+        "sha256": "c13f840f32ba219879499fc2d0a1f47ce51a9e9a2878584588b64cca2c626426",
+        "url": "https://mmbiz.qpic.cn/mmbiz_png/zyOavtVNXiaBIqAz3Jick8mafAsuibIXdXwo8nwOQLkibm31Lk2CiaGcCc63WCW1XXIZNwAibhBXR8Zs7c5n9O1DLZgPaGL5Q7UExBMkiaG2EOLrok/640?wx_fmt=png&from=appmsg"
+      },
+      {
+        "bytes": 5961,
+        "covered_page_starts": [
+          2
+        ],
+        "file": "src-wechat-miaojie-2026-n1-d18/page-02.png",
+        "media_type": "image/png",
+        "page_index": 2,
+        "question_numbers": [
+          18
+        ],
+        "scope": "answer",
+        "sha256": "e90ab92dca3d6f7cbf9b8ccc22816b216a315f17402e9dc5d92f6b93b9ab1cd2",
+        "url": "https://mmbiz.qpic.cn/sz_mmbiz_png/zyOavtVNXiaDIg1Aw2nm8b209zee3CdDO0pzRH6Fa3SNRQaGSQE2NcTqBAYDhhxX6KxDwjCb3tg4ZGlRsicWQGDz0F3ubLqtF7weDnMBPibosI/640?wx_fmt=png&from=appmsg"
+      },
+      {
+        "bytes": 40392,
+        "covered_page_starts": [
+          3
+        ],
+        "file": "src-wechat-miaojie-2026-n1-d18/page-03.png",
+        "media_type": "image/png",
+        "page_index": 3,
+        "question_numbers": [
+          18
+        ],
+        "scope": "answer",
+        "sha256": "f363cf881458e678130afb227fa16616f8cbad5a5afa665888e629e8e4c614a5",
+        "url": "https://mmbiz.qpic.cn/mmbiz_png/zyOavtVNXiaDwumyxDvgU9ENiby0HB3YRFoZv70ogdTibo2HViab7zTegYnnRln8EROepDYIibN1nDVktNFR4JIttEQqmTjR2PD1COQ9iayISUQRY/640?wx_fmt=png&from=appmsg"
+      },
+      {
+        "bytes": 32345,
+        "covered_page_starts": [
+          4
+        ],
+        "file": "src-wechat-miaojie-2026-n1-d18/page-04.png",
+        "media_type": "image/png",
+        "page_index": 4,
+        "question_numbers": [
+          18
+        ],
+        "scope": "answer",
+        "sha256": "e57b19fa1bd8b1e53eb77272e4369c5cd04b509b19ec5b15f600b531310f1941",
+        "url": "https://mmbiz.qpic.cn/mmbiz_png/zyOavtVNXiaAvzyTCqaX2soPp1c6gt6M22eue4eGv6Zo1bXUVw3fMZRq8BmvNQXaaVFb9ic3ROTdVKdIubE8C6Mv0pVXr36WTwRqsQEVGcCKE/640?wx_fmt=png&from=appmsg"
+      }
     ]
   }
 }

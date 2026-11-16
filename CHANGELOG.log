@@ -14,9 +14,13 @@ Dataset 0.1.0-alpha.2026-n1.5
 
 - Raise the per-question source floor to nine independent stem groups and six
   independent joint stem+answer groups. Add a complete seven-image solution
-  article for question 19 and retain only the verified questions 15, 16 and 18
+  article for question 19 and retain only the verified questions 15 and 16
   from 我爱高考; every question now has at least six independent joint sources,
   and all 19 questions pass the strengthened gate.
+- Add an independent WeChat article with the complete question-18 stem and a
+  three-image solution. The article's copies of the ellipse equation, line
+  equation and `4√3` minimum all match the canonical answer, replacing the
+  incomplete question-18 stem on 我爱高考 as the sixth joint source.
 - Reject the China Education Online answer for question 11: the frozen page
   says `BC`, not the correct `BCD`. The canonical remains `BCD`; the source is
   retained as a visible rejected row and no longer counts as joint support.
@@ -48,7 +52,8 @@ Dataset 0.1.0-alpha.2026-n1.5
 - Mark China Education Online's question 15 page as `mismatched_stem`: the page
   prints `AC` where the canonical stem says `AC1`, and its distance answer is
   also wrong. Preserve the frozen evidence for review without counting that
-  source toward either the stem or joint-answer gate.
+  source toward either the stem or joint-answer gate. Its rejected row now keeps
+  the page's actual `AC` stem instead of backfilling the canonical `AC1` text.
 
 Dataset 0.1.0-alpha.2026-n1.4
 

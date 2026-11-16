@@ -37,12 +37,17 @@ Package version: `0.1.0-alpha.2026-n1.5`
   do not count as joint-answer evidence.
   <https://www.eol.cn/m/gaokao/202606/t20260608_2742417.shtml>
 - 我爱高考, “2026年全国新高考一卷数学试题及参考答案”: a question page and a
-  separate answer-and-solution page. Questions 15, 16 and 18 are used as joint
+  separate answer-and-solution page. Questions 15 and 16 are used as joint
   stem-and-answer evidence. Question 17's page text is missing relation symbols,
-  question 19's solution stops mid-proof, and the site's published solutions
-  for questions 2 and 13 also contain reproducible errors, so those rows are
-  not used.
+  question 18's stem drops the letter `Q`, question 19's solution stops
+  mid-proof, and the site's published solutions for questions 2 and 13 also
+  contain reproducible errors, so those rows are not used.
   <https://www.woaigaokao.com/shuxue/6722.html>
+- 微信公众号「妙解之慧」, “真题评析：2026年高考数学一卷第18题的不足之处”:
+  one complete question image and three solution images covering the ellipse
+  equation, line equation and `4√3` minimum. This supplies the sixth independent
+  joint source for question 18.
+  <https://mp.weixin.qq.com/s?__biz=MzU5NjA2OTM2OA==&mid=2248070750&idx=1&sn=3f87a8001729f0ddcb86efdca95fd75b&chksm=ffd7a89049a81288a56278ebf2e4a39d9ead0f7799d2e6122a9a7f696c3d3ac30f873e3581cd&scene=27>
 - 今日头条／阿川和孩子聊提分, “2026年高考数学全国一卷第19题的直观解析”: seven
   images containing the full question statement and a complete proof. The
   final image contains the monotonicity conclusion, so this article supplies
