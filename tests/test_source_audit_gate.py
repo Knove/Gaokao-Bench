@@ -370,6 +370,23 @@ def test_rejected_wrong_answer_source_counts_for_stem_but_not_answer(tmp_path):
     assert rejected["answer_value"] == "B"
 
 
+def test_rejected_source_may_preserve_contextual_excerpt(tmp_path):
+    dataset = _build_dataset(tmp_path, include_rejected=True)
+
+    def mutate(rows):
+        rejected = next(
+            item
+            for item in rows[0]["assessments"]
+            if item["source_id"] == "src-rejected-5"
+        )
+        rejected["answer_excerpt"] = "（B）；故选 B"
+        rejected["source_answer_text"] = "（B）；故选 B"
+
+    _rewrite_source_audit(dataset, mutate)
+    summary = validate_source_audit(dataset)
+    assert summary["gate"] == "pass"
+
+
 def test_prefix_stem_excerpt_is_rejected(tmp_path):
     dataset = _build_dataset(tmp_path)
 

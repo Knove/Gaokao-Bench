@@ -826,7 +826,7 @@ def _validate_source_page_evidence(
                 source_text = str(assessment.get("source_answer_text") or "").strip()
                 if assessment.get("answer_match") not in SOURCE_AUDIT_REJECTED_ANSWER_MATCHES:
                     errors.append("rejected source has no explicit answer-error classification for %s/%s" % (qid, source_id))
-                if not value or value != excerpt:
+                if not value or not excerpt:
                     errors.append("rejected source does not preserve its observed answer for %s/%s" % (qid, source_id))
                 if excerpt != source_text:
                     errors.append(
