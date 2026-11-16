@@ -7,6 +7,38 @@ Versioning
 - Dataset versions track questions, answers, points, assets, and manifest policy.
 - A published result must record both versions plus the dataset and protocol hashes.
 
+2026-11-16
+----------
+
+Dataset 0.1.0-alpha.2026-n1.5.1
+
+- Close the signed 2026 National Paper I package. Three independent audits, A,
+  B and C, pass all 19 questions with no issues; the project owner then signs
+  the full paper and every scored answer, point row, and figure asset. The
+  package records `audited_passed` and does not claim external human reviewers.
+- Keep the content identical to `0.1.0-alpha.2026-n1.5`; only review and owner
+  attestation metadata changed. Final manifest SHA-256 is
+  `f88f294c1b20c676121529e0b764ae2401bb1193e309e446e656748247552c2b`.
+- Record 14 scored objective questions / 73 points plus a five-question,
+  77-point subjective catalog. The full paper is 19 questions / 150 points.
+  The scored slice has zero image-required questions; the full-paper catalog
+  has one figure-bearing subjective question, so this release does not measure
+  vision capability.
+- Preserve the strengthened source gate for all 19 questions: nine independent
+  stem groups, six independent joint stem+answer groups, 19/19 stem dual-source
+  coverage, 19/19 joint answer dual-source coverage, and 138 frozen evidence
+  pages. Future questions must meet the same gate before owner acceptance.
+- Let the acceptance dashboard verify a materialised package's own
+  `owner_signoff.json`, `review_protocol.json`, review events and declared input
+  hashes when no separate mutable review packet exists.
+- Allow pinned source specs to retain the audited source-version pin only for an
+  owner-attested, content-unchanged metadata patch. Unrelated version drift
+  remains a validation error.
+- Add the version-bound release policy and public-contamination disclosure for
+  `retrospective_public_2026`: freshness claims are disabled, public rights are
+  CC BY 4.0 with attribution, and `public-code` remains a clean-revision,
+  allowlisted code/documentation release.
+
 2026-11-13
 ----------
 

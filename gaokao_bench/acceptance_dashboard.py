@@ -620,6 +620,112 @@ def _validate_packet_binding(
     return True, "", packet_manifest, signoff, signed_intent
 
 
+def _package_owner_summary(
+    *,
+    data_dir: Path,
+    manifest: Mapping[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Return the signed owner state embedded in an immutable dataset package.
+
+    A materialised package does not need a separate mutable review packet.  The
+    dashboard therefore treats the package's own signoff, protocol, review
+    events, and all owner-declared input hashes as first-class evidence while
+    keeping the fail-closed behaviour for missing or tampered files.
+    """
+
+    quality = manifest.get("quality") if isinstance(manifest.get("quality"), Mapping) else {}
+    signoff_path = data_dir / "owner_signoff.json"
+    protocol_path = data_dir / "review_protocol.json"
+    declared = quality.get("review_protocol") == "owner_attested_single_review"
+    if not declared and not signoff_path.is_file() and not protocol_path.is_file():
+        return None
+
+    version = str(manifest.get("dataset_version") or data_dir.name)
+    manifest_sha = _file_sha256(data_dir / "manifest.json")
+    packet_id = "PACKAGE-%s-%s" % (version, manifest_sha[:12])
+    empty_packet = {
+        "packet_id": packet_id,
+        "packet_version": "1.0",
+        "dataset_version": version,
+        "dataset_manifest_sha256": manifest_sha,
+        "files": {},
+    }
+
+    def failed(message: str, signoff: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+        return {
+            "binding_ok": False,
+            "binding_error": message,
+            "packet_manifest": empty_packet,
+            "packet_manifest_sha256": manifest_sha,
+            "signoff": dict(signoff or {}),
+            "signed": False,
+            "source": "package",
+        }
+
+    if not declared:
+        return failed("数据包质量记录未声明 owner_attested_single_review")
+    if not signoff_path.is_file():
+        return failed("签名数据包缺少 owner_signoff.json")
+    if not protocol_path.is_file():
+        return failed("签名数据包缺少 review_protocol.json")
+    try:
+        signoff = _read_json(signoff_path)
+        protocol = _read_json(protocol_path)
+    except (OSError, ValueError) as exc:
+        return failed("签名数据包文件无法读取：%s" % exc)
+
+    if signoff.get("dataset_version") != version:
+        return failed("数据包签字绑定了不同版本", signoff)
+    if signoff.get("status") not in {"audited_passed", "complete", "passed"}:
+        return failed("数据包签字状态不是 audited_passed", signoff)
+    if signoff.get("decision") != "accept_all" or signoff.get("owner_attested") is not True:
+        return failed("数据包签字不是 accept_all owner attestation", signoff)
+    reviewer = signoff.get("reviewer") if isinstance(signoff.get("reviewer"), Mapping) else {}
+    reviewer_id = str(reviewer.get("reviewer_id") or "").strip()
+    reviewer_name = str(reviewer.get("reviewer_name") or "").strip()
+    signature = str(reviewer.get("signature") or "").strip()
+    if not reviewer_id or any(marker in reviewer_id.lower() for marker in INVALID_IDENTITY_MARKERS):
+        return failed("数据包 reviewer_id 为空或为占位值", signoff)
+    if not reviewer_name or any(marker in reviewer_name.lower() for marker in INVALID_IDENTITY_MARKERS):
+        return failed("数据包 reviewer_name 为空或为占位值", signoff)
+    if signature != reviewer_name:
+        return failed("数据包签名必须等于 reviewer_name", signoff)
+    if not _valid_iso_timestamp(reviewer.get("reviewed_at")):
+        return failed("数据包 reviewed_at 不是带时区的 ISO 时间", signoff)
+    for name, digest in (signoff.get("input_sha256") or {}).items():
+        path = data_dir / str(name)
+        if not path.is_file():
+            return failed("数据包签字输入缺失：%s" % name, signoff)
+        if digest != _file_sha256(path):
+            return failed("数据包签字输入哈希不匹配：%s" % name, signoff)
+
+    if protocol.get("protocol") != "owner_attested_single_review":
+        return failed("数据包复核协议不是 owner_attested_single_review", signoff)
+    if protocol.get("status") not in {"audited_passed", "complete", "passed"}:
+        return failed("数据包复核协议状态不是 audited_passed", signoff)
+    if protocol.get("owner_signoff") not in {"audited_passed", "complete", "passed"}:
+        return failed("数据包复核协议未记录 owner_signoff", signoff)
+    expected_events = len(_read_jsonl(data_dir / "answer_keys.jsonl"))
+    reviews = _read_jsonl(data_dir / "reviews.jsonl")
+    if len(reviews) != expected_events:
+        return failed(
+            "数据包签字事件覆盖 %d/%d 道计分题" % (len(reviews), expected_events), signoff
+        )
+    if int(protocol.get("review_event_count") or -1) != len(reviews):
+        return failed("数据包复核协议事件数与 reviews.jsonl 不一致", signoff)
+
+    return {
+        "binding_ok": True,
+        "binding_error": "",
+        "packet_manifest": empty_packet,
+        "packet_manifest_sha256": manifest_sha,
+        "signoff": signoff,
+        "protocol": protocol,
+        "signed": True,
+        "source": "package",
+    }
+
+
 def _packet_rows(
     *,
     data_dir: Path,
@@ -1311,6 +1417,8 @@ def _build_workspace(
         notes=notes,
         assets=assets,
     )
+    package_owner = _package_owner_summary(data_dir=data_dir, manifest=manifest)
+    effective_packet = packet if packet is not None else package_owner
     if not rows:
         rows = _data_rows(
             data_dir=data_dir,
@@ -1332,8 +1440,8 @@ def _build_workspace(
     rows.sort(key=lambda row: (str(row.get("paper_id") or ""), int(row.get("number") or 0), str(row.get("item_id") or "")))
 
     fields = packet.get("fields") if packet else list(OWNER_REVIEW_FIELDS)
-    signoff_template = packet.get("signoff") if packet else {}
-    audits = _version_audits(manifest, packet)
+    signoff_template = effective_packet.get("signoff") if effective_packet else {}
+    audits = _version_audits(manifest, effective_packet)
     source_ids = set(str(source_id) for source_id in answer_sources)
     for row in rows:
         for key in ("answer_source", "secondary_source"):
@@ -1351,20 +1459,36 @@ def _build_workspace(
         papers=papers_list,
         rows=rows,
         catalog=catalog_list,
-        packet=packet,
+        packet=effective_packet,
         audits=audits,
         source_audit_summary=source_audit_summary,
         source_count=len(source_ids),
         asset_count=len(asset_ids),
     )
     summary["manifest_sha256"] = _file_sha256(manifest_path)
-    summary["packet_id"] = str((packet or {}).get("packet_manifest", {}).get("packet_id") or "")
-    summary["packet_version"] = str((packet or {}).get("packet_manifest", {}).get("packet_version") or "")
-    summary["signed_reviewer"] = str((packet or {}).get("signoff", {}).get("reviewer_name") or "")
-    summary["signed_at"] = str((packet or {}).get("signoff", {}).get("reviewed_at") or "")
-    summary["packet_binding_ok"] = bool((packet or {}).get("binding_ok"))
-    summary["packet_binding_error"] = str((packet or {}).get("binding_error") or "")
-    summary["packet_manifest_sha256"] = str((packet or {}).get("packet_manifest_sha256") or "")
+    summary["packet_id"] = str(
+        (effective_packet or {}).get("packet_manifest", {}).get("packet_id") or ""
+    )
+    summary["packet_version"] = str(
+        (effective_packet or {}).get("packet_manifest", {}).get("packet_version") or ""
+    )
+    signoff_reviewer = (effective_packet or {}).get("signoff", {}).get("reviewer")
+    signoff_reviewer = signoff_reviewer if isinstance(signoff_reviewer, Mapping) else {}
+    summary["signed_reviewer"] = str(
+        signoff_reviewer.get("reviewer_name")
+        or (effective_packet or {}).get("signoff", {}).get("reviewer_name")
+        or ""
+    )
+    summary["signed_at"] = str(
+        signoff_reviewer.get("reviewed_at")
+        or (effective_packet or {}).get("signoff", {}).get("reviewed_at")
+        or ""
+    )
+    summary["packet_binding_ok"] = bool((effective_packet or {}).get("binding_ok"))
+    summary["packet_binding_error"] = str((effective_packet or {}).get("binding_error") or "")
+    summary["packet_manifest_sha256"] = str(
+        (effective_packet or {}).get("packet_manifest_sha256") or ""
+    )
     summary["subtitle"] = "%s · %s · %s" % (version, summary["coverage"], summary["mode_label"])
 
     paper_meta = {str(paper.get("id") or ""): paper for paper in papers_list}

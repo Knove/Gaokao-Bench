@@ -370,6 +370,34 @@ def test_rejected_wrong_answer_source_counts_for_stem_but_not_answer(tmp_path):
     assert rejected["answer_value"] == "B"
 
 
+def test_owner_attested_metadata_patch_accepts_unchanged_source_pins(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    dataset = _build_dataset(tmp_path)
+    _enable_pinned_specs(dataset, tmp_path, monkeypatch)
+    source_version = dataset.manifest["dataset_version"]
+    dataset.manifest["dataset_version"] = source_version + ".1"
+    dataset.manifest["quality"] = {"review_protocol": "owner_attested_single_review"}
+    dataset.manifest["content_lineage"] = {
+        "source_dataset_version": source_version,
+        "content_changed": False,
+    }
+
+    summary = validate_source_audit(dataset)
+    assert summary["gate"] == "pass"
+
+
+def test_pinned_source_specs_still_reject_unrelated_version_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    dataset = _build_dataset(tmp_path)
+    _enable_pinned_specs(dataset, tmp_path, monkeypatch)
+    dataset.manifest["dataset_version"] = "0.0.1-unrelated"
+
+    with pytest.raises(ValueError, match="pinned source pages spec version is stale"):
+        validate_source_audit(dataset)
+
+
 def test_rejected_source_may_preserve_contextual_excerpt(tmp_path):
     dataset = _build_dataset(tmp_path, include_rejected=True)
 

@@ -120,17 +120,21 @@ def _data_card(
     counts: Mapping[str, Any],
     points: Mapping[str, Any],
     text_points: int,
+    paper_scope: str,
+    leaderboard_class: str,
+    high_risk_years: Sequence[int],
+    audit_evidence: str,
 ) -> str:
     return """# Gaokao-Bench {version} 数据卡
 
 > 数据版本：`{version}`  
 > 内容基线：`{source_version}`（题目、答案、题分和题图未变）  
-> 计分范围：2025 年中国高考数学五套卷的选择题与填空题  
+> 计分范围：{paper_scope}的选择题与填空题<br>
 > 规模：{questions} 题 / {points} 分 / {slots} 个答案槽  
 > 视觉必需：{images} 题  
 > 主指标：`score.weighted_points = 得分 / {points}`  
-> 榜单类别：`retrospective_public_2025`  
-> 审计协议：owner-attested single review  
+> 榜单类别：`{leaderboard_class}`<br>
+> 审计协议：三方独立审计 + owner 复核<br>
 > 所有者复核：{reviewer_name}，{reviewed_at}
 
 ## 1. 本版定位
@@ -152,16 +156,19 @@ def _data_card(
 | 图形必需题 | {images} |
 | 文本可达题 | {text_questions} |
 | 文本可达分 | {text_points} |
+| 全卷题量（含目录） | {full_questions} 题 / {full_points} 分 |
 | 主观题目录（不计分） | {catalog_questions} 题 / {catalog_points} 分 |
 
-五套卷的选择题/填空题合计 353 分；26 道解答题另存为目录，不进入任何分母。
+选择题/填空题合计 {points} 分；{catalog_questions} 道解答题另存为目录，不进入任何分母。
 
 ## 3. 审计闭环
 
-- 74 道题的答案、题面、题分和题图均有逐条 ledger；
+- {questions} 道计分题的答案、题面、题分和题图均有逐条 ledger；
+- 题面与答案来源门禁覆盖 {source_audit_questions} 题：题干双来源 {stem_dual_source_questions} 题，题干与答案联合双来源 {joint_answer_dual_source_questions} 题；
+- {audit_evidence}；
 - `reviews.jsonl` 为每道题保存一条 owner 验收事件，共 {reviews} 条；
 - `owner_signoff.json` 记录验收人、时间、范围和输入哈希；
-- `review_protocol.json` 明确这是单人 owner attestation，不虚构外部独立审阅人；
+- `review_protocol.json` 明确这是项目 owner 的最终 attestation，并保留三路审计限制说明；
 - 所有公开状态字段均为 `audited_passed`，不保留 `pending`、`waived` 或 `provisional`；
 - 来源冲突、外部答案错误和条件缺失的来源保留在审计记录中，不静默删除。
 
@@ -170,11 +177,11 @@ def _data_card(
 唯一主指标是 ratio：
 
 ```text
-score.weighted_points = earned_points / 353
+score.weighted_points = earned_points / {points}
 ```
 
 paper-equal、exact accuracy、text slice 和 vision slice 只作为 diagnostic metrics。
-本文档的百分比显示统一为 `100 x ratio`，不把 353 分外推成 750 分总分。
+本文档的百分比显示统一为 `100 x ratio`，不把本评分范围外推成完整高考总分。
 
 - 单选：选项完全一致；
 - 多选：选项集合完全一致；
@@ -184,8 +191,8 @@ paper-equal、exact accuracy、text slice 和 vision slice 只作为 diagnostic 
 
 ## 5. 污染与榜单边界
 
-2025 年高考题已经公开，可能存在于训练或检索语料中。本版本固定标记为
-`retrospective_public_2025`，`freshness_claim_allowed=false`、`held_out=false`。
+{years} 年高考题已经公开，可能存在于训练或检索语料中。本版本固定标记为
+`{leaderboard_class}`，`freshness_claim_allowed=false`、`held_out=false`。
 公开历史题榜单必须与 post-cutoff / live 新题榜单分开报告。
 
 ## 6. 许可
@@ -224,9 +231,22 @@ paper-equal、exact accuracy、text slice 和 vision slice 只作为 diagnostic 
         images=counts["image_required_questions"],
         text_questions=counts["objective_questions"] - counts["image_required_questions"],
         text_points=text_points,
+        full_questions=counts.get("full_paper_questions", counts["objective_questions"]),
+        full_points=points.get("full_paper_total", points["objective_total"]),
         catalog_questions=counts["catalog_subjective_questions"],
         catalog_points=points["catalog_subjective_total"],
         reviews=counts["review_records"],
+        source_audit_questions=counts.get("source_audit_rows", counts["objective_questions"]),
+        stem_dual_source_questions=counts.get(
+            "stem_dual_source_questions", counts["objective_questions"]
+        ),
+        joint_answer_dual_source_questions=counts.get(
+            "joint_answer_dual_source_questions", counts["objective_questions"]
+        ),
+        audit_evidence=audit_evidence,
+        years="、".join(str(year) for year in high_risk_years) if high_risk_years else "历年",
+        paper_scope=paper_scope,
+        leaderboard_class=leaderboard_class,
     )
 
 
@@ -244,7 +264,13 @@ schema 和评分元数据。第三方可以复制、分发、改编和商业使�
 """.format(version=version)
 
 
-def _reproduce_text(version: str, data_dir: str) -> str:
+def _reproduce_text(
+    version: str,
+    data_dir: str,
+    *,
+    leaderboard_class: str,
+    high_risk_years: Sequence[int],
+) -> str:
     return """# 复现说明
 
 ```bash
@@ -257,8 +283,8 @@ python3 scripts/evaluate.py --data-dir "$GB_DATA" --answers "$GB_DATA/examples/g
 声明题型、视图、主指标、诊断指标、榜单类别和视觉切片门槛。
 
 owner attestation 的证据是根目录下的五组 ledger、`reviews.jsonl`、
-`owner_signoff.json` 和 `review_protocol.json`。这是单人项目所有者复核，
-不是两名外部独立审阅人。
+`owner_signoff.json` 和 `review_protocol.json`。数据包同时保留三路独立审计报告；
+最终签字是项目 owner 的人类验收，不虚构两名外部人类审阅人。
 
 运行模型时使用 `python3 scripts/run_benchmark.py`。canonical run 要求：
 
@@ -268,40 +294,63 @@ owner attestation 的证据是根目录下的五组 ledger、`reviews.jsonl`、
 - 固定 seed、model snapshot、upstream provider pin；
 - 禁用 provider fallback。
 
-历史公开题只能标记为 `retrospective_public_2025`，不得声称 held-out 或新鲜能力。
-""".format(version=version, data_dir=data_dir)
+历史公开题只能标记为 `{leaderboard_class}`，不得声称 held-out 或新鲜能力。
+本包涉及年份：{years}。
+""".format(
+        version=version,
+        data_dir=data_dir,
+        leaderboard_class=leaderboard_class,
+        years="、".join(str(year) for year in high_risk_years) if high_risk_years else "历年",
+    )
 
 
-def _source_register_text(version: str, sources: Sequence[Mapping[str, Any]]) -> str:
+def _source_register_text(
+    version: str,
+    sources: Sequence[Mapping[str, Any]],
+    *,
+    paper_titles: Sequence[str],
+) -> str:
     lines = "\n".join(
         "- `%s` · %s · %s" % (row.get("id"), row.get("name"), row.get("source_url"))
         for row in sources
     )
     return """# 来源台账 `{version}`
 
-本版继续使用五套 2025 年高考数学卷的公开 PDF 作为题面与题图基线。完整来源 URL
+本版使用 {paper_titles} 的公开 PDF 作为题面与题图基线。完整来源 URL
 和哈希保存在 `sources.jsonl`，答案交叉核验来源保存在 `answer_sources.jsonl`。
 
 {lines}
 
 数据包整体按 CC BY 4.0 分发，并保留版本、来源和纠错路径。
-""".format(version=version, lines=lines)
+""".format(version=version, lines=lines, paper_titles="、".join(paper_titles))
 
 
-def _release_notes(version: str, source_version: str, reviewed_at: str) -> str:
+def _release_notes(
+    version: str,
+    source_version: str,
+    reviewed_at: str,
+    *,
+    objective_questions: int,
+    objective_points: int,
+    image_questions: int,
+    leaderboard_class: str,
+    high_risk_years: Sequence[int],
+    audit_ids: Sequence[str],
+) -> str:
     return """# Gaokao-Bench {version} 发布说明
 
 > 发布日期：{date}  
 > 类型：审计闭环与报告协议升级  
 > 内容基线：`{source_version}`  
-> 数据规模：74 题 / 353 分 / 4 道图形必需题
+> 数据规模：{questions} 题 / {points} 分 / {images} 道图形必需题
 
 ## 变更
 
 - 唯一主指标固定为 `score.weighted_points`，由 Benchmark Spec 生成；
 - 公开 manifest、数据卡、Harness 和发布卡使用同一指标；
-- 引入 `retrospective_public_2025` 榜单类别，严格禁止 freshness / held-out 声明；
-- 所有逐题状态收口为 `audited_passed`，并保存 74 条验收事件；
+- 使用 `{leaderboard_class}` 榜单类别，严格禁止 freshness / held-out 声明；
+- 三路独立审计 {audits} 全部通过，并由项目 owner 完成全卷验收；
+- 所有逐题状态收口为 `audited_passed`，并保存 {questions} 条计分题验收事件；
 - 增加模型快照、provider pin、fallback 禁用、seed 回显和重复稳定性记录；
 - 默认 timeout 改为 900 秒、默认 repeats 改为 5、默认 max tokens 为 32768；
 - 增加 bootstrap 置信区间、逐题 flip rate、边界数值和视觉小样本告警；
@@ -309,11 +358,22 @@ def _release_notes(version: str, source_version: str, reviewed_at: str) -> str:
 
 ## 内容边界
 
-题目、答案、题分和题图没有在本版改变。2025 年题目已经公开，不能作为 held-out
-能力证明。视觉切片只有 4 题，必须作为 diagnostic metric 报告。
+题目、答案、题分和题图没有在本版改变。{years} 年题目已经公开，不能作为 held-out
+能力证明。视觉切片只有 {images} 题，必须作为 diagnostic metric 报告。
 
 复核时间：`{reviewed_at}`。
-""".format(version=version, source_version=source_version, reviewed_at=reviewed_at, date=reviewed_at[:10])
+""".format(
+        version=version,
+        source_version=source_version,
+        reviewed_at=reviewed_at,
+        date=reviewed_at[:10],
+        questions=objective_questions,
+        points=objective_points,
+        images=image_questions,
+        leaderboard_class=leaderboard_class,
+        years="、".join(str(year) for year in high_risk_years) if high_risk_years else "历年",
+        audits=" / ".join(audit_ids) if audit_ids else "记录",
+    )
 
 
 def _update_jsonl(path: Path, updater) -> List[Dict[str, Any]]:
@@ -357,6 +417,46 @@ def main() -> int:
 
     spec_path = output / BENCHMARK_SPEC_FILENAME
     spec_raw = json.loads(spec_path.read_text(encoding="utf-8"))
+    source_quality = dict(source_manifest.get("quality") or {})
+    audits = [
+        dict(row)
+        for row in (source_quality.get("audits") or [])
+        if isinstance(row, Mapping)
+    ]
+    for audit in audits:
+        packaged_report = output / "audit_reports" / Path(str(audit.get("report_path") or "")).name
+        if packaged_report.is_file():
+            audit["report_path"] = packaged_report.relative_to(output).as_posix()
+    source_quality["audits"] = audits
+    audit_ids = [str(row.get("audit_id")) for row in audits if row.get("audit_id")]
+    audit_evidence = (
+        "三路独立审计 %s 均通过，逐题覆盖 %s 题，问题清单为空"
+        % (
+            " / ".join(audit_ids),
+            max((int(row.get("checked_questions") or 0) for row in audits), default=0),
+        )
+        if audits and all(row.get("verdict") == "pass" for row in audits)
+        else "独立审计记录：" + (" / ".join(audit_ids) if audit_ids else "无额外审计声明")
+    )
+    paper_titles = [str(paper.get("title") or paper.get("id")) for paper in source_dataset.papers]
+    years = sorted(
+        {
+            int(paper["year"])
+            for paper in source_dataset.papers
+            if paper.get("year") is not None
+        }
+        or {int(year) for year in (spec_raw.get("years") or []) if str(year).isdigit()}
+    )
+    reporting = dict(spec_raw.get("reporting") or {})
+    leaderboard_class = str(
+        reporting.get("leaderboard_class")
+        or ("retrospective_public_%s" % (years[-1] if years else "history"))
+    )
+    paper_scope = (
+        paper_titles[0]
+        if len(paper_titles) == 1
+        else "%s 年高考数学 %d 套卷" % ("、".join(str(year) for year in years), len(paper_titles))
+    )
     inherited_diagnostics = list(
         (spec_raw.get("scoring") or {}).get("diagnostic_metrics")
         or [
@@ -378,19 +478,18 @@ def main() -> int:
             "diagnostic_metrics": inherited_diagnostics,
         }
     )
-    spec_raw["reporting"] = {
-        "leaderboard_class": "retrospective_public_2025",
-        "freshness_claim_allowed": False,
-        "held_out": False,
-        "canonical_min_repeats": 5,
-        "canonical_timeout_seconds": 900,
-        "canonical_max_tokens": 32768,
-        "constrained_reasoning_budget": 8192,
-        "min_visual_questions_for_ranking": 30,
-        "visual_slice_role": "diagnostic",
-        "rounding_policy": "accept_values_that_round_to_key_at_stated_precision",
-        "live_track_required": True,
-    }
+    reporting.update({"leaderboard_class": leaderboard_class, "freshness_claim_allowed": False, "held_out": False})
+    reporting.setdefault("canonical_min_repeats", 5)
+    reporting.setdefault("canonical_timeout_seconds", 900)
+    reporting.setdefault("canonical_max_tokens", 32768)
+    reporting.setdefault("constrained_reasoning_budget", 8192)
+    reporting.setdefault("min_visual_questions_for_ranking", 30)
+    reporting.setdefault("visual_slice_role", "diagnostic")
+    reporting.setdefault(
+        "rounding_policy", "accept_values_that_round_to_key_at_stated_precision"
+    )
+    reporting.setdefault("live_track_required", True)
+    spec_raw["reporting"] = reporting
     _write_json(spec_path, spec_raw)
 
     def attest(row: Dict[str, Any]) -> Dict[str, Any]:
@@ -499,6 +598,18 @@ def main() -> int:
 
     _update_jsonl(output / "answer_sources.jsonl", clean_answer_source)
 
+    counts = dict(source_manifest.get("counts") or {})
+    counts.update(
+        {
+            "review_records": len(source_dataset.questions),
+            "answer_audit_rows": len(_read_jsonl(output / "answer_audit.jsonl")),
+            "question_audit_rows": len(_read_jsonl(output / "question_audit.jsonl")),
+            "point_audit_rows": len(_read_jsonl(output / "point_audit.jsonl")),
+            "asset_audit_rows": len(_read_jsonl(output / "asset_audit.jsonl")),
+        }
+    )
+    points = dict(source_manifest.get("points") or {})
+
     review_rows = []
     for question in source_dataset.questions:
         qid = question["id"]
@@ -529,9 +640,23 @@ def main() -> int:
         "status": "audited_passed",
         "owner_signoff": "audited_passed",
         "independent_review": "not_required_single_owner_attestation",
-        "review_scope": "all_answers_points_questions_and_figure_assets",
+        "review_scope": "full_paper_questions_answers_points_and_figure_assets",
         "question_count": len(source_dataset.questions),
         "review_event_count": len(review_rows),
+        "supplemental_audits": [
+            {
+                "audit_id": row.get("audit_id"),
+                "verdict": row.get("verdict"),
+                "checked_questions": row.get("checked_questions"),
+                "report_sha256": row.get("report_sha256"),
+            }
+            for row in audits
+        ],
+        "multi_party_validation": {
+            "status": "pass" if audits and all(row.get("verdict") == "pass" for row in audits) else "owner_only",
+            "protocol": "three_independent_audits_then_owner_attestation",
+            "human_external_reviewers_claimed": False,
+        },
         "reviewer": {
             "reviewer_id": args.reviewer_id,
             "reviewer_name": args.reviewer_name,
@@ -539,7 +664,8 @@ def main() -> int:
             "reviewed_at": reviewed_at,
         },
         "limitations": [
-            "single project-owner attestation",
+            "final acceptance is a single project-owner attestation",
+            "three independent audit roles are recorded, but no external human reviewers are claimed",
             "historical public questions are not held out",
         ],
     }
@@ -570,10 +696,13 @@ def main() -> int:
             "signature": args.signature,
             "reviewed_at": reviewed_at,
         },
-        "review_scope": "all_scored_questions_answers_points_and_figure_assets",
+        "review_scope": "full_paper_and_all_scored_answers_points_and_figure_assets",
         "counts": {
             "questions": len(source_dataset.questions),
             "points": sum(int(row["points"]) for row in source_dataset.questions),
+            "full_paper_questions": int(counts.get("full_paper_questions", len(source_dataset.questions))),
+            "full_paper_points": int(points.get("full_paper_total", sum(int(row["points"]) for row in source_dataset.questions))),
+            "catalog_questions": len(source_dataset.catalog_subjective),
             "review_events": len(review_rows),
             "answer_audit_rows": len(_read_jsonl(output / "answer_audit.jsonl")),
             "question_audit_rows": len(_read_jsonl(output / "question_audit.jsonl")),
@@ -584,25 +713,22 @@ def main() -> int:
         "source_manifest_sha256": file_sha256(source / "manifest.json"),
         "input_sha256": {name: file_sha256(output / name) for name in input_files},
         "attestation": (
-            "The project owner reviewed every scored answer, question, point entry, and figure asset "
-            "and accepts the canonical values in this immutable version."
+            "The project owner reviewed the full paper, every scored answer, question, point entry, "
+            "and figure asset and accepts the canonical values in this immutable version."
         ),
     }
     _write_json(output / "owner_signoff.json", signoff)
 
-    counts = dict(source_manifest.get("counts") or {})
-    counts.update(
-        {
-            "review_records": len(review_rows),
-            "answer_audit_rows": len(_read_jsonl(output / "answer_audit.jsonl")),
-            "question_audit_rows": len(_read_jsonl(output / "question_audit.jsonl")),
-            "point_audit_rows": len(_read_jsonl(output / "point_audit.jsonl")),
-            "asset_audit_rows": len(_read_jsonl(output / "asset_audit.jsonl")),
-        }
-    )
-    points = dict(source_manifest.get("points") or {})
-    quality = dict(source_manifest.get("quality") or {})
+    quality = dict(source_quality)
     pre_statuses = [row.get("pre_attestation_status") for row in _read_jsonl(output / "answer_audit.jsonl")]
+    rejected_source_assessments = 0
+    for source_row in _read_jsonl(output / "source_audit.jsonl"):
+        for assessment in source_row.get("assessments") or []:
+            if not isinstance(assessment, Mapping):
+                continue
+            if assessment.get("role") == "rejected" or assessment.get("stem_match") == "mismatched_stem":
+                rejected_source_assessments += 1
+    multi_party_pass = bool(audits) and all(row.get("verdict") == "pass" for row in audits)
     quality.update(
         {
             "answer_status": "audited_passed",
@@ -611,15 +737,21 @@ def main() -> int:
             "review_status": "audited_passed",
             "owner_signoff": "audited_passed",
             "independent_review": "not_required_single_owner_attestation",
-            "human_independent_review": "not_required_single_owner_attestation",
+            "human_independent_review": "not_claimed_three_independent_audits_passed"
+            if multi_party_pass
+            else "not_required_single_owner_attestation",
             "review_protocol": "owner_attested_single_review",
             "review_materialization": "owner_attestation_only",
+            "source_audit_status": "dual_source_gate_passed",
             "question_audit_status": "audited_passed",
             "question_audit": "audited_passed_%d_of_%d_owner_attested"
             % (len(source_dataset.questions), len(source_dataset.questions)),
-            "answer_evidence": "74_row_owner_attested_answer_audit_with_source_and_media_crosscheck",
+            "answer_evidence": "%d_row_owner_attested_answer_audit_with_source_and_media_crosscheck"
+            % len(source_dataset.questions),
             "page_bbox_evidence": "audited_passed",
-            "asset_crop_method": quality.get("asset_crop_method", "pdf_question_number_text_anchor_v3"),
+            "asset_crop_method": quality.get("asset_crop_method")
+            or quality.get("crop_method")
+            or "pdf_question_number_text_anchor_v3",
             "asset_corrections_this_version": 0,
             "answer_corrections_this_version": 0,
             "point_corrections_this_version": 0,
@@ -636,11 +768,26 @@ def main() -> int:
                     "external_source_self_conflict",
                     "external_source_self_conflict_resolved",
                 )
-            ),
+            )
+            + rejected_source_assessments,
             "review_records": len(review_rows),
             "release_candidate": False,
-            "contamination_status": "high_risk_public_2025_questions",
+            "contamination_status": "high_risk_public_%s_questions"
+            % "_".join(str(year) for year in years) if years else "high_risk_historical_public_questions",
             "content_baseline": source_version,
+            "subjective_scoring": "catalogued_not_scored",
+            "multi_party_validation": {
+                "status": "pass" if multi_party_pass else "owner_only",
+                "protocol": "three_independent_audits_then_owner_attestation",
+                "independent_audit_count": len(audits),
+                "independent_audit_ids": audit_ids,
+                "owner_reviewer_id": args.reviewer_id,
+                "owner_reviewer_name": args.reviewer_name,
+                "owner_reviewed_at": reviewed_at,
+                "full_paper_questions": int(counts.get("full_paper_questions", len(source_dataset.questions))),
+                "full_paper_points": int(points.get("full_paper_total", sum(int(row["points"]) for row in source_dataset.questions))),
+                "human_external_reviewers_claimed": False,
+            },
         }
     )
 
@@ -688,6 +835,8 @@ def main() -> int:
                     "review_protocol": "review_protocol.json",
                     "reviews": "reviews.jsonl",
                     "sources": "sources.jsonl",
+                "source_audit": "source_audit.jsonl",
+                "source_pages": "source_pages.jsonl",
                 },
                 "rows": audit_rows,
             },
@@ -697,24 +846,27 @@ def main() -> int:
                 "owner_signoff": "audited_passed",
                 "review_records": len(review_rows),
                 "reviewer": signoff["reviewer"],
+                "supplemental_audits": quality["multi_party_validation"],
             },
             "compatibility": compatibility,
             "versions": compatibility,
             "leaderboard": {
-                "class": "retrospective_public_2025",
+                "class": leaderboard_class,
                 "freshness_claim_allowed": False,
                 "held_out": False,
                 "post_cutoff_live_track_required": True,
-                "canonical_min_repeats": 5,
-                "canonical_timeout_seconds": 900,
-                "canonical_max_tokens": 32768,
-                "constrained_reasoning_budget": 8192,
-                "min_visual_questions_for_ranking": 30,
-                "visual_slice_role": "diagnostic",
-                "rounding_policy": "accept_values_that_round_to_key_at_stated_precision",
+                "canonical_min_repeats": reporting.get("canonical_min_repeats", 5),
+                "canonical_timeout_seconds": reporting.get("canonical_timeout_seconds", 900),
+                "canonical_max_tokens": reporting.get("canonical_max_tokens", 32768),
+                "constrained_reasoning_budget": reporting.get("constrained_reasoning_budget", 8192),
+                "min_visual_questions_for_ranking": reporting.get("min_visual_questions_for_ranking", 30),
+                "visual_slice_role": reporting.get("visual_slice_role", "diagnostic"),
+                "rounding_policy": reporting.get(
+                    "rounding_policy", "accept_values_that_round_to_key_at_stated_precision"
+                ),
                 "tracks": [
                     {
-                        "id": "retrospective_public_2025",
+                        "id": leaderboard_class,
                         "status": "active",
                         "freshness_claim_allowed": False,
                         "held_out": False,
@@ -739,7 +891,7 @@ def main() -> int:
                 "held_out": False,
                 "separate_live_leaderboard_required": True,
                 "rights_decision_required_for_full_public_data": False,
-                "score_label": "retrospective_public_2025",
+                "score_label": leaderboard_class,
             },
         }
     )
@@ -774,19 +926,39 @@ def main() -> int:
                 for row in source_dataset.questions
                 if row.get("asset_dependency") != "required"
             ),
+            paper_scope=paper_scope,
+            leaderboard_class=leaderboard_class,
+            high_risk_years=years,
+            audit_evidence=audit_evidence,
         ),
         encoding="utf-8",
     )
     (output / "RELEASE_NOTES.md").write_text(
-        _release_notes(version=args.version, source_version=source_version, reviewed_at=reviewed_at),
+        _release_notes(
+            version=args.version,
+            source_version=source_version,
+            reviewed_at=reviewed_at,
+            objective_questions=len(source_dataset.questions),
+            objective_points=sum(int(row["points"]) for row in source_dataset.questions),
+            image_questions=int(counts.get("image_required_questions", 0)),
+            leaderboard_class=leaderboard_class,
+            high_risk_years=years,
+            audit_ids=audit_ids,
+        ),
         encoding="utf-8",
     )
     (output / "LICENSE_AND_RIGHTS.md").write_text(_license_text(args.version), encoding="utf-8")
     (output / "REPRODUCE.md").write_text(
-        _reproduce_text(args.version, "data/%s" % args.version), encoding="utf-8"
+        _reproduce_text(
+            args.version,
+            "data/%s" % args.version,
+            leaderboard_class=leaderboard_class,
+            high_risk_years=years,
+        ),
+        encoding="utf-8",
     )
     (output / "SOURCE_REGISTER.md").write_text(
-        _source_register_text(args.version, sources), encoding="utf-8"
+        _source_register_text(args.version, sources, paper_titles=paper_titles), encoding="utf-8"
     )
     (output / "COMPATIBILITY.md").write_text(_compatibility_text(compatibility), encoding="utf-8")
     stale = output / "RELEASE_MATERIALIZATION.md"
@@ -818,6 +990,8 @@ def main() -> int:
         "question_audit.jsonl",
         "review_protocol.json",
         "reviews.jsonl",
+        "source_audit.jsonl",
+        "source_pages.jsonl",
         "sources.jsonl",
     )
     manifest["content_lineage"] = {
@@ -836,7 +1010,7 @@ def main() -> int:
         "audit_files": {
             name: info["sha256"]
             for name, info in file_map.items()
-            if name in audit_prefixes
+            if name in audit_prefixes or name.startswith(("audit/", "audit_reports/"))
         },
     }
     manifest["files"] = file_map

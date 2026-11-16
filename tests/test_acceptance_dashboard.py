@@ -548,6 +548,82 @@ def test_one_entry_discovers_versions_and_maps_packet_sources(tmp_path):
     assert payload["datasets"]["v-signed"]["meta"]["signed_reviewer"] == "测试负责人"
 
 
+def test_embedded_package_signoff_is_rendered_as_signed(tmp_path):
+    data_root = tmp_path / "data"
+    review_root = tmp_path / "review_packets"
+    data_dir, item_id = _make_dataset(
+        data_root,
+        "v-package-signed",
+        created_at="2026-04-01T00:00:00+08:00",
+        status="audited_passed",
+        owner_signoff="audited_passed",
+    )
+    manifest_path = data_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["quality"].update(
+        {
+            "review_protocol": "owner_attested_single_review",
+            "review_status": "audited_passed",
+        }
+    )
+    _write_json(manifest_path, manifest)
+    _write_jsonl(
+        data_dir / "reviews.jsonl",
+        [
+            {
+                "role": "owner",
+                "target_type": "answer_and_points",
+                "target_id": item_id,
+                "decision": "accept",
+                "status": "audited_passed",
+                "value": "A",
+                "canonical_value": "A",
+                "reviewed_at": "2026-04-02T09:00:00+08:00",
+            }
+        ],
+    )
+    protocol = {
+        "schema_version": "1.0",
+        "protocol": "owner_attested_single_review",
+        "status": "audited_passed",
+        "owner_signoff": "audited_passed",
+        "independent_review": "not_required_single_owner_attestation",
+        "review_event_count": 1,
+    }
+    _write_json(data_dir / "review_protocol.json", protocol)
+    input_names = ("questions.jsonl", "answer_keys.jsonl", "reviews.jsonl")
+    signoff = {
+        "schema_version": "1.0",
+        "dataset_version": "v-package-signed",
+        "status": "audited_passed",
+        "decision": "accept_all",
+        "owner_attested": True,
+        "reviewer": {
+            "reviewer_id": "knove",
+            "reviewer_name": "Knove",
+            "signature": "Knove",
+            "reviewed_at": "2026-04-02T09:00:00+08:00",
+        },
+        "input_sha256": {
+            name: hashlib.sha256((data_dir / name).read_bytes()).hexdigest()
+            for name in input_names
+        },
+    }
+    _write_json(data_dir / "owner_signoff.json", signoff)
+
+    payload = build_acceptance_payload(
+        data_root=data_root,
+        review_root=review_root,
+        notes_path=None,
+    )
+    meta = payload["datasets"]["v-package-signed"]["meta"]
+    assert meta["mode"] == "signed"
+    assert meta["packet_binding_ok"] is True
+    assert meta["signed_reviewer"] == "Knove"
+    assert meta["signed_at"] == "2026-04-02T09:00:00+08:00"
+    assert meta["packet_id"].startswith("PACKAGE-v-package-signed-")
+
+
 def test_build_page_is_a_single_version_independent_entry(tmp_path):
     data_root, review_root, *_ = _fixture(tmp_path)
     output = tmp_path / "reports" / "acceptance" / "index.html"

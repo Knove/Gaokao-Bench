@@ -423,6 +423,32 @@ def _pinned_json_file(
     return value
 
 
+def _pinned_spec_version_is_current(dataset: Dataset, spec_version: Any) -> bool:
+    """Accept a source-version pin for metadata-only owner attestations.
+
+    A signed owner-attested patch may change review metadata without changing
+    question, answer, point, or page-evidence content.  Its pinned source specs
+    must remain byte-identical to the audited source version; rewriting only the
+    version field would invalidate the original evidence hashes.  The exception
+    is therefore limited to a declared, content-unchanged lineage.
+    """
+
+    manifest = dataset.manifest
+    current_version = manifest.get("dataset_version")
+    if spec_version == current_version:
+        return True
+    quality = manifest.get("quality") if isinstance(manifest.get("quality"), dict) else {}
+    if quality.get("review_protocol") != "owner_attested_single_review":
+        return False
+    for field in ("content_lineage", "review_lineage"):
+        lineage = manifest.get(field)
+        if not isinstance(lineage, Mapping):
+            continue
+        if lineage.get("source_dataset_version") == spec_version and lineage.get("content_changed") is False:
+            return True
+    return False
+
+
 def _validate_pinned_source_specs(
     dataset: Dataset,
     block: Mapping[str, Any],
@@ -494,7 +520,7 @@ def _validate_pinned_source_specs(
                     errors.append("%s package and build provenance differ" % spec_label)
     if pages_spec is None:
         return
-    if pages_spec.get("dataset_version") != dataset.manifest.get("dataset_version"):
+    if not _pinned_spec_version_is_current(dataset, pages_spec.get("dataset_version")):
         errors.append("pinned source pages spec version is stale")
     expected_rows: Dict[str, Dict[str, Any]] = {}
     sources = pages_spec.get("sources")
@@ -555,7 +581,7 @@ def _validate_pinned_source_specs(
 
     if audit_spec is None:
         return
-    if audit_spec.get("dataset_version") != dataset.manifest.get("dataset_version"):
+    if not _pinned_spec_version_is_current(dataset, audit_spec.get("dataset_version")):
         errors.append("pinned source audit spec version is stale")
     if audit_spec.get("policy") != block.get("policy"):
         errors.append("pinned source audit policy differs from manifest")
