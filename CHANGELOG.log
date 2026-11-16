@@ -13,9 +13,13 @@ Versioning
 Dataset 0.1.0-alpha.2026-n1.5
 
 - Raise the per-question source floor to nine independent stem groups and six
-  independent joint stem+answer groups. Add the complete question and answer
-  pages from 我爱高考 for questions 15-19; every question now has six or seven
-  independent joint sources, and all 19 questions pass the strengthened gate.
+  independent joint stem+answer groups. Add a complete seven-image solution
+  article for question 19 and retain only the verified questions 15, 16 and 18
+  from 我爱高考; every question now has at least six independent joint sources,
+  and all 19 questions pass the strengthened gate.
+- Reject the China Education Online answer for question 11: the frozen page
+  says `BC`, not the correct `BCD`. The canonical remains `BCD`; the source is
+  retained as a visible rejected row and no longer counts as joint support.
 - Reject the China Education Online solution for question 16 after confirming
   that it prints `cos A = √7/3` and `CE = √6`; the independently checked answers
   are `cos A = 1/3` and `CE = 3√5`. Remove the stale question-16 observation

@@ -36,11 +36,18 @@ Package version: `0.1.0-alpha.2026-n1.5`
   contain reproducible answer errors, so those rows are recorded as rejected and
   do not count as joint-answer evidence.
   <https://www.eol.cn/m/gaokao/202606/t20260608_2742417.shtml>
-- 我爱高考, “2026年全国新高考一卷数学试题及参考答案”: a complete question
-  page and a separate answer-and-solution page. Questions 15–19 are used as
-  joint stem-and-answer evidence; the paper's questions 2 and 13 are not used
-  because that site's published solutions contain reproducible errors.
+- 我爱高考, “2026年全国新高考一卷数学试题及参考答案”: a question page and a
+  separate answer-and-solution page. Questions 15, 16 and 18 are used as joint
+  stem-and-answer evidence. Question 17's page text is missing relation symbols,
+  question 19's solution stops mid-proof, and the site's published solutions
+  for questions 2 and 13 also contain reproducible errors, so those rows are
+  not used.
   <https://www.woaigaokao.com/shuxue/6722.html>
+- 今日头条／阿川和孩子聊提分, “2026年高考数学全国一卷第19题的直观解析”: seven
+  images containing the full question statement and a complete proof. The
+  final image contains the monotonicity conclusion, so this article supplies
+  the sixth independent joint source for question 19.
+  <https://m.toutiao.com/article/7667842123386978856/>
 - 原创力文档（文档 7162100005011121）, “2026年全国新高考一卷数学试题及答案”:
   a 17-page document whose public preview exposes pages 1-11. Pages 1-4 contain
   the complete paper and pages 5-11 contain complete solutions for questions

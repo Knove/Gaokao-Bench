@@ -2176,9 +2176,7 @@
         "question_numbers": [
           15,
           16,
-          17,
-          18,
-          19
+          18
         ],
         "scope": "stem",
         "sha256": "abc5609c19bc6d36f4658716e96d50c1cfe2b2ae6e6766a25b70404b57e97500",
@@ -2195,13 +2193,118 @@
         "question_numbers": [
           15,
           16,
-          17,
-          18,
-          19
+          18
         ],
         "scope": "answer",
         "sha256": "b24c8b9a1a3119e74debd420f83370494a9caaaf72e8604a5204966737ef9fb8",
         "url": "https://www.woaigaokao.com/shuxue/6722.html/2/"
+      }
+    ],
+    "src-toutiao-achuan-2026-n1-d19": [
+      {
+        "bytes": 84325,
+        "covered_page_starts": [
+          1
+        ],
+        "file": "src-toutiao-achuan-2026-n1-d19/page-01.png",
+        "media_type": "image/png",
+        "page_index": 1,
+        "question_numbers": [
+          19
+        ],
+        "scope": "stem",
+        "sha256": "4d490b4fd1b3b821fa894a08275424db22e210fc9f4d33ac69db8498d910ffc4",
+        "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/c28b5f6f87184ff3b192a21803314fab~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=coOGKRGLwJjX2UzBquG7PWvsm5M%3D"
+      },
+      {
+        "bytes": 90260,
+        "covered_page_starts": [
+          2
+        ],
+        "file": "src-toutiao-achuan-2026-n1-d19/page-02.png",
+        "media_type": "image/png",
+        "page_index": 2,
+        "question_numbers": [
+          19
+        ],
+        "scope": "answer",
+        "sha256": "5cf3af590e1accadfc00207210ff5de0543f4c2ebc41c412d1ab0f2b5f7327af",
+        "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/8e9f990289874e118bcfd50bc889ca92~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=UsB906f6kU3aLm6r2%2FfzQ90jQT0%3D"
+      },
+      {
+        "bytes": 50693,
+        "covered_page_starts": [
+          3
+        ],
+        "file": "src-toutiao-achuan-2026-n1-d19/page-03.png",
+        "media_type": "image/png",
+        "page_index": 3,
+        "question_numbers": [
+          19
+        ],
+        "scope": "answer",
+        "sha256": "09271528b444a75f14b5b6c467a6abe255e70991e36f1c0d100a7060ec70b15a",
+        "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/ab77570ae5e24d86bf7707b341e3cc51~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=X7Tl%2FdY8HUavrTaPQO1xLS%2FLt5Q%3D"
+      },
+      {
+        "bytes": 77384,
+        "covered_page_starts": [
+          4
+        ],
+        "file": "src-toutiao-achuan-2026-n1-d19/page-04.png",
+        "media_type": "image/png",
+        "page_index": 4,
+        "question_numbers": [
+          19
+        ],
+        "scope": "answer",
+        "sha256": "87c1c94ac7c7a642db9ed15ad2acbd584d7773372a73e7315bcd37d8968c8202",
+        "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/e7e13fd8872a42e0856206f03e1b9fbf~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=HFLFFdalcHPk5lA4CHCmn4v%2FFOg%3D"
+      },
+      {
+        "bytes": 87386,
+        "covered_page_starts": [
+          5
+        ],
+        "file": "src-toutiao-achuan-2026-n1-d19/page-05.png",
+        "media_type": "image/png",
+        "page_index": 5,
+        "question_numbers": [
+          19
+        ],
+        "scope": "answer",
+        "sha256": "28e74f2c69e1dce0761dc846cf48401e249ba2f0f9bb89bee7a055fccc0a4b26",
+        "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/2a6d720c645243ed9563d8b57fbc2c0b~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=90pgVC1ukSuqy8focmI5copPeqQ%3D"
+      },
+      {
+        "bytes": 100438,
+        "covered_page_starts": [
+          6
+        ],
+        "file": "src-toutiao-achuan-2026-n1-d19/page-06.png",
+        "media_type": "image/png",
+        "page_index": 6,
+        "question_numbers": [
+          19
+        ],
+        "scope": "answer",
+        "sha256": "212709286b4b66e6fc6b13c8f43395c7e54273dfb1e28390565c593c313efe61",
+        "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/e710319aec394bc5817222123f53cb82~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=N8DuHmlp3zLON8mX8mh%2FqNW2uAM%3D"
+      },
+      {
+        "bytes": 49406,
+        "covered_page_starts": [
+          7
+        ],
+        "file": "src-toutiao-achuan-2026-n1-d19/page-07.png",
+        "media_type": "image/png",
+        "page_index": 7,
+        "question_numbers": [
+          19
+        ],
+        "scope": "answer",
+        "sha256": "c21b9943f2263bfee1ba7daf0aaad5d14c539b97617a80de53419c3bd469e88f",
+        "url": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/a64c01c4c1c74a9eb03ce94693a708a4~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=RPFPNVG3OTB8AqrZZBacetiL54E%3D"
       }
     ]
   }

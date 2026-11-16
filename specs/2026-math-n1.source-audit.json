@@ -68,7 +68,7 @@
       "independence_group": "eol-gkst",
       "access_method": "浏览器打开七页答案解析图，逐页核对题干、答案与解析",
       "retrieved_at": "2026-11-13",
-      "notes": "七页完整题面与答案解析。第 13、14、15、16、18、19 题存在可复现的答案错误，逐题登记为 rejected，不进入联合答案门禁；第 1–12、17 题可计入联合来源。",
+      "notes": "七页完整题面与答案解析。第 11、13、14、15、16、18、19 题存在可复现的答案错误或漏选，逐题登记为 rejected，不进入联合答案门禁；第 1–10、12、17 题可计入联合来源。",
       "page_urls": {
         "1": "https://www.eol.cn/m/gaokao/202606/W020260608340022926714.png",
         "2": "https://www.eol.cn/m/gaokao/202606/W020260608340022937932.png",
@@ -263,7 +263,7 @@
       "independence_group": "woaigaokao",
       "access_method": "浏览器打开试卷页与参考答案页，逐题核对题干、答案与解析",
       "retrieved_at": "2026-11-16",
-      "notes": "第 1 页为试卷，第 2 页为参考答案及解析；只将逐题复核正确的第 15–19 题纳入联合来源。该站第 2、13 题解析存在内部错误，因此不用于客观题门禁。",
+      "notes": "第 1 页为试卷，第 2 页为参考答案及解析；只将逐题复核正确的第 15、16、18 题纳入联合来源。第 17 题网页题面缺失关系符号，第 19 题解析在证明中途截断，均不作为联合支持；该站第 2、13 题解析也存在内部错误，因此不用于客观题门禁。",
       "live_hash_stable": false,
       "page_urls": {
         "1": "https://www.woaigaokao.com/shuxue/6722.html",
@@ -320,6 +320,28 @@
         "https://cdn.zizzs.com/zixunzhan/_1781149811012_00341781149810905.png"
       ],
       "observation_method": "逐页答案解析图核对最终答案，续页不并入无关题号"
+    },
+    {
+      "id": "src-toutiao-achuan-2026-n1-d19",
+      "publisher": "今日头条／阿川和孩子聊提分",
+      "url": "https://m.toutiao.com/article/7667842123386978856/",
+      "source_type": "independent_solution_article",
+      "evidence_scope": "stem_and_answer",
+      "independence_group": "toutiao-achuan",
+      "access_method": "浏览器打开移动端文章，逐页核对 7 张题目与解答图；关键结论回看第 7 页",
+      "retrieved_at": "2026-11-16",
+      "notes": "独立作者针对 2026 全国一卷第 19 题的完整解析文章。第 1 页为题面和四问，第 2–7 页为完整证明，第 7 页给出 f(x) 在 (0,+∞) 单调递增的最终结论；只用于 D19 联合来源。",
+      "page_urls": {
+        "1": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/c28b5f6f87184ff3b192a21803314fab~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=coOGKRGLwJjX2UzBquG7PWvsm5M%3D",
+        "2": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/8e9f990289874e118bcfd50bc889ca92~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=UsB906f6kU3aLm6r2%2FfzQ90jQT0%3D",
+        "3": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/ab77570ae5e24d86bf7707b341e3cc51~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=X7Tl%2FdY8HUavrTaPQO1xLS%2FLt5Q%3D",
+        "4": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/e7e13fd8872a42e0856206f03e1b9fbf~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=HFLFFdalcHPk5lA4CHCmn4v%2FFOg%3D",
+        "5": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/2a6d720c645243ed9563d8b57fbc2c0b~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=90pgVC1ukSuqy8focmI5copPeqQ%3D",
+        "6": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/e710319aec394bc5817222123f53cb82~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=N8DuHmlp3zLON8mX8mh%2FqNW2uAM%3D",
+        "7": "https://p3-sign.toutiaoimg.com/tos-cn-i-ezhpy3drpa/a64c01c4c1c74a9eb03ce94693a708a4~tplv-tt-large.image?_iz=30575&lk3s=06827d14&x-expires=1795399776&x-signature=RPFPNVG3OTB8AqrZZBacetiL54E%3D"
+      },
+      "live_hash_stable": false,
+      "observation_method": "逐页查看原图；题面与规范题面逐项对照，解答终点核对第 7 页"
     }
   ],
   "coverage": {
@@ -695,56 +717,59 @@
           "observed_answer": "（1）cos A = √7/3；（2）CE = √6。",
           "observed_excerpt": "（1）cos A = √7/3；（2）CE = √6。",
           "rejection_reason": "来源第 (1) 问由正弦定理误得 cos A=√7/3，第 (2) 问得 CE=√6；由余弦定理得 cos A=1/3，坐标法得 CE=3√5。"
+        },
+        "11": {
+          "role": "rejected",
+          "answer_match": "external_answer_error",
+          "observed_answer": "BC",
+          "observed_excerpt": "（BC）；故选 B、C",
+          "rejection_reason": "来源只给出 BC，漏选 D；D 项在三圆距离约束下可取等号，canonical 为 BCD。"
         }
       },
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "（B）；故选B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
-        },
-        "11": {
-          "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BC"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "17": {
           "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
@@ -1076,59 +1101,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -1377,59 +1402,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -1708,59 +1733,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "【正确答案】B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -1949,59 +1974,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "送B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -2209,59 +2234,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -2311,59 +2336,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -2430,59 +2455,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -2716,59 +2741,59 @@
       "observed_answers": {
         "1": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "2": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "3": {
           "value": "C",
-          "excerpt": "【答案】C"
+          "excerpt": "C"
         },
         "4": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "5": {
           "value": "D",
-          "excerpt": "【答案】D"
+          "excerpt": "D"
         },
         "6": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "7": {
           "value": "B",
-          "excerpt": "【答案】B"
+          "excerpt": "B"
         },
         "8": {
           "value": "A",
-          "excerpt": "【答案】A"
+          "excerpt": "A"
         },
         "9": {
           "value": "ACD",
-          "excerpt": "【答案】ACD"
+          "excerpt": "ACD"
         },
         "10": {
           "value": "BC",
-          "excerpt": "【答案】BC"
+          "excerpt": "BC"
         },
         "11": {
           "value": "BCD",
-          "excerpt": "【答案】BCD"
+          "excerpt": "BCD"
         },
         "12": {
           "value": "√66/6",
-          "excerpt": "【答案】√66/6"
+          "excerpt": "√66/6"
         },
         "13": {
           "value": "[\"3π/2\", \"1\"]",
-          "excerpt": "【答案】[\"3π/2\", \"1\"]"
+          "excerpt": "3π/2；1"
         },
         "14": {
           "value": "∛(3/2)",
-          "excerpt": "【答案】∛(3/2)"
+          "excerpt": "∛(3/2)"
         },
         "15": {
           "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
@@ -2798,9 +2823,7 @@
           "numbers": [
             15,
             16,
-            17,
-            18,
-            19
+            18
           ],
           "page_start": 1,
           "page_end": 1,
@@ -2812,9 +2835,7 @@
           "numbers": [
             15,
             16,
-            17,
-            18,
-            19
+            18
           ],
           "page_start": 2,
           "page_end": 2,
@@ -2830,17 +2851,37 @@
           "value": "(1) cos A = 1/3；(2) CE = 3√5。",
           "excerpt": "cos A=1/3；CE=3√5。"
         },
-        "17": {
-          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
-          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。"
-        },
         "18": {
           "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
           "excerpt": "C: x^2/4+y^2/3=1；l: √5x-2y+√5=0；tan∠PQR 的最小值为4√3。"
-        },
+        }
+      }
+    },
+    "src-toutiao-achuan-2026-n1-d19": {
+      "stem_groups": [
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 1,
+          "page_end": 1,
+          "locator_template": "文章题面图；第{n}题"
+        }
+      ],
+      "joint_answer_groups": [
+        {
+          "numbers": [
+            19
+          ],
+          "page_start": 2,
+          "page_end": 7,
+          "locator_template": "文章解答图第2–7页；第{n}题"
+        }
+      ],
+      "observed_answers": {
         "19": {
           "value": "(1) D(-1) = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
-          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。"
+          "excerpt": "所以 f(x)在区间(0,+∞)单调递增。"
         }
       }
     }
