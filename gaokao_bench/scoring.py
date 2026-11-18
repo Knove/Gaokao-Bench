@@ -644,14 +644,18 @@ def _validate_pinned_source_specs(
                     continue
                 expected_value = str(observation.get("value") or "")
                 expected_excerpt = str(observation.get("excerpt") or expected_value)
-                expected_stem = str(
-                    observation.get("stem")
-                    or observation.get("observed_stem")
-                    or ""
-                )
-                expected_stem_match = str(
-                    observation.get("stem_match") or "exact_stem_match"
-                )
+                if assessment.get("role") == "answer_only_supporting":
+                    expected_stem = ""
+                    expected_stem_match = "not_assessed"
+                else:
+                    expected_stem = str(
+                        observation.get("stem")
+                        or observation.get("observed_stem")
+                        or ""
+                    )
+                    expected_stem_match = str(
+                        observation.get("stem_match") or "exact_stem_match"
+                    )
                 expected_answer_match = str(
                     observation.get("answer_match") or "exact_answer_match"
                 )

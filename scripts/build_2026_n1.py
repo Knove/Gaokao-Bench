@@ -467,31 +467,38 @@ def _source_assessment(
     rejection_reason = (
         str((override or {}).get("rejection_reason") or "").strip() if rejected else ""
     )
-    final_stem_match = stem_match if (rejected or requires_answer_observation) else (
-        "exact_stem_match" if stem_group is not None else "not_assessed"
-    )
+    if answer_only:
+        final_stem_match = "not_assessed"
+    else:
+        final_stem_match = stem_match if (rejected or requires_answer_observation) else (
+            "exact_stem_match" if stem_group is not None else "not_assessed"
+        )
     if rejected and final_stem_match == "mismatched_stem" and not observed_stem:
         raise ValueError(
             "source %s has a mismatched stem for question %d but no observed stem text"
             % (source["id"], number)
         )
-    supports_stem = bool(stem_group is not None) and final_stem_match not in {
+    supports_stem = not answer_only and bool(stem_group is not None) and final_stem_match not in {
         "mismatched_stem",
         "not_assessed",
     }
     supports_canonical = bool(joint or answer_only)
-    stem_evidence = _evidence_for_group(
-        source_pages, stem_group, stem=True, number=number
+    stem_evidence = (
+        []
+        if answer_only
+        else _evidence_for_group(source_pages, stem_group, stem=True, number=number)
     )
     answer_evidence = _evidence_for_group(
         source_pages, answer_group, stem=False, number=number
     )
     stem_page_start = (
-        int(stem_group.get("page_start") or 1) if stem_group is not None else None
+        int(stem_group.get("page_start") or 1)
+        if stem_group is not None and not answer_only
+        else None
     )
     stem_page_end = (
         int(stem_group.get("page_end") or stem_page_start)
-        if stem_group is not None
+        if stem_group is not None and not answer_only
         else None
     )
     answer_page_start = (
@@ -534,14 +541,18 @@ def _source_assessment(
         "supports_canonical": supports_canonical,
         "stem_match": final_stem_match,
         "answer_match": answer_match,
-        "stem_locator": _locator(stem_group, number) if stem_group is not None else "",
+        "stem_locator": (
+            _locator(stem_group, number)
+            if stem_group is not None and not answer_only
+            else ""
+        ),
         "answer_locator": (
             str((observation or {}).get("locator") or "").strip()
             or _locator(answer_group, number)
             if answer_group is not None
             else ""
         ),
-        "stem_excerpt": observed_stem or stem,
+        "stem_excerpt": "" if answer_only else observed_stem or stem,
         "observed_stem": observed_stem,
         "stem_equivalence_basis": stem_equivalence_basis,
         "answer_value": answer_note,

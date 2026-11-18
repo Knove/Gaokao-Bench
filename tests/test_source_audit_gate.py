@@ -103,10 +103,14 @@ def _assessment(
     }
 
 
-def _build_dataset(tmp_path: Path, *, include_rejected: bool = False) -> Dataset:
+def _build_dataset(
+    tmp_path: Path, *, include_rejected: bool = False, include_answer_only: bool = False
+) -> Dataset:
     source_ids = ["src-joint-1", "src-joint-2", "src-stem-3", "src-stem-4"]
     if include_rejected:
         source_ids.append("src-rejected-5")
+    if include_answer_only:
+        source_ids.append("src-answer-6")
     evidence_rows = []
     manifest_files = {}
     for index, source_id in enumerate(source_ids, 1):
@@ -115,7 +119,12 @@ def _build_dataset(tmp_path: Path, *, include_rejected: bool = False) -> Dataset
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(PNG_BYTES + bytes([index]))
         payload = path.read_bytes()
-        scope = "stem_and_answer" if index <= 2 or source_id == "src-rejected-5" else "stem"
+        if index <= 2 or source_id == "src-rejected-5":
+            scope = "stem_and_answer"
+        elif source_id == "src-answer-6":
+            scope = "answer"
+        else:
+            scope = "stem"
         evidence_rows.append(
             {
                 "source_id": source_id,
@@ -147,7 +156,9 @@ def _build_dataset(tmp_path: Path, *, include_rejected: bool = False) -> Dataset
                 "publisher": source_id,
                 "url": "https://%s.example" % source_id,
                 "evidence_scope": (
-                    "stem_and_answer" if index <= 2 or source_id == "src-rejected-5" else "stem"
+                    "stem_and_answer"
+                    if index <= 2 or source_id == "src-rejected-5"
+                    else ("answer_only" if source_id == "src-answer-6" else "stem")
                 ),
                 "independence_group": "group-%d" % index,
                 "access_method": "逐页核对",
@@ -206,6 +217,28 @@ def _build_dataset(tmp_path: Path, *, include_rejected: bool = False) -> Dataset
                 rejected=True,
             )
         )
+    if include_answer_only:
+        answer_only = _assessment(
+            "src-answer-6",
+            "group-%d" % (source_ids.index("src-answer-6") + 1),
+            evidence_sha256=evidence_by_source["src-answer-6"]["sha256"],
+            evidence_bytes=evidence_by_source["src-answer-6"]["bytes"],
+        )
+        answer_only.update(
+            {
+                "role": "answer_only_supporting",
+                "evidence_scope": "answer_only",
+                "supports_stem": False,
+                "stem_match": "not_assessed",
+                "stem_excerpt": "",
+                "stem_locator": "",
+                "stem_evidence": [],
+                "stem_page_url": "",
+                "stem_page_start": None,
+                "stem_page_end": None,
+            }
+        )
+        assessments.append(answer_only)
 
     stem_groups = 5 if include_rejected else 4
     _write_jsonl(
@@ -350,9 +383,19 @@ def _enable_pinned_specs(
                     }
                 )
                 known_source_ids.add(source_id)
+            number = str(int(row.get("question_id", "Q0").split("Q")[-1]))
+            if assessment.get("role") == "answer_only_supporting":
+                coverage = audit_spec["coverage"].setdefault(source_id, {})
+                coverage.setdefault("observed_answers", {})[number] = {
+                    "value": str(assessment.get("answer_value") or ""),
+                    "excerpt": str(assessment.get("answer_excerpt") or ""),
+                    "answer_match": str(
+                        assessment.get("answer_match") or "exact_answer_match"
+                    ),
+                }
+                continue
             if assessment.get("role") != "rejected":
                 continue
-            number = str(int(row.get("question_id", "Q0").split("Q")[-1]))
             coverage = audit_spec["coverage"].setdefault(source_id, {})
             overrides = coverage.setdefault("question_overrides", {})
             overrides[number] = {
@@ -661,3 +704,19 @@ def test_source_observation_cannot_be_replaced_in_pinned_spec(tmp_path, monkeypa
 
     with pytest.raises(ValueError, match="source observation value is not pinned"):
         validate_source_audit(dataset)
+
+
+def test_pinned_answer_only_source_does_not_require_a_stem_observation(tmp_path, monkeypatch):
+    dataset = _build_dataset(tmp_path, include_answer_only=True)
+    _enable_pinned_specs(dataset, tmp_path, monkeypatch)
+
+    summary = validate_source_audit(dataset)
+
+    assert summary["gate"] == "pass"
+    row = json.loads((tmp_path / "source_audit.jsonl").read_text(encoding="utf-8"))
+    answer_only = next(
+        item for item in row["assessments"] if item["source_id"] == "src-answer-6"
+    )
+    assert answer_only["stem_match"] == "not_assessed"
+    assert answer_only["supports_stem"] is False
+    assert answer_only["supports_canonical"] is True
