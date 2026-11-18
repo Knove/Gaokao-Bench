@@ -294,6 +294,7 @@ def _evidence_for_group(
     group: Optional[Mapping[str, Any]],
     *,
     stem: bool,
+    number: int,
 ) -> List[Dict[str, Any]]:
     if group is None:
         return []
@@ -314,6 +315,7 @@ def _evidence_for_group(
             row
             for row in source_pages
             if page in [int(value) for value in row.get("covered_page_starts", [])]
+            and number in [int(value) for value in row.get("question_numbers", [])]
             and str(row.get("scope"))
             in {wanted_scope, "stem_and_answer", "page", "document"}
         ]
@@ -417,8 +419,12 @@ def _source_assessment(
         "mismatched_stem",
         "not_assessed",
     }
-    stem_evidence = _evidence_for_group(source_pages, stem_group, stem=True)
-    answer_evidence = _evidence_for_group(source_pages, answer_group, stem=False)
+    stem_evidence = _evidence_for_group(
+        source_pages, stem_group, stem=True, number=number
+    )
+    answer_evidence = _evidence_for_group(
+        source_pages, answer_group, stem=False, number=number
+    )
     stem_page_start = (
         int(stem_group.get("page_start") or 1) if stem_group is not None else None
     )
@@ -1757,6 +1763,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "rights_basis": "project_owner_elected_cc_by_4_0_for_the_complete_data_package",
         },
     }
+    manifest["source_audit"]["evidence_page_count"] = len(source_pages_rows)
     content_names = [
         "benchmark_spec.json",
         "papers.jsonl",
