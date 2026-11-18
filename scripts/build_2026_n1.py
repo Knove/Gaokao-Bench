@@ -371,6 +371,22 @@ def _source_assessment(
         observed_excerpt = str(
             (override or {}).get("observed_excerpt") or observed_answer
         ).strip()
+        stem_match = str(
+            (override or {}).get("stem_match") or "exact_stem_match"
+        ).strip()
+        answer_match = str(
+            (override or {}).get("answer_match") or "external_answer_error"
+        ).strip()
+        normalized_answer = str(
+            (override or {}).get("normalized_answer") or observed_answer
+        ).strip()
+        stem_equivalence_basis = str(
+            (override or {}).get("stem_equivalence_basis") or ""
+        ).strip()
+        answer_equivalence_basis = str(
+            (override or {}).get("answer_equivalence_basis") or ""
+        ).strip()
+        observed_stem = str((override or {}).get("observed_stem") or "").strip()
     elif requires_answer_observation:
         if not isinstance(observation, Mapping):
             raise ValueError(
@@ -379,19 +395,68 @@ def _source_assessment(
             )
         observed_answer = str(observation.get("value") or "").strip()
         observed_excerpt = str(observation.get("excerpt") or observed_answer).strip()
+        stem_match = str(observation.get("stem_match") or "exact_stem_match").strip()
+        answer_match = str(
+            observation.get("answer_match") or "exact_answer_match"
+        ).strip()
+        normalized_answer = str(
+            observation.get("normalized_value") or observed_answer
+        ).strip()
+        stem_equivalence_basis = str(
+            observation.get("stem_equivalence_basis") or ""
+        ).strip()
+        answer_equivalence_basis = str(
+            observation.get("answer_equivalence_basis") or ""
+        ).strip()
+        observed_stem = str(
+            observation.get("stem") or observation.get("observed_stem") or ""
+        ).strip()
         if not observed_answer or not observed_excerpt:
             raise ValueError(
                 "source %s has an empty answer observation for question %d"
                 % (source["id"], number)
             )
-        if observed_answer != canonical_text:
+        if stem_match not in {"exact_stem_match", "equivalent_stem_match"}:
+            raise ValueError(
+                "source %s has invalid stem match for question %d: %s"
+                % (source["id"], number, stem_match)
+            )
+        if stem_match == "equivalent_stem_match":
+            if not observed_stem or not stem_equivalence_basis:
+                raise ValueError(
+                    "source %s has an equivalent stem without observed text and basis for question %d"
+                    % (source["id"], number)
+                )
+        if answer_match not in {"exact_answer_match", "equivalent_answer_match"}:
+            raise ValueError(
+                "source %s has invalid answer match for question %d: %s"
+                % (source["id"], number, answer_match)
+            )
+        if answer_match == "exact_answer_match" and observed_answer != canonical_text:
             raise ValueError(
                 "source %s answer observation differs from canonical answer for question %d: %s != %s"
                 % (source["id"], number, observed_answer, canonical_text)
             )
+        if answer_match == "equivalent_answer_match":
+            if normalized_answer != canonical_text:
+                raise ValueError(
+                    "source %s normalized answer does not reduce to canonical for question %d: %s != %s"
+                    % (source["id"], number, normalized_answer, canonical_text)
+                )
+            if not answer_equivalence_basis:
+                raise ValueError(
+                    "source %s has an equivalent answer without a basis for question %d"
+                    % (source["id"], number)
+                )
     else:
         observed_answer = ""
         observed_excerpt = ""
+        stem_match = "not_assessed" if stem_group is None else "exact_stem_match"
+        answer_match = "not_assessed"
+        normalized_answer = ""
+        stem_equivalence_basis = ""
+        answer_equivalence_basis = ""
+        observed_stem = ""
     answer_note = observed_answer if (rejected or requires_answer_observation) else ""
     answer_excerpt = (
         observed_excerpt if (rejected or requires_answer_observation) else ""
@@ -402,20 +467,15 @@ def _source_assessment(
     rejection_reason = (
         str((override or {}).get("rejection_reason") or "").strip() if rejected else ""
     )
-    rejected_stem_match = (
-        str((override or {}).get("stem_match") or "exact_stem_match").strip()
-        if rejected
-        else "exact_stem_match"
+    final_stem_match = stem_match if (rejected or requires_answer_observation) else (
+        "exact_stem_match" if stem_group is not None else "not_assessed"
     )
-    observed_stem = (
-        str((override or {}).get("observed_stem") or "").strip() if rejected else ""
-    )
-    if rejected_stem_match == "mismatched_stem" and not observed_stem:
+    if rejected and final_stem_match == "mismatched_stem" and not observed_stem:
         raise ValueError(
             "source %s has a mismatched stem for question %d but no observed stem text"
             % (source["id"], number)
         )
-    supports_stem = bool(stem_group is not None) and rejected_stem_match not in {
+    supports_stem = bool(stem_group is not None) and final_stem_match not in {
         "mismatched_stem",
         "not_assessed",
     }
@@ -471,20 +531,8 @@ def _source_assessment(
         "role": role,
         "supports_stem": supports_stem,
         "supports_canonical": bool(joint or answer_only),
-        "stem_match": (
-            rejected_stem_match
-            if rejected
-            else "exact_stem_match"
-            if stem_group is not None
-            else "not_assessed"
-        ),
-        "answer_match": (
-            str((override or {}).get("answer_match") or "external_answer_error")
-            if rejected
-            else "not_assessed"
-            if stem_only
-            else "exact_answer_match"
-        ),
+        "stem_match": final_stem_match,
+        "answer_match": answer_match,
         "stem_locator": _locator(stem_group, number) if stem_group is not None else "",
         "answer_locator": (
             str((observation or {}).get("locator") or "").strip()
@@ -493,9 +541,13 @@ def _source_assessment(
             else ""
         ),
         "stem_excerpt": observed_stem or stem,
+        "observed_stem": observed_stem,
+        "stem_equivalence_basis": stem_equivalence_basis,
         "answer_value": answer_note,
         "answer_excerpt": answer_excerpt,
         "source_answer_text": source_answer_text,
+        "normalized_answer": normalized_answer if supports_canonical else "",
+        "answer_equivalence_basis": answer_equivalence_basis if supports_canonical else "",
         "rejection_reason": rejection_reason or None,
     }
 

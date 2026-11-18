@@ -329,6 +329,41 @@ def _enable_pinned_specs(
             "src-stem-4": {"stem_groups": []},
         },
     }
+    audit_rows = [
+        json.loads(line)
+        for line in (tmp_path / "source_audit.jsonl").read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    known_source_ids = {source["id"] for source in audit_spec["sources"]}
+    for row in audit_rows:
+        for assessment in row.get("assessments") or []:
+            source_id = str(assessment.get("source_id") or "")
+            if not source_id:
+                continue
+            if source_id not in known_source_ids:
+                audit_spec["sources"].append(
+                    {
+                        "id": source_id,
+                        "independence_group": str(
+                            assessment.get("independence_group") or source_id
+                        ),
+                    }
+                )
+                known_source_ids.add(source_id)
+            if assessment.get("role") != "rejected":
+                continue
+            number = str(int(row.get("question_id", "Q0").split("Q")[-1]))
+            coverage = audit_spec["coverage"].setdefault(source_id, {})
+            overrides = coverage.setdefault("question_overrides", {})
+            overrides[number] = {
+                "observed_answer": str(assessment.get("answer_value") or ""),
+                "observed_excerpt": str(assessment.get("answer_excerpt") or ""),
+                "stem_match": str(assessment.get("stem_match") or "exact_stem_match"),
+                "answer_match": str(
+                    assessment.get("answer_match") or "external_answer_error"
+                ),
+                "rejection_reason": str(assessment.get("rejection_reason") or ""),
+            }
     for row in evidence_rows:
         pages_spec["sources"].setdefault(row["source_id"], []).append(
             {
@@ -386,6 +421,16 @@ def test_rejected_wrong_answer_source_counts_for_stem_but_not_answer(tmp_path):
     assert rejected["role"] == "rejected"
     assert rejected["answer_match"] == "external_answer_error"
     assert rejected["answer_value"] == "B"
+
+
+def test_pinned_rejected_source_without_normalization_uses_empty_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    dataset = _build_dataset(tmp_path, include_rejected=True)
+    _enable_pinned_specs(dataset, tmp_path, monkeypatch)
+
+    summary = validate_source_audit(dataset)
+    assert summary["gate"] == "pass"
 
 
 def test_owner_attested_metadata_patch_accepts_unchanged_source_pins(
@@ -459,7 +504,60 @@ def test_prefix_stem_excerpt_is_rejected(tmp_path):
         rows[0]["assessments"][0]["stem_excerpt"] = "若 1+1"
 
     _rewrite_source_audit(dataset, mutate)
-    with pytest.raises(ValueError, match="exact canonical stem"):
+    with pytest.raises(ValueError, match="exact stem excerpt differs"):
+        validate_source_audit(dataset)
+
+
+def test_equivalent_stem_requires_observed_text_and_basis(tmp_path):
+    dataset = _build_dataset(tmp_path)
+
+    def mutate(rows):
+        assessment = rows[0]["assessments"][0]
+        assessment["stem_match"] = "equivalent_stem_match"
+        assessment["stem_excerpt"] = "请求 1+1 的值。"
+        assessment["observed_stem"] = "请求 1+1 的值。"
+
+    _rewrite_source_audit(dataset, mutate)
+    with pytest.raises(ValueError, match="no equivalence basis"):
+        validate_source_audit(dataset)
+
+
+def test_equivalent_stem_with_explicit_basis_passes(tmp_path):
+    dataset = _build_dataset(tmp_path)
+
+    def mutate(rows):
+        assessment = rows[0]["assessments"][0]
+        assessment["stem_match"] = "equivalent_stem_match"
+        assessment["stem_excerpt"] = "请求 1+1 的值。"
+        assessment["observed_stem"] = "请求 1+1 的值。"
+        assessment["stem_equivalence_basis"] = "问句语序不同，但条件与所求完全一致。"
+
+    _rewrite_source_audit(dataset, mutate)
+    summary = validate_source_audit(dataset)
+    assert summary["gate"] == "pass"
+
+
+def test_equivalent_answer_requires_normalized_canonical_and_basis(tmp_path):
+    dataset = _build_dataset(tmp_path)
+
+    def mutate(rows):
+        assessment = rows[0]["assessments"][0]
+        assessment["answer_match"] = "equivalent_answer_match"
+        assessment["answer_value"] = "选项 A"
+        assessment["normalized_answer"] = "A"
+        assessment["answer_equivalence_basis"] = "来源用“选项 A”表示答案 A。"
+        assessment["answer_excerpt"] = "【答案】选项 A"
+        assessment["source_answer_text"] = "【答案】选项 A"
+
+    _rewrite_source_audit(dataset, mutate)
+    summary = validate_source_audit(dataset)
+    assert summary["gate"] == "pass"
+
+    def remove_basis(rows):
+        rows[0]["assessments"][0]["answer_equivalence_basis"] = ""
+
+    _rewrite_source_audit(dataset, remove_basis)
+    with pytest.raises(ValueError, match="equivalent answer has no equivalence basis"):
         validate_source_audit(dataset)
 
 

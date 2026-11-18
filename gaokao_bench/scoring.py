@@ -87,6 +87,14 @@ SOURCE_AUDIT_REJECTED_ANSWER_MATCHES = {
     "external_answer_error",
     "external_source_self_conflict",
 }
+SOURCE_AUDIT_SUPPORTING_STEM_MATCHES = {
+    "exact_stem_match",
+    "equivalent_stem_match",
+}
+SOURCE_AUDIT_SUPPORTING_ANSWER_MATCHES = {
+    "exact_answer_match",
+    "equivalent_answer_match",
+}
 SOURCE_ANSWER_EXCERPT_PLACEHOLDERS = (
     "来源解答结论",
     "规范答案回填",
@@ -612,6 +620,21 @@ def _validate_pinned_source_specs(
                 expected_value = str(override.get("observed_answer") or "")
                 expected_excerpt = str(override.get("observed_excerpt") or expected_value)
                 expected_stem = str(override.get("observed_stem") or "")
+                expected_stem_match = str(
+                    override.get("stem_match") or "exact_stem_match"
+                )
+                expected_answer_match = str(
+                    override.get("answer_match") or "external_answer_error"
+                )
+                expected_normalized_answer = str(
+                    override.get("normalized_answer") or ""
+                )
+                expected_stem_basis = str(
+                    override.get("stem_equivalence_basis") or ""
+                )
+                expected_answer_basis = str(
+                    override.get("answer_equivalence_basis") or ""
+                )
             elif assessment.get("role") in {"joint_supporting", "answer_only_supporting"}:
                 if not isinstance(observation, Mapping):
                     errors.append(
@@ -621,13 +644,51 @@ def _validate_pinned_source_specs(
                     continue
                 expected_value = str(observation.get("value") or "")
                 expected_excerpt = str(observation.get("excerpt") or expected_value)
-                expected_stem = ""
+                expected_stem = str(
+                    observation.get("stem")
+                    or observation.get("observed_stem")
+                    or ""
+                )
+                expected_stem_match = str(
+                    observation.get("stem_match") or "exact_stem_match"
+                )
+                expected_answer_match = str(
+                    observation.get("answer_match") or "exact_answer_match"
+                )
+                expected_normalized_answer = str(
+                    observation.get("normalized_value") or expected_value
+                )
+                expected_stem_basis = str(
+                    observation.get("stem_equivalence_basis") or ""
+                )
+                expected_answer_basis = str(
+                    observation.get("answer_equivalence_basis") or ""
+                )
             else:
                 continue
             if expected_stem and str(assessment.get("stem_excerpt") or "") != expected_stem:
                 errors.append("source observed stem is not pinned for %s/%s" % (qid, source_id))
+            if str(assessment.get("stem_match") or "") != expected_stem_match:
+                errors.append("source stem match is not pinned for %s/%s" % (qid, source_id))
+            if str(assessment.get("stem_equivalence_basis") or "") != expected_stem_basis:
+                errors.append("source stem equivalence basis is not pinned for %s/%s" % (qid, source_id))
             if str(assessment.get("answer_value") or "") != expected_value:
                 errors.append("source observation value is not pinned for %s/%s" % (qid, source_id))
+            actual_normalized_answer = str(
+                assessment.get("normalized_answer")
+                or (
+                    assessment.get("answer_value")
+                    if assessment.get("answer_match") == "exact_answer_match"
+                    else ""
+                )
+                or ""
+            )
+            if actual_normalized_answer != expected_normalized_answer:
+                errors.append("source normalized answer is not pinned for %s/%s" % (qid, source_id))
+            if str(assessment.get("answer_match") or "") != expected_answer_match:
+                errors.append("source answer match is not pinned for %s/%s" % (qid, source_id))
+            if str(assessment.get("answer_equivalence_basis") or "") != expected_answer_basis:
+                errors.append("source answer equivalence basis is not pinned for %s/%s" % (qid, source_id))
             actual_excerpt = (
                 assessment.get("source_answer_text")
                 if assessment.get("role") in {"joint_supporting", "answer_only_supporting"}
@@ -839,12 +900,25 @@ def _validate_source_page_evidence(
             if assessment.get("supports_stem") is True:
                 stem = str(item.get("stem") or item.get("content") or "").strip()
                 excerpt = str(assessment.get("stem_excerpt") or "").strip()
-                if excerpt != stem:
-                    errors.append("source audit stem excerpt is not the exact canonical stem for %s/%s" % (qid, source_id))
+                stem_match = str(assessment.get("stem_match") or "")
+                if stem_match == "exact_stem_match" and excerpt != stem:
+                    errors.append("source audit exact stem excerpt differs from canonical stem for %s/%s" % (qid, source_id))
+                elif stem_match == "equivalent_stem_match":
+                    if not str(assessment.get("observed_stem") or "").strip():
+                        errors.append("source audit equivalent stem has no observed stem for %s/%s" % (qid, source_id))
+                    if not str(assessment.get("stem_equivalence_basis") or "").strip():
+                        errors.append("source audit equivalent stem has no equivalence basis for %s/%s" % (qid, source_id))
             if assessment.get("supports_canonical") is True:
                 value = str(assessment.get("answer_value") or "")
-                if value != canonical:
-                    errors.append("source audit answer value differs for %s/%s" % (qid, source_id))
+                answer_match = str(assessment.get("answer_match") or "")
+                normalized_answer = str(assessment.get("normalized_answer") or "")
+                if answer_match == "exact_answer_match" and value != canonical:
+                    errors.append("source audit exact answer value differs for %s/%s" % (qid, source_id))
+                elif answer_match == "equivalent_answer_match":
+                    if normalized_answer != canonical:
+                        errors.append("source audit normalized equivalent answer differs for %s/%s" % (qid, source_id))
+                    if not str(assessment.get("answer_equivalence_basis") or "").strip():
+                        errors.append("source audit equivalent answer has no equivalence basis for %s/%s" % (qid, source_id))
                 excerpt = str(assessment.get("answer_excerpt") or "").strip()
                 source_text = str(assessment.get("source_answer_text") or "").strip()
                 if not excerpt:
@@ -1065,11 +1139,18 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                 for field in ("answer_locator", "answer_value", "answer_excerpt", "rejection_reason"):
                     if not str(assessment.get(field, "")).strip():
                         errors.append("rejected source is missing %s for %s/%s" % (field, qid, source_id))
-            if supports_canonical and str(assessment.get("answer_value")) != _canonical_source_value(expected_answer):
-                errors.append("source answer value differs for %s/%s" % (qid, source_id))
+            canonical_value = _canonical_source_value(expected_answer)
+            if supports_canonical:
+                if answer_match == "exact_answer_match" and str(assessment.get("answer_value")) != canonical_value:
+                    errors.append("source exact answer value differs for %s/%s" % (qid, source_id))
+                if answer_match == "equivalent_answer_match":
+                    if str(assessment.get("normalized_answer")) != canonical_value:
+                        errors.append("source normalized equivalent answer differs for %s/%s" % (qid, source_id))
+                    if not str(assessment.get("answer_equivalence_basis") or "").strip():
+                        errors.append("source equivalent answer has no equivalence basis for %s/%s" % (qid, source_id))
             if (
                 supports_stem
-                and stem_match in {"exact_stem_match", "equivalent_stem_match"}
+                and stem_match in SOURCE_AUDIT_SUPPORTING_STEM_MATCHES
             ):
                 stem_groups.add(str(assessment["independence_group"]))
             if (
@@ -1077,8 +1158,8 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                 and supports_stem
                 and supports_canonical
                 and source.get("evidence_scope") == "stem_and_answer"
-                and stem_match in {"exact_stem_match", "equivalent_stem_match"}
-                and answer_match in {"exact_answer_match", "equivalent_answer_match"}
+                and stem_match in SOURCE_AUDIT_SUPPORTING_STEM_MATCHES
+                and answer_match in SOURCE_AUDIT_SUPPORTING_ANSWER_MATCHES
             ):
                 joint_groups.add(str(assessment["independence_group"]))
         recorded_rejected = row.get("rejected_source_ids")
