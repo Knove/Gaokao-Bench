@@ -31,6 +31,7 @@ from .benchmark_spec import (
     question_requires_vision,
     question_type,
 )
+from .quality import quality_level_errors
 from .version import (
     DATA_SCHEMA_VERSION,
     DEFAULT_DATASET_VERSION,
@@ -897,6 +898,12 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
     policy = block.get("policy")
     if not isinstance(policy, Mapping):
         raise ValueError("manifest.source_audit.policy must be an object")
+    quality_errors = quality_level_errors(manifest)
+    if quality_errors:
+        raise ValueError(
+            "Gaokao-Bench quality-level contract failed:\n- "
+            + "\n- ".join(quality_errors)
+        )
     required_stem = int(policy.get("required_stem_independent_groups") or 0)
     required_joint = int(policy.get("required_joint_answer_independent_groups") or 0)
     if required_stem < 2 or required_joint < 2:

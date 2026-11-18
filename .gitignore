@@ -23,6 +23,7 @@ build/
 /runs/
 /scripts/evidence/
 /.tmp_research/
+/.tmp_audit/
 
 # Internal planning, release notes, and the owner-facing local README.
 /README.internal.md

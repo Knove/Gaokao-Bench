@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from gaokao_bench.benchmark_spec import parse_benchmark_spec  # noqa: E402
+from gaokao_bench.quality import QUALITY_LEVEL  # noqa: E402
 from gaokao_bench.scoring import public_scoring_contract  # noqa: E402
 from gaokao_bench.version import ENGINE_VERSION  # noqa: E402
 
@@ -1037,11 +1038,13 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     if audit_reports:
         audit_report_dir = temporary / "audit_reports"
         audit_report_dir.mkdir(parents=True)
+        packaged_audit_reports: List[Dict[str, Any]] = []
         for report in audit_reports:
             source_path = Path(report["report_path"])
+            report_relative = "audit_reports/audit-%s.json" % report["audit_id"].lower()
             shutil.copyfile(
                 source_path,
-                audit_report_dir / ("audit-%s.json" % report["audit_id"].lower()),
+                temporary / report_relative,
             )
             markdown_path = source_path.with_suffix(".md")
             if markdown_path.is_file():
@@ -1049,6 +1052,11 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
                     markdown_path,
                     audit_report_dir / ("audit-%s.md" % report["audit_id"].lower()),
                 )
+            packaged = dict(report)
+            packaged["report_path"] = report_relative
+            packaged_audit_reports.append(packaged)
+    else:
+        packaged_audit_reports = []
 
     source_pages_rows, source_pages_by_source = materialize_source_pages(
         source_pages_spec=source_pages_spec,
@@ -1674,6 +1682,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             **source_audit_summary,
         },
         "quality": {
+            "quality_level": QUALITY_LEVEL,
             "review_protocol": "three_independent_audits_then_owner_signoff",
             "owner_signoff": "pending",
             "review_status": status,
@@ -1700,7 +1709,7 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "joint_answer_dual_source_questions": source_audit_summary[
                 "joint_answer_dual_source_questions"
             ],
-            "audits": audit_reports,
+            "audits": packaged_audit_reports,
         },
         "scoring": scoring_contract,
         "compatibility": {

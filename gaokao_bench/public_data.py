@@ -448,6 +448,7 @@ def _dataset_card(
     freshness_claim_allowed = bool(spec.reporting.freshness_claim_allowed) if spec is not None else False
     review_records = int(audit.get("review_records", 0))
     audit_rows = int(audit.get("question_audit_rows", 0))
+    quality_level = str(audit.get("quality_level") or "historical_unclassified")
     spec_file_line = (
         "`benchmark_spec.json`：题型、答案形状、视图、分母和评分协议；"
         if benchmark_spec
@@ -544,6 +545,7 @@ Gaokao-Bench 用中国高考真题衡量 AI 的真实推理能力。本数据包
 | 文本模式 | **{text_questions} 题 / {text_points} 分可达**，以 {points} 分为固定分母 |
 | 视觉模式 | **{questions} 题 / {points} 分** |
 | 主观题目录 | {catalog_questions} 题 / {catalog_points} 分，编目但不计分 |
+| 质量等级 | `{quality_level}` |
 | 榜单类别 | `{leaderboard_class}` |
 | 新鲜度声明 | {freshness_label} |
 
@@ -636,7 +638,7 @@ $$
 
 ## 审计与复核
 
-本版本已完成逐题审计收口：`review_status=audited_passed`，`owner_signoff={owner_signoff}`，`review_protocol=owner_attested_single_review`。`audit/` 提供 {audit_rows} 行逐题审计证据和 {review_records} 条验收记录。{source_evidence_note}该表述是 owner 对全部计分项的责任性 attestation，不虚构两名外部独立审阅人。
+本版本已完成逐题审计收口：`quality_level={quality_level}`，`review_status=audited_passed`，`owner_signoff={owner_signoff}`，`review_protocol=owner_attested_single_review`。`audit/` 提供 {audit_rows} 行逐题审计证据和 {review_records} 条验收记录。{source_evidence_note}该表述是 owner 对全部计分项的责任性 attestation，不虚构两名外部独立审阅人。
 
 ## 许可与来源
 
@@ -706,6 +708,7 @@ $$
         freshness_label="允许" if freshness_claim_allowed else "不允许",
         review_records=review_records,
         audit_rows=audit_rows,
+        quality_level=quality_level,
         owner_signoff=str(audit.get("owner_signoff", "complete")),
     )
 
@@ -1099,6 +1102,7 @@ def _build_public_data_package_at(
             "review_status": source_quality.get("review_status", "passed"),
             "owner_signoff": source_quality.get("owner_signoff"),
             "human_independent_review": source_quality.get("human_independent_review"),
+            "quality_level": source_quality.get("quality_level"),
         }
     )
     created = created_at or dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
@@ -1236,6 +1240,7 @@ def _build_public_data_package_at(
             "protocol": "owner_attested_single_review",
             "owner_signoff": "audited_passed",
             "review_status": "audited_passed",
+            "quality_level": source_quality.get("quality_level"),
             "counts": {
                 "questions": int(audit.get("question_audit_rows", 0)),
                 "points": int(audit["objective_points"]),

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 import gaokao_bench.scoring as scoring
+from gaokao_bench.quality import quality_level_errors, source_audit_policy
 from gaokao_bench.scoring import Dataset, validate_source_audit
 
 
@@ -16,6 +17,23 @@ PNG_BYTES = (
     b"\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x01\x05\x01\x02"
     b"\x8a\x13\x8c\xb8\x00\x00\x00\x00IEND\xaeB`\x82"
 )
+
+
+def test_quality_level_requires_strict_policy_floor():
+    manifest = {
+        "quality": {"quality_level": "strict_dual_source_v4"},
+        "source_audit": {"policy": source_audit_policy()},
+    }
+    assert quality_level_errors(manifest, require_source_audit_quality=True) == []
+
+    legacy = copy.deepcopy(manifest)
+    legacy["source_audit"]["policy"]["version"] = "dual_source_v2"
+    legacy["source_audit"]["policy"]["required_stem_independent_groups"] = 2
+    legacy["source_audit"]["policy"]["required_joint_answer_independent_groups"] = 2
+    errors = quality_level_errors(legacy, require_source_audit_quality=True)
+    assert any("policy version" in error for error in errors)
+    assert any("nine independent stem groups" in error for error in errors)
+    assert any("six independent joint groups" in error for error in errors)
 
 
 def _write_json(path: Path, value) -> None:

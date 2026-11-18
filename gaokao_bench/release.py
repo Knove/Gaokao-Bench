@@ -20,6 +20,7 @@ from .harness import (
 )
 from .benchmark_spec import question_requires_vision
 from .materialize import signed_content_hashes
+from .quality import quality_level_errors
 from .scoring import SCORER_VERSION, file_sha256, load_dataset, validate_dataset
 from .version import DEFAULT_DATASET_VERSION
 
@@ -691,6 +692,26 @@ def evaluate_release_gate(
     if target != "public-code":
         validate_dataset(dataset)
     manifest = dataset.manifest
+    if target != "public-code" and isinstance(manifest.get("source_audit"), Mapping):
+        level_errors = quality_level_errors(
+            manifest, require_source_audit_quality=True
+        )
+        if level_errors:
+            _add(
+                checks,
+                "quality_level",
+                "fail",
+                "; ".join(level_errors),
+                public_blocking=target == "public",
+            )
+        else:
+            _add(
+                checks,
+                "quality_level",
+                "pass",
+                "strict dual-source quality level is internally consistent",
+                public_blocking=target == "public",
+            )
     manifest_sha = file_sha256(root / "manifest.json")
     source_root = root.parent.parent if root.parent.name == "data" else root.parent
     public_full = target == "public"
