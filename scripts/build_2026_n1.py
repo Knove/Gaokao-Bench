@@ -479,6 +479,7 @@ def _source_assessment(
         "mismatched_stem",
         "not_assessed",
     }
+    supports_canonical = bool(joint or answer_only)
     stem_evidence = _evidence_for_group(
         source_pages, stem_group, stem=True, number=number
     )
@@ -530,7 +531,7 @@ def _source_assessment(
         "evidence_scope": source["evidence_scope"],
         "role": role,
         "supports_stem": supports_stem,
-        "supports_canonical": bool(joint or answer_only),
+        "supports_canonical": supports_canonical,
         "stem_match": final_stem_match,
         "answer_match": answer_match,
         "stem_locator": _locator(stem_group, number) if stem_group is not None else "",
