@@ -1,0 +1,2612 @@
+{
+  "coverage": {
+    "baidu-wenku-SH": {},
+    "baidu-wenku-n1": {},
+    "qiqi-qi-bj-a": {
+      "observed_answers": {
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：B.   10．D           uuur uuur uuru    u",
+          "normalized_value": "D",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "D"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：D.   11． 6   【分析】根据抛物线的几何性质可求 p 的值.",
+          "normalized_value": "6",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.86；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "6"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "为： 60 .   15．②③   【分析】利用反证法可判断①④的正误，构造函数并验证后可",
+          "normalized_value": "②③",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.69；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "②③"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：D.   2．B   【分析】先求出复数 z ，再根据复数模的公式即可求出．",
+          "normalized_value": "B",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：B.   3．B   【分析】先将双曲线方程化成标准方程，求出 a, b,",
+          "normalized_value": "B",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：B．   4．A   【分析】由 y  9 x  32 x ，根据平移法",
+          "normalized_value": "A",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.88；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "A"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：A.   5．C   【分析】由等比中项的性质结合等差数列的基本量运算即可求",
+          "normalized_value": "C",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.83；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：C.   6．C   【分析】由基本不等式结合特例即可判断.   【详解】对",
+          "normalized_value": "C",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "enku.com  7．A   【分析】由函数值域的概念结合特例，再根据充分条件、必要",
+          "normalized_value": "A",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.90；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "A"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：A.   8．C",
+          "normalized_value": "C",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：C.   9．B   【分析】由题给条件列出不同训练数据量时所需的时间，结合",
+          "normalized_value": "B",
+          "stem": "2025 年北京高考数学试题  本试卷共 12 页，150 分.考试时长 120 分钟.考生务必将答案答在答题卡上，在试卷上作答   无效.考试结束后，将本试卷和答题卡一并交回.                                 第一部分（选择题 共 40 分）   一、选择题共 10 小题，",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.87；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        }
+      }
+    },
+    "qiqi-qi-bj-c": {},
+    "qiqi-qi-bj-n": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "目要求  的.   1.C      2.A     3.D      4.C",
+          "normalized_value": "C",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "10.ABD           11.ACD  三、填空题：本题共 3",
+          "normalized_value": "ABD",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "ABD"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "1.C      2.A     3.D      4.C     5.A",
+          "normalized_value": "A",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "2.A     3.D      4.C     5.A      6.C",
+          "normalized_value": "D",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "D"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3.D      4.C     5.A      6.C     7.B",
+          "normalized_value": "C",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "4.C     5.A      6.C     7.B      8.D  二、",
+          "normalized_value": "A",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "A"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "5.A      6.C     7.B      8.D  二、多选题：本题共 3",
+          "normalized_value": "C",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "6.C     7.B      8.D  二、多选题：本题共 3 小题，共 18",
+          "normalized_value": "B",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "7.B      8.D  二、多选题：本题共 3 小题，共 18 分.在每小题给出",
+          "normalized_value": "D",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "D"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "齐齐文库  9.AD             10.ABD",
+          "normalized_value": "AD",
+          "stem": "2025 年西藏高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "AD"
+        }
+      }
+    },
+    "qiqi-qi-n1-d": {},
+    "qiqi-qi-n1-e": {},
+    "qiqi-qi-n2-d": {
+      "observed_answers": {
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D         11.ACD  三、填空题：本题共 3 小题，每小题 5 分，共 15",
+          "normalized_value": "ACD",
+          "stem": "2025 年全国二卷高考数学试题及答案  注意事项：  1.答卷前，考生务必将自己的姓名、准考证号填写在答题卡上.  2.回答选择题时，选出每小题答案后，用铅笔把答题卡对应题目的答案标号涂黑；如需改动，用橡皮擦干  净后，再选涂其他答案标号.回答非选择题时，将答案写在答题卡上，写在试卷上无效.  3.考试结束后",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.94；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "ACD"
+        }
+      }
+    },
+    "qiqi-qi-sh-a": {
+      "observed_answers": {
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "故选：B.   14．D   【分析】利用指数函数的性质分类讨论 a 与 1 的关系",
+          "normalized_value": "D",
+          "stem": "2025 年上海高考数学试题                            （考试时间 120 分钟，满分 150 分）   一、填空题（本大题共 12 题，第 1~6 题每题 4 分，第 7~12 题每题 5 分，共 54 分.考生应   在答题纸的相应位置直接填写结果）   1．已知全集 U ",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.64；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "D"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "1,3 .   3． 12           齐齐文库  【分析】直接根据等差数列求",
+          "normalized_value": "12",
+          "stem": "2025 年上海高考数学试题                            （考试时间 120 分钟，满分 150 分）   一、填空题（本大题共 12 题，第 1~6 题每题 4 分，第 7~12 题每题 5 分，共 54 分.考生应   在答题纸的相应位置直接填写结果）   1．已知全集 U ",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.76；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "12"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "0,1 .   6． 6.3   【分析】根据分布列结合期望公式可求期望.   【详解】",
+          "normalized_value": "6.3",
+          "stem": "2025 年上海高考数学试题                            （考试时间 120 分钟，满分 150 分）   一、填空题（本大题共 12 题，第 1~6 题每题 4 分，第 7~12 题每题 5 分，共 54 分.考生应   在答题纸的相应位置直接填写结果）   1．已知全集 U ",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.90；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "6.3"
+        }
+      }
+    },
+    "qiqi-qi-sh-o": {},
+    "qiqi-qi-tj-b": {},
+    "rendoc-430286188": {
+      "observed_answers": {
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "该展开式中的系数为．12．【答案】2【详解】由题得．所以．因为圆心到直线的距离,则由,即．解得．",
+          "normalized_value": "2",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.73；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "2"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "，故排除C,故选D．4．【答案】C【详解】对于A,若,则直线与可能平行，也可能垂直，还可能异面",
+          "normalized_value": "C",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "…+a12|=故选．7．【答案】B【详解】本题易知函数在上单调递减（提示：函数为减函数．函数为",
+          "normalized_value": "B",
+          "stem": "B．48\t\tC．80\t\tD．647．函数的零点所在区间是（）A．\t\tB．\t\tC．\t\tD．8．已知,在上单调，为一条对称轴，为一个对称中心，且,当时，（）A．\t\tB．\t\tC．1\t\tD．09．双曲线左右焦点分别为.以右焦点为焦点的抛物线与双曲线交于第一象限的点，若则离心率()A．2\t\tB．5\t\tC．\t\tD．二、填空题10．已知i是虚数单位，则_______．",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        }
+      }
+    },
+    "rendoc-430556009": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "onpages22页1．C【分析】根据复数代数形式的运算法则以及虚部的定义即可求出.【",
+          "normalized_value": "C",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "C"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "正确.故选：ACD.11．ABC【分析】对由二倍角公式先可推知A选项正确，然后分情况比较和的",
+          "normalized_value": "ABC",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.80；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "ABC"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "/jquery-1.12.4.min.js?v=120221115\"></script>",
+          "normalized_value": "4",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.60；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "4"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "素个数为，故选：C．3．D【分析】由题可知双曲线中的关系，结合和离心率公式求解【详解】",
+          "normalized_value": "D",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.79；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "D"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "是，则，即.故选：D4．B【分析】根据正切函数的对称中心的结论求解.【详解】根据正切函",
+          "normalized_value": "B",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.90；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "小值是，即.故选：B5．A【分析】根据周期性和奇偶性把待求自变量转化为的范围中求解.【",
+          "normalized_value": "A",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.88；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "A"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "成立，于是.故选：A6．A【分析】结合题目条件和图写出视风风速对应的向量和船行风速对应",
+          "normalized_value": "A",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.83；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "A"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "速为轻风，故选：A.7．B【分析】先求出圆心到直线的距离，然后结合图象，即可得出结论.",
+          "normalized_value": "B",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.88；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "距离等于.故选：B.8．B【分析】法一：设，对讨论赋值求出，即可得出大小关系，利用排除",
+          "normalized_value": "B",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 0.70；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        }
+      }
+    },
+    "rendoc-431179836": {},
+    "rendoc-431789367": {
+      "observed_answers": {
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": ".D</p> <p>2.A</p> <p>3.D</p> <p>4.C</p> <p>",
+          "normalized_value": "A",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": ".A</p> <p>3.D</p> <p>4.C</p> <p>5.B</p> <p>",
+          "normalized_value": "D",
+          "stem": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"zh\"> <hea",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": ".C</p> <p>5.B</p> <p>6.C</p> <p>7.B</p> <p>",
+          "normalized_value": "B",
+          "stem": "⊥β\tD.若m⊂α,α⊥β，则m⊥β5.下列说法中错误的是(</p> <p>)A.若X∼Nμ,σ2，则P(X≤μ−σ)=P(X≥μ+σ)</p> <p>B.若X∼N1,22，Y∼N2,22，则P(X&lt;1)&lt;P(Y&lt;2)</p> <p>C.r6.Sn=−n2+8n，则数列A.112\tB.48\tC.80\tD.647.函数f(x)=0.3x−A.",
+          "stem_equivalence_basis": "canonical 题干的中文 3-gram 在该冻结文档文字层中的覆盖率为 1.00；排版与 LaTeX 记法不同，逐项核对条件与所求一致。",
+          "stem_match": "equivalent_stem_match",
+          "value": "B"
+        }
+      }
+    },
+    "rendoc-453784408": {},
+    "rendoc-461412964": {},
+    "rendoc-462494970": {},
+    "rendoc-462879996": {},
+    "rendoc-493731879": {},
+    "rendoc-526115584": {},
+    "rendoc-536959571": {},
+    "src-21cnjy-2026-n1-full": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第1题。",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第10题。",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第11题。",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第12题。",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第13题。",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第14题。",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第15题。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第16题。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第17题。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第18题。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第19题。",
+          "normalized_value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第2题。",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第4题。",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第5题。",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第6题。",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第7题。",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第8题。",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "21cnjy 25912080 资源简介中的题干与答案/详细解析；第9题。",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-51test-2026-n1-paper": {},
+    "src-bendibao-2026-n1-answers": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "【答案】(1)见解析(2)1",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-book118-2026-n1-full": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "因为直线DE平行于平面BCC1B1，所以所求距离为1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "cos A=1/3；CE=√(3^2+6^2)=3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-deekur-gaokaomath-2025-bj": {},
+    "src-deekur-gaokaomath-2025-n1": {},
+    "src-deekur-gaokaomath-2025-n2": {},
+    "src-deekur-gaokaomath-2025-sh": {},
+    "src-deekur-gaokaomath-2025-tj": {},
+    "src-deekur-gaokaomath-2026-n1": {},
+    "src-eol-2026-n1-answers": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "（B）；故选B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "P(X>k+m|X>k)=(1-p)^(k+m)/(1-p)^k=(1-p)^m=P(X>m)，证毕。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      },
+      "question_overrides": {
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "external_answer_error",
+          "normalized_answer": "",
+          "observed_answer": "BC",
+          "observed_excerpt": "（BC）；故选 B、C",
+          "observed_stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "external_answer_error",
+          "normalized_answer": "",
+          "observed_answer": "θ = 3π/2；f(2π/3) = -2",
+          "observed_excerpt": "θ = 3π/2；f(2π/3) = -2",
+          "observed_stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "external_answer_error",
+          "normalized_answer": "",
+          "observed_answer": "q 的最大值为 4",
+          "observed_excerpt": "q 的最大值为 4",
+          "observed_stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "external_source_self_conflict",
+          "normalized_answer": "",
+          "observed_answer": "距离为 √2/2",
+          "observed_excerpt": "距离为 √2/2",
+          "observed_stem": "如图，在直三棱柱ABC-A1B1C1中，∠ACB=90°，AC=BC，D，E分别为AB，AC的中点。\n(1) 证明：DE∥平面BCC1B1；\n(2) 设CC1=2，直线DE与平面ACC1A1所成的角为45°，求直线DE到平面BCC1B1的距离。",
+          "stem_equivalence_basis": "",
+          "stem_match": "mismatched_stem"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "external_answer_error",
+          "normalized_answer": "",
+          "observed_answer": "（1）cos A = √7/3；（2）CE = √6。",
+          "observed_excerpt": "（1）cos A = √7/3；（2）CE = √6。",
+          "observed_stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "external_answer_error",
+          "normalized_answer": "",
+          "observed_answer": "l: y=1/2(x+1)；tan∠PQR 的最小值为 √2/2",
+          "observed_excerpt": "l: y=1/2(x+1)；tan∠PQR 的最小值为 √2/2",
+          "observed_stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match"
+        },
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "external_answer_error",
+          "normalized_answer": "",
+          "observed_answer": "D(-1)=(-1, 3/2)",
+          "observed_excerpt": "D(-1)=(-1, 3/2)",
+          "observed_stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match"
+        }
+      }
+    },
+    "src-eol-2026-n1-paper": {},
+    "src-gk100-2026-n1-answers": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "因为直线DE平行于平面BCC1B1，所以所求距离为1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "cos A=1/3；CE=√(3^2+6^2)=3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。",
+          "normalized_value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-netease-shuhai-2026-n1-full": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "送B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "DE到平面BCC1B1的距离 d=EM=1/2 AC=1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "cos A=1/3；CE=3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。",
+          "normalized_value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-rendoc-2026-n1-full": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "【正确答案】B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "所以直线DE到平面BCC1B1的距离为1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "cos A=1/3；在Rt△ACE中，CE=√(AE^2+AC^2)=3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C: x^2/4+y^2/3=1；l: √5x-2y+√5=0；tan∠PQR 的最小值为4√3。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D(-1)={d∈R | 0<d<3/2}；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。",
+          "normalized_value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-rendoc-teacher-530208383": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "（2）距离为1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "（1）1/3；（2）3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "X的分布列为P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=(1-p)^m=P(X>m)。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "（1）x^2/4+y^2/3=1；（2）(i) y=(√5/2)(x+1)；(ii) 4√3。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。",
+          "normalized_value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-sohu-2026-n1-answers": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "所以直线DE到平面BCC1B1的距离为1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "cos A=1/3；CE=3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "not_assessed",
+          "value": "ACD"
+        }
+      }
+    },
+    "src-toutiao-achuan-2026-n1-d19": {
+      "observed_answers": {
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "所以 f(x)在区间(0,+∞)单调递增。",
+          "normalized_value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        }
+      }
+    },
+    "src-wechat-miaojie-2026-n1-d18": {
+      "observed_answers": {
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C: x^2/4+y^2/3=1；则l的方程为x=(2√5/5)y−1；tan∠PQR的最小值为4√3。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        }
+      }
+    },
+    "src-woaigaokao-2026-n1-full": {
+      "observed_answers": {
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "所以DG=1/2 AC=1，故直线DE到平面BCC1B1的距离为1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "cos A=1/3；CE=3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        }
+      }
+    },
+    "src-zizzs-2026-n1-answers": {
+      "observed_answers": {
+        "1": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "10": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BC",
+          "normalized_value": "BC",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BC"
+        },
+        "11": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "BCD",
+          "normalized_value": "BCD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "BCD"
+        },
+        "12": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "√66/6",
+          "normalized_value": "√66/6",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "√66/6"
+        },
+        "13": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "3π/2；1",
+          "normalized_value": "[\"3π/2\", \"1\"]",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "[\"3π/2\", \"1\"]"
+        },
+        "14": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "∛(3/2)",
+          "normalized_value": "∛(3/2)",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "∛(3/2)"
+        },
+        "15": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "由几何知识得，DE到面BCC1B1的距离为DF=1。",
+          "normalized_value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) DE // 平面BCC1B1；(2) 直线DE到平面BCC1B1的距离为1。"
+        },
+        "16": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "（1）1/3；（2）3√5。",
+          "normalized_value": "(1) cos A = 1/3；(2) CE = 3√5。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) cos A = 1/3；(2) CE = 3√5。"
+        },
+        "17": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "P(X=1)=1/3，P(X=2)=2/9，P(X=3)=4/27，P(X=4)=8/27；P(X>k)=(1-p)^k；P(X>k+m|X>k)=P(X>m)。",
+          "normalized_value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) P(X=1)=1/3, P(X=2)=2/9, P(X=3)=4/27, P(X=4)=8/27；(2)(i) P(X>k)=(1-p)^k；(ii) P(X>k+m|X>k)=P(X>m)。"
+        },
+        "18": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C: x^2/4+y^2/3=1；l: y=(√5/2)(x+1)；tan∠PQR 的最小值为4√3。",
+          "normalized_value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) x^2/4 + y^2/3 = 1；(2)(i) y = (√5/2)(x+1)；(ii) 最小值为4√3。"
+        },
+        "19": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D(-1)=(0,3/2)；D(x2)⊆D(x1)；f(0)≥1；f(x)在(0,+∞)上单调递增。",
+          "normalized_value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "(1) D(-1) = {d∈R | 0<d<3/2} = (0, 3/2)；(2) D(x2) ⊆ D(x1)；(3)(i) f(0) ≥ 1；(ii) f(x) 在 (0, +∞) 上单调递增。"
+        },
+        "2": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "3": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "C",
+          "normalized_value": "C",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "C"
+        },
+        "4": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "5": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "D",
+          "normalized_value": "D",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "D"
+        },
+        "6": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "7": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "B",
+          "normalized_value": "B",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "B"
+        },
+        "8": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "A",
+          "normalized_value": "A",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "A"
+        },
+        "9": {
+          "answer_equivalence_basis": "",
+          "answer_match": "exact_answer_match",
+          "excerpt": "ACD",
+          "normalized_value": "ACD",
+          "stem": "",
+          "stem_equivalence_basis": "",
+          "stem_match": "exact_stem_match",
+          "value": "ACD"
+        }
+      }
+    }
+  },
+  "dataset_version": "0.1.0",
+  "policy": {
+    "answer_only_sources_count_for_gate": false,
+    "joint_answer_source_must_match_stem": true,
+    "minimum_stem_independent_groups": 1,
+    "owner_signoff_requires_gate": false,
+    "required_question_count": 119,
+    "required_source_page_evidence": true,
+    "scope": "all_catalogued_questions",
+    "strict_joint_answer_independent_groups": 6,
+    "strict_level": "strict_dual_source_v4",
+    "strict_questions": [
+      "GB26-N1-D15",
+      "GB26-N1-D16",
+      "GB26-N1-D17",
+      "GB26-N1-D18",
+      "GB26-N1-D19",
+      "GB26-N1-Q01",
+      "GB26-N1-Q02",
+      "GB26-N1-Q03",
+      "GB26-N1-Q04",
+      "GB26-N1-Q05",
+      "GB26-N1-Q06",
+      "GB26-N1-Q07",
+      "GB26-N1-Q08",
+      "GB26-N1-Q09",
+      "GB26-N1-Q10",
+      "GB26-N1-Q11",
+      "GB26-N1-Q12",
+      "GB26-N1-Q13",
+      "GB26-N1-Q14"
+    ],
+    "strict_stem_independent_groups": 9,
+    "version": "mixed_source_audit_v1"
+  },
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "id": "baidu-wenku-SH",
+      "independence_group": "baidu-wenku",
+      "publisher": "百度文库"
+    },
+    {
+      "id": "baidu-wenku-n1",
+      "independence_group": "baidu-wenku",
+      "publisher": "百度文库"
+    },
+    {
+      "id": "qiqi-qi-bj-a",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-bj-c",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-bj-n",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-n1-d",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-n1-e",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-n2-d",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-sh-a",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-sh-o",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "qiqi-qi-tj-b",
+      "independence_group": "qiqiwenku",
+      "publisher": "齐齐文库"
+    },
+    {
+      "id": "rendoc-430286188",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-430556009",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-431179836",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-431789367",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-453784408",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-461412964",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-462494970",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-462879996",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-493731879",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-526115584",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "rendoc-536959571",
+      "independence_group": "rendoc",
+      "publisher": "人人文库"
+    },
+    {
+      "id": "src-21cnjy-2026-n1-full",
+      "independence_group": "21cnjy",
+      "publisher": "21世纪教育网／二一教育"
+    },
+    {
+      "id": "src-51test-2026-n1-paper",
+      "independence_group": "51test-wykw",
+      "publisher": "无忧考网"
+    },
+    {
+      "id": "src-bendibao-2026-n1-answers",
+      "independence_group": "bendibao",
+      "publisher": "深圳本地宝"
+    },
+    {
+      "id": "src-book118-2026-n1-full",
+      "independence_group": "book118-preview-7162100005011121",
+      "publisher": "原创力文档（文档 7162100005011121）"
+    },
+    {
+      "id": "src-deekur-gaokaomath-2025-bj",
+      "independence_group": "deekur",
+      "publisher": "deekur/gaokaomath"
+    },
+    {
+      "id": "src-deekur-gaokaomath-2025-n1",
+      "independence_group": "deekur",
+      "publisher": "deekur/gaokaomath"
+    },
+    {
+      "id": "src-deekur-gaokaomath-2025-n2",
+      "independence_group": "deekur",
+      "publisher": "deekur/gaokaomath"
+    },
+    {
+      "id": "src-deekur-gaokaomath-2025-sh",
+      "independence_group": "deekur",
+      "publisher": "deekur/gaokaomath"
+    },
+    {
+      "id": "src-deekur-gaokaomath-2025-tj",
+      "independence_group": "deekur",
+      "publisher": "deekur/gaokaomath"
+    },
+    {
+      "id": "src-deekur-gaokaomath-2026-n1",
+      "independence_group": "deekur-gaokaomath",
+      "publisher": "deekur/gaokaomath"
+    },
+    {
+      "id": "src-eol-2026-n1-answers",
+      "independence_group": "eol-gkst",
+      "publisher": "中国教育在线"
+    },
+    {
+      "id": "src-eol-2026-n1-paper",
+      "independence_group": "eol-gkst",
+      "publisher": "中国教育在线"
+    },
+    {
+      "id": "src-gk100-2026-n1-answers",
+      "independence_group": "gk100",
+      "publisher": "高考100"
+    },
+    {
+      "id": "src-netease-shuhai-2026-n1-full",
+      "independence_group": "netease-shuhai-manyou",
+      "publisher": "网易号／新浪财经（原文：数海漫游）"
+    },
+    {
+      "id": "src-rendoc-2026-n1-full",
+      "independence_group": "rendoc",
+      "publisher": "人文库"
+    },
+    {
+      "id": "src-rendoc-teacher-530208383",
+      "independence_group": "rendoc",
+      "publisher": "人文库"
+    },
+    {
+      "id": "src-sohu-2026-n1-answers",
+      "independence_group": "sohu-yibang",
+      "publisher": "搜狐号「一帮N辅导」"
+    },
+    {
+      "id": "src-toutiao-achuan-2026-n1-d19",
+      "independence_group": "toutiao-achuan",
+      "publisher": "今日头条／阿川和孩子聊提分"
+    },
+    {
+      "id": "src-wechat-miaojie-2026-n1-d18",
+      "independence_group": "wechat-miaojie",
+      "publisher": "微信公众号「妙解之慧」"
+    },
+    {
+      "id": "src-woaigaokao-2026-n1-full",
+      "independence_group": "woaigaokao",
+      "publisher": "我爱高考"
+    },
+    {
+      "id": "src-zizzs-2026-n1-answers",
+      "independence_group": "zizzs",
+      "publisher": "自主选拔在线"
+    }
+  ]
+}

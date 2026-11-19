@@ -7,6 +7,52 @@ Versioning
 - Dataset versions track questions, answers, points, assets, and manifest policy.
 - A published result must record both versions plus the dataset and protocol hashes.
 
+2026-11-18
+----------
+
+Dataset 0.1.0
+
+- Assemble the first cumulative package: 2025 全国 I / 全国 II / 北京 / 上海 /
+  天津 plus 2026 全国 I, closing at 119 questions / 900 points, with 88
+  questions / 426 points scored deterministically and a 31-question,
+  474-point subjective catalog. The single primary metric remains
+  `score.weighted_points = earned / 426`.
+- Introduce the mixed evidence contract `mixed_source_audit_v1`. It keeps the
+  `strict_dual_source_v4` floor untouched and instead records the tier each
+  question actually reaches in `source_audit.jsonl#evidence_level`, so a
+  package can ship strong and thin papers side by side without claiming one
+  quality level for both. Every question still needs hash-checked frozen
+  evidence, and a tier that disagrees with its own group counts fails
+  validation.
+- 2026 全国 I keeps full `strict_dual_source_v4` evidence: 19/19 questions with
+  nine independent stem groups and six independent joint groups.
+- The five 2025 papers ship at their measured tiers: 73 questions at
+  `stem_corroborated_v1` and 27 at `single_source_v1`. They do not reach
+  `dual_source_v2` because no second publisher group carries both the stem and a
+  verifiable answer for the same question; that is a measured gap, not an
+  assertion, and `reports/audit-2025/` records the per-question group matrix.
+- Rebind 天津 to the archived PDF (SHA-256 `70f4bb30...`) instead of the
+  recalled reconstruction that `0.1.0-alpha.6.1` cited: crops are re-rendered
+  from the PDF's own block geometry, page numbers and bounding boxes are
+  refreshed, and the paper and source rows record the corrected digest.
+- Re-read 天津's stems and distractor text from that PDF. Five multiple-choice
+  questions carried distractor text the paper does not print — Q01's A/B/C,
+  Q04's A, Q05's C/D, Q06's A/B/D and Q08's C — and seven stems were
+  paraphrases of the printed wording. Every recorded answer was re-mapped through the option text
+  the old package marked correct; no answer letter changed, because in each case
+  the correct option survived the corruption. All 17 diffs, seven stems and
+  ten option lines, are in `reports/audit-2025/tj-corrections.json`.
+- Fix three release-tool defects found while assembling the package: the release
+  gate referenced `checks` before assignment, the quality contract rejected any
+  level other than `strict_dual_source_v4`, and the source audit hardcoded the
+  strict policy floor for every package.
+- Add `scripts/build_0_1_0.py` (mixed-package builder), `scripts/audit_2025_sources.py`
+  (structural coverage), `scripts/measure_2025_question_sources.py`
+  (per-question publisher groups), and `scripts/check_2025_stem_equivalence.py`
+  (stem-vs-PDF agreement). Rebuilding is deterministic from the frozen caches.
+- `owner_signoff` is still `pending`; the package is a release candidate, not a
+  signed release.
+
 2026-11-16
 ----------
 

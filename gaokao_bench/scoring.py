@@ -31,7 +31,15 @@ from .benchmark_spec import (
     question_requires_vision,
     question_type,
 )
-from .quality import quality_level_errors
+from .quality import (
+    DUAL_SOURCE_JOINT_GROUPS,
+    DUAL_SOURCE_STEM_GROUPS,
+    EVIDENCE_LEVELS,
+    MIXED_SOURCE_AUDIT_V1,
+    STRICT_DUAL_SOURCE_V4,
+    evidence_level,
+    quality_level_errors,
+)
 from .version import (
     DATA_SCHEMA_VERSION,
     DEFAULT_DATASET_VERSION,
@@ -982,10 +990,19 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
             "Gaokao-Bench quality-level contract failed:\n- "
             + "\n- ".join(quality_errors)
         )
-    required_stem = int(policy.get("required_stem_independent_groups") or 0)
-    required_joint = int(policy.get("required_joint_answer_independent_groups") or 0)
-    if required_stem < 2 or required_joint < 2:
-        raise ValueError("dual-source policy must require at least two independent groups")
+    mixed = str(policy.get("version") or "") == MIXED_SOURCE_AUDIT_V1
+    if mixed:
+        # every question must still carry real frozen evidence; the strict floor
+        # is recorded per question instead of being applied to the whole package
+        required_stem = max(1, int(policy.get("minimum_stem_independent_groups") or 1))
+        required_joint = DUAL_SOURCE_JOINT_GROUPS
+        if required_stem < 1:
+            raise ValueError("mixed policy must require at least one independent stem group")
+    else:
+        required_stem = int(policy.get("required_stem_independent_groups") or 0)
+        required_joint = int(policy.get("required_joint_answer_independent_groups") or 0)
+        if required_stem < 2 or required_joint < 2:
+            raise ValueError("dual-source policy must require at least two independent groups")
     if policy.get("answer_only_sources_count_for_gate") is not False:
         raise ValueError("answer-only sources must not count toward the dual-source gate")
 
@@ -1022,6 +1039,12 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
     stem_pass = 0
     joint_pass = 0
     gate_pass = 0
+    stem_evidenced = 0
+    stem_dual = 0
+    joint_dual = 0
+    strict_level = str(policy.get("strict_level") or STRICT_DUAL_SOURCE_V4)
+    level_counts: Dict[str, int] = {level: 0 for level in EVIDENCE_LEVELS}
+    strict_seen: set[str] = set()
     _validate_source_page_evidence(dataset, block, policy, rows, errors)
     evidence_path = dataset.data_dir / str(block.get("evidence_pages") or "source_pages.jsonl")
     evidence_rows = _read_jsonl(evidence_path) if evidence_path.is_file() else []
@@ -1172,30 +1195,86 @@ def validate_source_audit(dataset: Dataset) -> Dict[str, Any]:
                 errors.append("source audit rejected source list is stale for %s" % qid)
         stem_complete = len(stem_groups) >= required_stem
         joint_complete = len(joint_groups) >= required_joint
+        row_gate = stem_complete if mixed else (stem_complete and joint_complete)
         if int(row.get("stem_independent_groups") or 0) != len(stem_groups):
             errors.append("source audit stem group count is stale for %s" % qid)
         if int(row.get("joint_answer_independent_groups") or 0) != len(joint_groups):
             errors.append("source audit joint-answer group count is stale for %s" % qid)
-        if row.get("stem_dual_source_complete") is not stem_complete:
+        # the flag names promise two independent groups, so in a mixed package
+        # they are measured at two even though the gate floor is one
+        stem_flag = (
+            len(stem_groups) >= DUAL_SOURCE_STEM_GROUPS if mixed else stem_complete
+        )
+        joint_flag = (
+            len(joint_groups) >= DUAL_SOURCE_JOINT_GROUPS if mixed else joint_complete
+        )
+        if row.get("stem_dual_source_complete") is not stem_flag:
             errors.append("source audit stem completion flag is stale for %s" % qid)
-        if row.get("joint_answer_dual_source_complete") is not joint_complete:
+        if row.get("joint_answer_dual_source_complete") is not joint_flag:
             errors.append("source audit joint-answer completion flag is stale for %s" % qid)
-        if row.get("gate_complete") is not (stem_complete and joint_complete):
+        if row.get("gate_complete") is not row_gate:
             errors.append("source audit gate flag is stale for %s" % qid)
+        if mixed:
+            if row.get("stem_evidenced_complete") is not stem_complete:
+                errors.append("source audit stem evidenced flag is stale for %s" % qid)
+            achieved = evidence_level(
+                stem_groups=len(stem_groups), joint_groups=len(joint_groups)
+            )
+            recorded_level = row.get("evidence_level")
+            if recorded_level not in EVIDENCE_LEVELS:
+                errors.append("source audit evidence level is missing for %s" % qid)
+            elif recorded_level != achieved:
+                errors.append(
+                    "source audit evidence level is stale for %s: %s != %s"
+                    % (qid, recorded_level, achieved)
+                )
+            level_counts[achieved] += 1
+            if achieved == strict_level:
+                strict_seen.add(qid)
         stem_pass += int(stem_complete)
         joint_pass += int(joint_complete)
-        gate_pass += int(stem_complete and joint_complete)
+        gate_pass += int(row_gate)
+        # "dual source" must keep meaning at least two independent groups, even
+        # where the policy floor is lower; otherwise the manifest would report
+        # single-source questions as dual-source ones
+        stem_evidenced += int(len(stem_groups) >= required_stem)
+        stem_dual += int(len(stem_groups) >= DUAL_SOURCE_STEM_GROUPS)
+        joint_dual += int(len(joint_groups) >= DUAL_SOURCE_JOINT_GROUPS)
 
     summary = {
         "applicable": True,
         "policy": dict(policy),
         "questions": len(rows),
-        "stem_dual_source_questions": stem_pass,
-        "joint_answer_dual_source_questions": joint_pass,
+        "stem_dual_source_questions": (
+            stem_dual if mixed else stem_pass
+        ),
+        "joint_answer_dual_source_questions": (
+            joint_dual if mixed else joint_pass
+        ),
         "gate_complete_questions": gate_pass,
         "evidence_ready": gate_pass == len(rows) and not errors,
         "gate": "pass" if gate_pass == len(rows) and not errors else "blocked",
     }
+    if mixed:
+        summary["stem_evidenced_questions"] = stem_evidenced
+        # name the floor that "gate: pass" was measured against, so the number
+        # cannot be misread as the strict nine-group gate
+        summary["gate_floor_stem_groups"] = required_stem
+        summary["gate_floor_joint_groups"] = required_joint
+        summary["evidence_levels"] = {
+            level: level_counts[level] for level in EVIDENCE_LEVELS
+        }
+        summary["strict_questions"] = sorted(strict_seen)
+        declared_strict = policy.get("strict_questions")
+        if isinstance(declared_strict, list) and set(map(str, declared_strict)) != strict_seen:
+            errors.append("source audit strict question list is stale")
+        if block.get("evidence_levels") != summary["evidence_levels"]:
+            errors.append("manifest.source_audit.evidence_levels is stale")
+        if block.get("strict_questions") != summary["strict_questions"]:
+            errors.append("manifest.source_audit.strict_questions is stale")
+        for field in ("stem_evidenced_questions", "gate_floor_stem_groups", "gate_floor_joint_groups"):
+            if block.get(field) != summary[field]:
+                errors.append("manifest.source_audit.%s is stale" % field)
     for field in (
         "questions",
         "stem_dual_source_questions",

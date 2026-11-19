@@ -913,6 +913,11 @@ def _build_manifest(
                 "source-pages-spec.json": "audit/specs/source-pages.json",
             }
         )
+    source_rights = (
+        source_manifest.get("rights")
+        if isinstance(source_manifest.get("rights"), dict)
+        else {}
+    )
     quality = json.loads(json.dumps(source_manifest.get("quality") or {}))
     if isinstance(quality.get("audits"), list):
         for audit_row in quality["audits"]:
@@ -978,13 +983,19 @@ def _build_manifest(
             "review_records": int((audit_evidence or {}).get("counts", {}).get("reviews", 0)),
         },
         "compatibility": compatibility,
+        # Carried over from the source package instead of asserted here: the
+        # projection must not upgrade the rights claim it was built from.
         "rights": {
-            "dataset_license": "CC-BY-4.0",
-            "code_license": "Apache-2.0",
-            "original_metadata_license": "CC-BY-4.0",
-            "exam_material_license": "CC-BY-4.0",
-            "public_redistribution": "cleared_with_attribution",
-            "rights_status": "cc_by_4_0_public_release",
+            "dataset_license": source_rights.get("data_license") or "NOASSERTION",
+            "code_license": source_rights.get("code_license") or "Apache-2.0",
+            "data_license_scope": source_rights.get("data_license_scope"),
+            "original_metadata_license": source_rights.get("data_license") or "NOASSERTION",
+            "exam_material_license": source_rights.get("exam_material_license") or "NOASSERTION",
+            "third_party_evidence_license": source_rights.get("third_party_evidence_license"),
+            "public_redistribution": (
+                source_rights.get("public_redistribution") or "requires_signed_owner_attestation"
+            ),
+            "rights_status": "inherited_from_source_package",
         },
         "release": {
             "channel": "huggingface",

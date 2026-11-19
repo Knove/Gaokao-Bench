@@ -692,6 +692,7 @@ def evaluate_release_gate(
     if target != "public-code":
         validate_dataset(dataset)
     manifest = dataset.manifest
+    checks: List[Dict[str, Any]] = []
     if target != "public-code" and isinstance(manifest.get("source_audit"), Mapping):
         level_errors = quality_level_errors(
             manifest, require_source_audit_quality=True
@@ -721,7 +722,6 @@ def evaluate_release_gate(
     review_lineage = manifest.get("review_lineage") if isinstance(manifest.get("review_lineage"), dict) else None
     default_reports = resolve_release_report_paths(root, repo_root=repo_root)
     current_signed_content = signed_content_hashes(root) if review_lineage else None
-    checks: List[Dict[str, Any]] = []
     policy, policy_path = _read_release_policy(root, release_policy)
     policy_bound = bool(
         policy

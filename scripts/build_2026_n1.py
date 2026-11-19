@@ -1139,12 +1139,56 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
     all_items = list(spec["objective"]) + list(spec["subjective"])
     assets: List[Dict[str, Any]] = []
     image_records: Dict[str, Dict[str, Any]] = {}
+    reused_assets: Dict[str, Mapping[str, Any]] = {}
+    reused_crop_methods: Dict[str, str] = {}
+    previous_dir: Optional[Path] = None
+    if getattr(args, "assets_from", None):
+        previous_dir = Path(args.assets_from).resolve()
+        previous_questions = previous_dir / "questions.jsonl"
+        if not previous_questions.is_file():
+            raise ValueError("--assets-from package has no questions.jsonl: %s" % previous_dir)
+        for line in previous_questions.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            qid = str(row.get("id") or "")
+            if qid:
+                reused_assets[qid] = row
     for item in all_items:
         qid = item["id"]
         filename = "q-%02d.png" % int(item["number"])
         relative = "assets/%s/%s" % (paper_id, filename)
         destination = temporary / relative
-        render_crop(pdf_path, item, destination)
+        previous = reused_assets.get(qid)
+        if previous is not None and item["type"] != "catalog_subjective":
+            if previous_dir is None:
+                raise ValueError("internal error: reused asset directory is not set")
+            previous_path = previous_dir / str(previous.get("image_path") or "")
+            if not str(previous.get("image_path") or "").strip() or not previous_path.is_file():
+                raise ValueError("reused asset is missing for %s: %s" % (qid, previous_path))
+            if sha256(previous_path) != str(previous.get("image_sha256") or ""):
+                raise ValueError("reused asset hash differs from its recorded value for %s" % qid)
+            # A crop is only reusable if it was cut from *this* paper.  Without
+            # this check a crop from a different PDF would be copied in while the
+            # record still claimed the current source PDF and crop method.
+            previous_source = previous.get("source")
+            previous_pdf_sha = (
+                str(previous_source.get("source_pdf_sha256") or "")
+                if isinstance(previous_source, Mapping)
+                else ""
+            )
+            if previous_pdf_sha != sha256(pdf_path):
+                raise ValueError(
+                    "reused asset %s was cut from a different source PDF (%s != %s)"
+                    % (qid, previous_pdf_sha or "unrecorded", sha256(pdf_path))
+                )
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(previous_path, destination)
+            reused_crop_methods[qid] = str(
+                previous_source.get("crop_method") or ""
+            ) if isinstance(previous_source, Mapping) else ""
+        else:
+            render_crop(pdf_path, item, destination)
         record = {
             "question_id": qid,
             "paper_id": paper_id,
@@ -1154,7 +1198,9 @@ def build(args: argparse.Namespace) -> Dict[str, Any]:
             "dependency": item["asset_dependency"],
             "page_number": int(item["page_number"]),
             "bbox": [float(value) for value in item["bbox"]],
-            "crop_method": CROP_METHOD,
+            # a reused crop keeps the method it was actually cut with, so the
+            # record never claims a renderer that did not produce these bytes
+            "crop_method": reused_crop_methods.get(qid) or CROP_METHOD,
             "source_pdf_sha256": source["sha256"],
         }
         assets.append(record)
@@ -1902,6 +1948,11 @@ def main() -> int:
         "--source-page-cache",
         default=str(ROOT / ".cache" / "gaokao-source-pages" / "2026-n1"),
         help="frozen source-page evidence cache; missing files are downloaded and hash-checked",
+    )
+    parser.add_argument(
+        "--assets-from",
+        type=Path,
+        help="existing reviewed package whose objective crops are reused by question id",
     )
     parser.add_argument("--out", default=str(ROOT / "data" / "0.1.0-alpha.2026-n1.1"))
     parser.add_argument("--created-at", default="2026-11-12T16:40:31+08:00")

@@ -53,7 +53,7 @@
 
 ## Dataset Overview
 
-The current `0.0.4` release contains the objective sections of the **2025 Gaokao Mathematics** papers:
+The `0.1.0` release covers **six Mathematics papers** — the five 2025 papers plus 2026 National I:
 
 <p align="center">
   <picture>
@@ -62,19 +62,38 @@ The current `0.0.4` release contains the objective sections of the **2025 Gaokao
   </picture>
 </p>
 
-| Metric | `0.0.4` Scope |
+| Metric | `0.1.0` Scope |
 | --- | --- |
-| **Subject & Year** | 2025 · Mathematics |
-| **Exam Papers** | 5 papers (National I, National II, Beijing, Shanghai, Tianjin) |
-| **Scored Questions** | **74** (39 single-choice, 6 multiple-choice, 29 fill-in-the-blank) |
-| **Total Points** | **353 points** across **78** answer slots |
-| **Figure-dependent Questions** | **4** items |
-| **Text Mode** | **70 items / 334 reachable points** (denominated over 353) |
-| **Vision Mode** | **74 items / 353 points** (includes the 4 cropped figures) |
+| **Subject & Years** | 2025 and 2026 · Mathematics |
+| **Exam Papers** | 6 papers (2025 National I, National II, Beijing, Shanghai, Tianjin; 2026 National I) |
+| **Scored Questions** | **88** (56 choice, 32 fill-in-the-blank), all-or-nothing |
+| **Total Points** | **426 points** (37 blank-filling slots plus 56 choice answers) |
+| **Subjective Catalog** | **31** questions / **474** points, catalogued but never scored |
+| **Full-Paper Total** | **119 questions / 900 points** |
+| **Figure-dependent Questions** | **4** scored items (attached crops) |
+| **Secondary Metric** | none — `score.weighted_points = earned / 426` is the only one |
 | **Data License** | **CC BY 4.0** |
-| **Distribution** | [Hugging Face dataset](https://huggingface.co/datasets/Knove/Gaokao-Bench), revision `v0.0.4` |
+| **Distribution** | [Hugging Face dataset](https://huggingface.co/datasets/Knove/Gaokao-Bench), revision `v0.1.0` |
 
-*Note: The 353-point denominator is the exact sum of the objective questions across the 5 papers, without linear extrapolation to a 750-point full exam score.*
+### Per-question source evidence
+
+`0.1.0` does not stamp one quality level on the whole package. Each question
+records the source-evidence tier it actually reaches in
+`source_audit.jsonl#evidence_level`:
+
+| Tier | Requirement | Questions |
+| --- | --- | ---: |
+| `strict_dual_source_v4` | ≥9 independent stem groups and ≥6 independent joint groups | 19 |
+| `dual_source_v2` | ≥2 stem groups and ≥2 joint groups | 0 |
+| `stem_corroborated_v1` | ≥2 independent stem groups | 73 |
+| `single_source_v1` | one frozen paper only | 27 |
+
+Only 2026 National I reaches the strict tier. The five 2025 papers top out at
+`stem_corroborated_v1`: their reachable independent publisher groups are below
+nine, and no second publisher carries a verifiable answer for the same question.
+`reports/audit-2025/` holds the per-question group matrix behind those numbers.
+
+*Note: the 426-point denominator is the exact sum of the objective questions across the six papers. It is not a linear extrapolation to a 900-point total, and the 474 catalogued subjective points never enter a denominator.*
 
 ## How It Works
 
@@ -111,7 +130,7 @@ If you only need the runtime harness and dataset downloader without test tools, 
 
 ### 2. Prepare the Dataset
 
-Download the immutable public release from Hugging Face and verify every file hash:
+Download the immutable public release from Hugging Face and verify every file hash. `v0.0.4` is the last published revision; substitute `0.1.0` once its tag is pushed:
 
 ```bash
 python -m pip install -e ".[harness,data]"
@@ -211,11 +230,11 @@ Run summaries are human-readable by default. `--report` saves the full `summary.
 
 $$\mathrm{score.weighted\_points} = \frac{\text{Earned Points in Scope}}{\text{Possible Points in Scope}}$$
 
-- **One primary metric:** the value is a `0–1` ratio with an explicit scope (`full_dataset`, `full_view`, or `selected_subset`). A displayed percentage is only `100 × ratio`; there is no second full-test metric. For the complete `0.0.4` data package, the scope denominator is **353 points**.
+- **One primary metric:** the value is a `0–1` ratio with an explicit scope (`full_dataset`, `full_view`, or `selected_subset`). A displayed percentage is only `100 × ratio`; there is no second full-test metric. For the complete `0.1.0` data package, the scope denominator is **426 points**.
 - **Diagnostic slices:** `slice.text_answerable.weighted_points`, `slice.vision_required.weighted_points`, and the full-credit rate (`diagnostic.full_credit_rate`; `diagnostic.exact_accuracy` in legacy `0.0.x` packages) are secondary metrics with their own IDs and denominators. They never replace the primary metric.
-- **Exact Match per Question:** In `0.0.4`, multi-select and multi-blank questions are all-or-nothing. Every slot must match to earn the question's points.
+- **Exact Match per Question:** In `0.1.0`, multi-select and multi-blank questions are all-or-nothing. Every slot must match to earn the question's points.
 - **No Dropped Samples:** Missing outputs, JSON format errors, timeouts, and API failures are recorded and scored as `0`.
-- **Text vs. Vision Profiles:** Both profiles are evaluated against the same 353-point denominator. In `text` mode, the 4 figure-dependent questions are skipped and scored `0` (capping the reachable score at 334/353). In `vision` mode, the cropped figures are attached for those 4 questions.
+- **Text vs. Vision Profiles:** Both profiles are evaluated against the same 426-point denominator. In `text` mode, the 4 figure-dependent questions are skipped and scored `0` (capping the reachable score at 407/426). In `vision` mode, the cropped figures are attached for those 4 questions.
 - **Failure taxonomy:** provider errors, harness errors, parse errors, unavailable images, and output truncation remain in the denominator and are counted separately. A truncated reasoning response is not silently treated as an ordinary wrong answer.
 - **Separate Leaderboards:** Publicly available historical papers are tagged `retrospective_public_2025`. They are never mixed into a held-out or freshness claim; a separate `post_cutoff_live` track is required for new-exam evaluations.
 
@@ -226,6 +245,7 @@ Our long-term goal is to build a **complete, high-precision archive covering eve
 ### Phase 1: Core Infrastructure & 2025 Baseline (Completed)
 - [x] **v0.0.1 — 2025 Mathematics Objective Baseline:** 5 papers (National I, National II, Beijing, Shanghai, Tianjin; 74 items / 353 points) with text & vision profiles and deterministic math parsing.
 - [x] **v0.0.4 — Audit and Reporting Closure:** single primary metric, `audited_passed` owner attestation, canonical reproducibility metadata, separate retrospective/live tracks, and diagnostic-only vision reporting.
+- [x] **v0.1.0 — Cumulative Release with Per-Question Evidence:** six papers (2025 National I/II, Beijing, Shanghai, Tianjin, and 2026 National I) closing at 119 questions / 900 points, 88 scored questions / 426 points, and a 31-question subjective catalog; each question records the source-evidence tier it actually reaches instead of the package claiming one level for all of them.
 
 ### Phase 2: 10-Year Expansion & All-Subject Objective Coverage (In Progress)
 - [ ] **2015–2024 Mathematics Archive:** Full coverage of the past decade of national and provincial Mathematics papers to track model performance across shifting exam difficulty.
@@ -272,7 +292,7 @@ If you find Gaokao-Bench useful in your research or evaluations, please cite:
   author       = {{Gaokao-Bench contributors}},
   title        = {Gaokao-Bench},
   year         = {2026},
-  version      = {0.0.4},
+  version      = {0.1.0},
   url          = {https://huggingface.co/datasets/Knove/Gaokao-Bench}
 }
 ```
